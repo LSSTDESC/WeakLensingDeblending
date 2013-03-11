@@ -171,11 +171,15 @@ int main(int argc, char *argv[]) {
     // Configure cmd-line options
     po::options_description cli("Geometrical overlaps calculator");
     int seed;
-    double fieldRadius,density,galaxyRadius,padFraction,psfSize;
+    double fieldCenterRA,fieldCenterDec,fieldRadius,density,galaxyRadius,padFraction,psfSize;
     std::string mathOutput,rootOutput,graphOutput,catalogName;
     cli.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
+        ("field-center-ra", po::value<double>(&fieldCenterRA)->default_value(0.5),
+            "RA of field center in deg.")
+        ("field-center-dec", po::value<double>(&fieldCenterDec)->default_value(-0.5),
+            "Dec of field center in deg.")
         ("field-radius", po::value<double>(&fieldRadius)->default_value(1),
             "Size of field in arcminutes.")
         ("pad-fraction", po::value<double>(&padFraction)->default_value(0.1),
@@ -185,7 +189,7 @@ int main(int argc, char *argv[]) {
         ("galaxy-radius", po::value<double>(&galaxyRadius)->default_value(1),
             "Galaxy radius in arcseconds (scales half-light radius if < 0).")
         ("psf-size", po::value<double>(&psfSize)->default_value(0),
-            "Amount of add in quadrature to semi-major,minor axis lengths in arcsecs.")
+            "Amount to add in quadrature to semi-major,minor axis lengths in arcsecs.")
         ("math-output", po::value<std::string>(&mathOutput)->default_value(""),
             "Filename to save mathematica output.")
         ("root-output", po::value<std::string>(&rootOutput)->default_value(""),
@@ -260,17 +264,26 @@ int main(int argc, char *argv[]) {
         // Loop over catalog entries.
         long id;
         int lines(0);
-        double ra,dec,u,g,r,i,z,y,redshift,a_bulge,b_bulge,a_disk,b_disk,absmag_r_total;
+        // Per-galaxy columns (r_ab appears twice: here and in the per-filter section... to be fixed)
+        double ra,dec,redshift,r_ab,absmag_r_total;
+        // Per-component (bulge/disk) columns
+        double BulgeHalfLightRadius,DiskHalfLightRadius,pa_bulge,pa_disk,magnorm_bulge,magnorm_disk,
+            sedid_bulge,sedid_disk,a_b,a_d,b_b,b_d;
+        std::string sedname_bulge,sedname_disk;
+        // Per-filter (ugrizy) colunns
+        double u_ab,g_ab,/*r_ab,*/i_ab,z_ab,y_ab;
         while(cat.good()) {
-            cat >> id >> ra >> dec >> u >> g >> r >> i >> z >> y
-                >> redshift >> a_bulge >> b_bulge >> a_disk >> b_disk >> absmag_r_total;
+            cat >> id>>ra>>dec>>redshift>>r_ab>>absmag_r_total
+                >> BulgeHalfLightRadius>>DiskHalfLightRadius>>pa_bulge>>pa_disk>>magnorm_bulge>>magnorm_disk
+                >> sedid_bulge>>sedid_disk>>sedname_bulge>>sedname_disk>>a_b>>a_d>>b_b>>b_d
+                >> u_ab>>g_ab>>r_ab>>i_ab>>z_ab>>y_ab;
             if(!cat.good()) break;
             lines++;
             // Does this pass our magnitude limit?
-            if(i > icut) continue;
-            // Convert (ra,dec) to arcmins relative to the catalog field center.
-            double x = (ra - 0.028)*60*180/pi;
-            double y = (dec - 0.089)*60*180/pi;
+            if(i_ab > icut) continue;
+            // Convert (ra,dec) in degrees to arcmins relative to the field center.
+            double x = (ra - fieldCenterRA)*60;
+            double y = (dec - fieldCenterDec)*60;
             // Is this object within our field.
             if(x*x + y*y > fieldRadius*fieldRadius) continue;
             // Create this galaxy.
@@ -278,15 +291,15 @@ int main(int argc, char *argv[]) {
             double phi = 0;
             if(!circular) {
                 // Ignore galaxies with no disk component
-                if(a_disk == 0) continue;
-                // The catalog is roughly flat in ratio = b_disk/a_disk
-                ratio = b_disk/a_disk;
+                if(a_d == 0) continue;
+                // The catalog is roughly flat in ratio = b_d/a_d
+                ratio = b_d/a_d;
                 phi = random->getUniform()*2*pi;
             }
             // Calculate the galaxy major and minor radii in arcmins.
             double rminor,rmajor;
             if(galaxyRadius < 0) {
-                rminor = b_disk/60.;
+                rminor = b_d/60.;
             }
             else {
                 rminor = std::sqrt(galaxyArea*ratio/pi)/60.;
