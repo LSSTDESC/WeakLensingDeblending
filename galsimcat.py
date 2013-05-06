@@ -22,7 +22,7 @@ def createSource(flux,rhalf,q,beta,g1,g2,dx,dy):
     source.applyShift(dx = dx, dy = dy)
     return source
 
-def main(argv):
+def main():
    
     # Parse command-line args
     parser = argparse.ArgumentParser()
@@ -205,4 +205,4 @@ def main(argv):
     galsim.fits.writeMulti(stamps, outname)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
