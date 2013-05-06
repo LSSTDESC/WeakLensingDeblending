@@ -8,12 +8,10 @@
 import sys
 import os
 import math
+import argparse
+
 import logging
 import galsim
-
-# Input catalog to read
-catname = 'trim.dat'
-##catname = 'demotrim.dat'
 
 # image pixel bounds
 xmin = ymin = 1792
@@ -57,6 +55,11 @@ def createSource(flux,rhalf,q,beta,g1,g2,dx,dy):
     return source
 
 def main(argv):
+    
+    # Parse command-line args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", default='trim.dat', help="name of input catalog to read")
+    args = parser.parse_args()
 
     # In non-script code, use getLogger(__name__) at module scope instead.
     logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
@@ -66,8 +69,8 @@ def main(argv):
     pix = galsim.Pixel(pixelScale)
 
     # Open the input catalog to use
-    cat = galsim.InputCatalog(catname)
-    logger.info('Reading input catalog %r' % catname)
+    cat = galsim.InputCatalog(args.input)
+    logger.info('Reading input catalog %r' % args.input)
     
     # Initialize the list of stamps we will create and an empty image that
     # we will add each stamp to
