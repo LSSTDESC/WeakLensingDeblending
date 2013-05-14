@@ -24,7 +24,7 @@ def createSource(flux,rhalf,q,beta,g1,g2,dx,dy):
     return source
 
 def main():
-   
+
     # Parse command-line args
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", default = 'trim.dat',
@@ -41,6 +41,10 @@ def main():
         help = "top edge of image (pixels)")
     parser.add_argument("--pixel-scale", type = float, default = 0.2,
         help = "pixel scale (arscecs/pixel)")
+    parser.add_argument("--psf-fwhm", type = float, default = 0.7,
+        help = "psf full-width-half-max in arcsecs")
+    parser.add_argument("--psf-beta", type = float, default = 3.0,
+        help = "psf Moffat parameter beta")
     parser.add_argument("--nvisits", type = int, default = 230,
         help = "number of visits to simulate")
     parser.add_argument("--sky-level", type = float, default = 780.778,
@@ -77,8 +81,8 @@ def main():
     cat = galsim.InputCatalog(args.input)
     logger.info('Reading input catalog %r' % args.input)
     
-    # Define the psf (beta = 3 taken from GREAT10 simulations)
-    psf = galsim.Moffat(beta = 3, fwhm = 0.7)
+    # Define the psf to use
+    psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
 
     # Create an empty image that we will add each stamp to
     field = galsim.ImageD(args.xmax-args.xmin,args.ymax-args.ymin,init_value = 0)
