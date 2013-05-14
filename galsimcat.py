@@ -28,6 +28,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", default = 'trim.dat',
         help = "name of input catalog to read")
+    parser.add_argument("-o","--output", default = 'catout',
+        help = "base name of output files to write")
     parser.add_argument("--xmin", type = int, default = 1792,
         help = "left edge of image (pixels)")
     parser.add_argument("--xmax", type = int, default = 2304,
@@ -51,6 +53,7 @@ def main():
     # In non-script code, use getLogger(__name__) at module scope instead.
     logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
     logger = logging.getLogger("aliasing")
+    logger.info('Using output prefix %r' % args.output)
 
     # Calculate RA,DEC bounds
     RAmin = args.xmin*args.pixel_scale
@@ -186,7 +189,7 @@ def main():
                 field[overlap] += stamp[overlap]
 
     # Write the full field image to a separate file
-    outname = 'field.fits'
+    outname = args.output + '_field.fits'
     logger.info('Saving full field to %r' % outname)
     galsim.fits.write(field,outname)
 
@@ -195,12 +198,12 @@ def main():
         rng = galsim.BaseDeviate(123)
         noise = galsim.PoissonNoise(rng,sky_level = 2*args.nvisits*args.sky_level)
         field.addNoise(noise)
-        outname = 'fieldnoise.fits'
+        outname = args.output + '_noise.fits'
         logger.info('Saving full field to %r' % outname)
         galsim.fits.write(field,outname)
 
     # Write the indiviual stamps to multifits files
-    outname = 'each.fits'
+    outname = args.output + '_each.fits'
     logger.info('Saving %d source stamps to %r' % (len(stamps),outname))
     galsim.fits.writeMulti(stamps, outname)
 
