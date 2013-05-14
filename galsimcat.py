@@ -13,6 +13,7 @@ import argparse
 
 import logging
 import galsim
+import pyfits
 
 def createSource(flux,rhalf,q,beta,g1,g2,dx,dy):
     source = galsim.Exponential(flux = flux, half_light_radius = rhalf)
@@ -76,13 +77,15 @@ def main():
     cat = galsim.InputCatalog(args.input)
     logger.info('Reading input catalog %r' % args.input)
     
-    # Initialize the list of stamps we will create and an empty image that
-    # we will add each stamp to
-    stamps = [ ]
-    field = galsim.ImageD(args.xmax-args.xmin,args.ymax-args.ymin,init_value = 0)
-
     # Define the psf (beta = 3 taken from GREAT10 simulations)
     psf = galsim.Moffat(beta = 3, fwhm = 0.7)
+
+    # Create an empty image that we will add each stamp to
+    field = galsim.ImageD(args.xmax-args.xmin,args.ymax-args.ymin,init_value = 0)
+
+    # Initialize the list of per-object stamp HDUs we will fill
+    hdu = pyfits.PrimaryHDU()
+    stampsList = pyfits.HDUList([hdu])
 
     # Loop over catalog entries
     nkeep = 0
@@ -174,6 +177,7 @@ def main():
             variations.append(copy)
 
         # Loop over variations to render
+        cubeStamps = [ ]
         for src in variations:
             stamp = galsim.ImageD(w,h)
             if src == nopsf:
@@ -182,11 +186,16 @@ def main():
                 object = galsim.Convolve([src,psf,pix])
             object.draw(image = stamp, dx = args.pixel_scale)
             stamp.shift(dx,dy)
-            stamps.append(stamp)
+            cubeStamps.append(stamp)
             if src == gal:
                 # Add the nominal galaxy to the full field image
                 overlap = stamp.bounds & field.bounds
                 field[overlap] += stamp[overlap]
+                
+        # Add a new HDU with a datacube for this object's stamps
+        # We don't use compression = 'gzip_tile' for now since it is lossy
+        # and mathematica cannot Import it.
+        galsim.fits.writeCube(cubeStamps, hdu_list = stampsList)
 
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
@@ -202,10 +211,11 @@ def main():
         logger.info('Saving full field to %r' % outname)
         galsim.fits.write(field,outname)
 
-    # Write the indiviual stamps to multifits files
-    outname = args.output + '_each.fits'
-    logger.info('Saving %d source stamps to %r' % (len(stamps),outname))
-    galsim.fits.writeMulti(stamps, outname)
+    # Write the object stamp datacubes
+    outname = args.output + '_stamps.fits'
+    logger.info('Saving stamps to %r' % outname)
+    galsim.fits.write_file(outname, hdus = stampsList, clobber = True,
+        file_compress = None, pyfits_compress = None)
 
 if __name__ == "__main__":
     main()
