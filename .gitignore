@@ -2,4 +2,5 @@
 *.pyc
 *.dat
 *.fits
+*.gz
 catalogAnalysis
