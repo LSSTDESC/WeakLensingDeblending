@@ -85,11 +85,12 @@ def main():
     DECmin = args.ymin*args.pixel_scale
     DECmax = args.ymax*args.pixel_scale
 
-    # Initialize finite difference coefficients if we will be calculating partials
+    # Initialize finite difference calculations if necessary
     if args.partials:
         if args.partials_order < 1 or args.partials_order > 4:
             logger.error('Bad parameter: partials-order must be an integer 1-4.')
             sys.exit(-1)
+        # Initialize the finite difference coefficients to use
         if args.partials_order == 1:
             fdCoefs = (1./2.,)
         elif args.partials_order == 2:
@@ -182,32 +183,28 @@ def main():
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
-            deltas = {
-                'flux':0, 'xc':args.pixel_scale/3., 'yc':args.pixel_scale/3.,
-                'hlr':0.05*hlr, 'q':0, 'beta':0,
-                'g1':0.03, 'g2':0.03
-            }
+            # (we don't use a dictionary here since we want to control the order)
+            variations = [
+                ('xc',args.pixel_scale/3.), ('yc',args.pixel_scale/3.),
+                ('hlr',0.05*hlr),
+                ('g1',0.03), ('g2',0.03)
+            ]
             # loop over source parameters to vary
-            for pname in params.keys():
-                if deltas[pname] == 0:
-                    continue
+            for (pname,delta) in variations:
                 # create stamps for each variation of this parameter
                 newparams = params.copy()
-                partial = galsim.ImageD(w,h,init_value = 0)
+                partial = galsim.ImageD(w,h)
                 for step in range(args.partials_order):
-                    delta = (step+1)*deltas[pname]
                     # create and save the positive variation stamp
-                    newparams[pname] = params[pname] + delta
+                    newparams[pname] = params[pname] + (step+1)*delta
                     newsource = createSource(**newparams)
                     plus = createStamp(newsource,psf,pix,bbox)
                     # create and save the negative variation stamp
-                    newparams[pname] = params[pname] - delta
+                    newparams[pname] = params[pname] - (step+1)*delta
                     newsource = createSource(**newparams)
                     minus = createStamp(newsource,psf,pix,bbox)
                     # update the finite difference calculation of this partial
-                    partial += fdCoefs[step]*(plus - minus)
-                # rescale the finite difference result to get a partial derivative
-                partial /= deltas[pname]
+                    partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
                 datacube.append(partial)
 
