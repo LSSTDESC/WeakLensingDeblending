@@ -18,6 +18,7 @@ import pyfits
 twopi = 2*math.pi
 deg2rad = math.pi/180.
 deg2arcsec = 3600.
+arcmin2arcsec = 60.
 
 """
 Creates a source object with the specified parameters.
@@ -52,12 +53,14 @@ def main():
         help = "base name of output files to write")
     parser.add_argument("-x","--x-center", type = float, default = 2048.,
         help = "central RA of image (pixels)")
-    parser.add_argument("-y","--y-center", type = float, default = 2048.,
+    parser.add_argument("-y","--y-center", type = float, default = -2048.,
         help = "central DEC of image (pixels)")
     parser.add_argument("--width", type = int, default = 512,
         help = "image width (pixels)")
     parser.add_argument("--height", type = int, default = 512,
         help = "image height (pixels)")
+    parser.add_argument("--margin", type = float, default = 10.,
+        help = "size of surrounding margin where objects might leak into image (arcmins)")
     parser.add_argument("--pixel-scale", type = float, default = 0.2,
         help = "pixel scale (arscecs/pixel)")
     parser.add_argument("--psf-fwhm", type = float, default = 0.7,
@@ -94,9 +97,14 @@ def main():
     # Create an empty image that represents the whole field
     field = galsim.ImageD(args.width,args.height)
     
-    # Calculate the bottom-left corner of the image in arcsecs
-    RA0 = (args.x_center - 0.5*args.width)*args.pixel_scale;
-    DEC0 = (args.y_center - 0.5*args.height)*args.pixel_scale;
+    # Calculate the corners of the image in arcsecs
+    RAmin = (args.x_center - 0.5*args.width)*args.pixel_scale
+    RAmax = (args.x_center + 0.5*args.width)*args.pixel_scale
+    DECmin = (args.y_center - 0.5*args.height)*args.pixel_scale
+    DECmax = (args.y_center + 0.5*args.height)*args.pixel_scale
+    
+    # Calculate margin size in arcsecs
+    margin = args.margin*arcmin2arcsec
 
     # Initialize finite difference calculations if necessary
     if args.partials:
@@ -131,23 +139,20 @@ def main():
     r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
     cpsf = math.pi*f0*r0psf*r0psf/(args.psf_beta-1.)
 
-    # size of square region to use in pixels, with its top-left corner at (ra,dec) = (0,0)
-    # (an LSST chip is 4096 pixels on a side)
-    FieldSize = 4096
-
     # Loop over catalog entries
-    nkeep = lineno = index = 0
+    nkeep = lineno = 0
     for line in cat:
         lineno += 1
 
-        # position on the sky
+        # position on the sky in arcsecs
         cols = line.split()
         RA = float(cols[1])*deg2arcsec
-        DEC = FieldSize*args.pixel_scale + float(cols[2])*deg2arcsec
-        # ignore objects outside our window
-        if RA > FieldSize*args.pixel_scale or DEC < 0:
+        DEC = float(cols[2])*deg2arcsec
+        
+        # skip sources outside our margins
+        if RA < RAmin-margin or RA > RAmax+margin or DEC < DECmin-margin or DEC > DECmax+margin:
             continue
-
+        
         # Calculate total flux in ADU units
         r_ab = float(cols[22]) # AB magnitude in r band
         i_ab = float(cols[23]) # AB magnitude in i band
@@ -192,25 +197,13 @@ def main():
         width += rpad
         height += rpad
 
-        #RA = cat.getFloat(k,0)     # arcsecs
-        #DEC = cat.getFloat(k,1)    # arcsecs
-        #flux = cat.getFloat(k,2)   # integrated ADU / exposure
-        #hlr = cat.getFloat(k,3)    # arcsecs
-        #q = cat.getFloat(k,4)      # 0 < q < 1
-        #beta = cat.getFloat(k,5)   # degrees
-        ##width = cat.getFloat(k,6)  # half-width of bounding box in arcsecs
-        ##height = cat.getFloat(k,7) # half-height of bounding box in arcsecs
-        #iAB = cat.getFloat(k,8)    # AB mags
-        
-        index += 1
-        
         # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
         flux = 2*args.nvisits*flux
         
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
-        xoffset = (RA - RA0)/args.pixel_scale
-        yoffset = (DEC - DEC0)/args.pixel_scale
+        xoffset = (RA - RAmin)/args.pixel_scale
+        yoffset = (DEC - DECmin)/args.pixel_scale
         
         # Calculate the coordinates of the image pixel that contains the source center
         # (using the convention that the bottom left corner pixel has coordinates 1,1)
@@ -232,8 +225,8 @@ def main():
 
         # If we get this far, we are definitely keeping this source
         nkeep += 1
-        logger.info('rendering stamp %d (id %d, line %d) with w x h = %d x %d' %
-            (nkeep,(index-1),lineno,2*xhalf+1,2*yhalf+1))
+        logger.info('rendering stamp %d (line %d) with w x h = %d x %d' %
+            (nkeep,lineno,2*xhalf+1,2*yhalf+1))
 
         # Calculate the subpixel shift in arcsecs (not pixels!) of the source center
         # relative to the center of pixel (xpixels,ypixels)
