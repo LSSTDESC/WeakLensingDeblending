@@ -74,13 +74,15 @@ def main():
     parser.add_argument("--sky-level", type = float, default = 780.778,
         help = "average sky level to simulate (ADU/pixel)")
     parser.add_argument("--g1", type = float, default = 0.,
-        help = "Constant shear component g1 to apply")
+        help = "constant shear component g1 to apply")
     parser.add_argument("--g2", type = float, default = 0.,
-        help = "Constant shear component g2 to apply")
+        help = "constant shear component g2 to apply")
+    parser.add_argument("--stamps", action = "store_true",
+        help = "save postage stamps for each source")
     parser.add_argument("--partials", action = "store_true",
-        help = "Calculate and save partial derivatives with respect to object parameters")
+        help = "calculate and save partial derivatives with respect to object parameters")
     parser.add_argument("--partials-order", type = int, default = 1,
-        help = "Order of finite difference equation to use for evaluating partials")
+        help = "order of finite difference equation to use for evaluating partials")
     args = parser.parse_args()
 
     # Configure the GalSim logger
@@ -103,11 +105,13 @@ def main():
     DECmin = (args.y_center - 0.5*args.height)*args.pixel_scale
     DECmax = (args.y_center + 0.5*args.height)*args.pixel_scale
     
-    # Calculate margin size in arcsecs
+    # Calculate margin size in arcsecs (sources outside of our image margins
+    # are always skipped, for speed, even if their tails might overlap our image)
     margin = args.margin*arcmin2arcsec
 
     # Initialize finite difference calculations if necessary
     if args.partials:
+        args.stamps = True
         if args.partials_order < 1 or args.partials_order > 4:
             logger.error('Bad parameter: partials-order must be an integer 1-4.')
             sys.exit(-1)
@@ -299,10 +303,11 @@ def main():
         galsim.fits.write(field,outname)
 
     # Write the object stamp datacubes
-    outname = args.output + '_stamps.fits'
-    logger.info('Saving stamps to %r' % outname)
-    galsim.fits.write_file(outname, hdus = hduList, clobber = True,
-        file_compress = None, pyfits_compress = None)
+    if args.stamps:
+        outname = args.output + '_stamps.fits'
+        logger.info('Saving stamps to %r' % outname)
+        galsim.fits.write_file(outname, hdus = hduList, clobber = True,
+            file_compress = None, pyfits_compress = None)
 
 if __name__ == "__main__":
     main()
