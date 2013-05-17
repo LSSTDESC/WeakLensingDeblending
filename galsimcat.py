@@ -15,6 +15,10 @@ import logging
 import galsim
 import pyfits
 
+twopi = 2*math.pi
+deg2rad = math.pi/180.
+deg2arcsec = 3600.
+
 """
 Creates a source object with the specified parameters.
 """
@@ -42,7 +46,7 @@ def main():
 
     # Parse command-line args
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", default = 'trim.dat',
+    parser.add_argument("-i", "--input", default = 'gcat.dat',
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
         help = "base name of output files to write")
@@ -60,6 +64,8 @@ def main():
         help = "psf full-width-half-max in arcsecs")
     parser.add_argument("--psf-beta", type = float, default = 3.0,
         help = "psf Moffat parameter beta")
+    parser.add_argument("--flux-norm", type = float, default = 711.,
+        help = "total flux in ADU for a typical galaxy of AB mag 24")
     parser.add_argument("--nvisits", type = int, default = 230,
         help = "number of visits to simulate")
     parser.add_argument("--sky-level", type = float, default = 780.778,
@@ -107,27 +113,96 @@ def main():
         else:
             fdCoefs = (4./5.,-1./5.,4./105.,-1./280.)
 
-    # Open the source input catalog to use
-    cat = galsim.InputCatalog(args.input)
-    logger.info('Reading input catalog %r' % args.input)
+    # Open the source input catalog to use and read the header line
+    cat = open(args.input)
+    cathdr = cat.readline().split()
+    logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
     
     # Initialize the list of per-object stamp HDUs we will fill
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
 
-    # Loop over catalog entries
-    nkeep = 0
-    for k in range(cat.nobjects):
+    # surface brightness isophote to cut at in ADU units per pixel where, in the case of an
+    # image stack, ADU is an average rather than a sum so that the sky decreases with stacking.
+    fcut = 2.0
+    f0 = fcut/(args.pixel_scale*args.pixel_scale)
 
-        RA = cat.getFloat(k,0)     # arcsecs
-        DEC = cat.getFloat(k,1)    # arcsecs
-        flux = cat.getFloat(k,2)   # integrated ADU / exposure
-        hlr = cat.getFloat(k,3)    # arcsecs
-        q = cat.getFloat(k,4)      # 0 < q < 1
-        beta = cat.getFloat(k,5)   # degrees
-        width = cat.getFloat(k,6)  # half-width of bounding box in arcsecs
-        height = cat.getFloat(k,7) # half-height of bounding box in arcsecs
-        iAB = cat.getFloat(k,8)    # AB mags
+    # calculate r0 from fwhm
+    r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
+    cpsf = math.pi*f0*r0psf*r0psf/(args.psf_beta-1.)
+
+    # size of square region to use in pixels, with its top-left corner at (ra,dec) = (0,0)
+    # (an LSST chip is 4096 pixels on a side)
+    FieldSize = 4096
+
+    # Loop over catalog entries
+    nkeep = lineno = index = 0
+    for line in cat:
+        lineno += 1
+
+        # position on the sky
+        cols = line.split()
+        RA = float(cols[1])*deg2arcsec
+        DEC = FieldSize*args.pixel_scale + float(cols[2])*deg2arcsec
+        # ignore objects outside our window
+        if RA > FieldSize*args.pixel_scale or DEC < 0:
+            continue
+
+        # Calculate total flux in ADU units
+        r_ab = float(cols[22]) # AB magnitude in r band
+        i_ab = float(cols[23]) # AB magnitude in i band
+        flux = args.flux_norm*math.pow(10,24-i_ab)
+        # Ignore objects whose total flux is below half of our per-pixel threshold
+        if flux < 0.5*fcut:
+            continue
+        
+        # disk components
+        hlr_d = float(cols[7]) # in arcsecs
+        if hlr_d <= 0:
+            continue
+        pa_d = float(cols[9]) # position angle in degrees
+        a_d = float(cols[17]) # major axis length in arcsecs
+        b_d = float(cols[19]) # minor axis length in arcsecs
+        # Calculate sheared ellipse aspect ratio
+        q_d = b_d/a_d # between 0.2 and 1
+        # Convert position angle from degrees to radians
+        pa_d = pa_d*deg2rad
+        
+        # Convert half-light radius of exponential profile to scale radius in arcsecs
+        r_scale = hlr_d/1.67835
+        # Calculate shear affine transform parameters
+        g = (1-q_d)/(1+q_d)
+        gp = g*math.cos(2*pa_d)
+        gx = g*math.sin(2*pa_d)
+        detM = 1 - gp*gp - gx*gx
+        # Calculate the bounding box for the limiting isophote with no psf
+        x = twopi*r_scale*r_scale*f0/(flux*detM)
+        rcut = -r_scale*math.log(x)
+        if rcut <= 0:
+            # object is below our threshold without any psf
+            continue
+        width = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
+        height = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
+        # Calculate the psf padding
+        arg = math.pow(cpsf/flux,-1./args.psf_beta) - 1
+        if arg > 0:
+            rpad = r0psf*math.sqrt(arg)
+        else:
+            rpad = 0
+        width += rpad
+        height += rpad
+
+        #RA = cat.getFloat(k,0)     # arcsecs
+        #DEC = cat.getFloat(k,1)    # arcsecs
+        #flux = cat.getFloat(k,2)   # integrated ADU / exposure
+        #hlr = cat.getFloat(k,3)    # arcsecs
+        #q = cat.getFloat(k,4)      # 0 < q < 1
+        #beta = cat.getFloat(k,5)   # degrees
+        ##width = cat.getFloat(k,6)  # half-width of bounding box in arcsecs
+        ##height = cat.getFloat(k,7) # half-height of bounding box in arcsecs
+        #iAB = cat.getFloat(k,8)    # AB mags
+        
+        index += 1
         
         # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
         flux = 2*args.nvisits*flux
@@ -157,7 +232,8 @@ def main():
 
         # If we get this far, we are definitely keeping this source
         nkeep += 1
-        logger.info('rendering stamp %d (id %d) with w x h = %d x %d' % (nkeep,k,2*xhalf+1,2*yhalf+1))
+        logger.info('rendering stamp %d (id %d, line %d) with w x h = %d x %d' %
+            (nkeep,(index-1),lineno,2*xhalf+1,2*yhalf+1))
 
         # Calculate the subpixel shift in arcsecs (not pixels!) of the source center
         # relative to the center of pixel (xpixels,ypixels)
@@ -167,7 +243,7 @@ def main():
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
             'flux':flux, 'xc':xshift, 'yc':yshift,
-            'hlr':hlr, 'q':q, 'beta':beta,
+            'hlr':hlr_d, 'q':q_d, 'beta':pa_d,
             'g1':args.g1, 'g2': args.g2
         }
 
@@ -188,7 +264,7 @@ def main():
             # (we don't use a dictionary here since we want to control the order)
             variations = [
                 ('xc',args.pixel_scale/3.), ('yc',args.pixel_scale/3.),
-                ('hlr',0.05*hlr),
+                ('hlr',0.05*hlr_d),
                 ('g1',0.03), ('g2',0.03)
             ]
             # loop over source parameters to vary
