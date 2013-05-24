@@ -110,6 +110,8 @@ def main():
         help = "psf full-width-half-max in arcsecs")
     parser.add_argument("--psf-beta", type = float, default = 3.0,
         help = "psf Moffat parameter beta")
+    parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
+        help = "LSST imaging band to use for source fluxes")
     parser.add_argument("--flux-norm", type = float, default = 711.,
         help = "total flux in ADU for one exposure of a typical galaxy of AB mag 24")
     parser.add_argument("--sky-level", type = float, default = 780.778,
@@ -153,6 +155,28 @@ def main():
     # Calculate margin size in arcsecs (sources outside of our image margins
     # are always skipped, for speed, even if their tails might overlap our image)
     margin = args.margin*arcmin2arcsec
+    
+    # Convert the band into an integer index
+    bandIndex = "ugrizy".find(args.band)
+
+    # Calculate the sky noise level in stacked ADU / pixel
+    skyNoise = math.sqrt(2*args.nvisits*args.sky_level)
+    
+    # Calculate the stacked pixel ADU threshold cut to use
+    pixelCut = args.sn_cut*skyNoise
+
+    # Calculate the corresponding surface brightness cut to use
+    sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
+    
+    print 'Simulating %s-band observations with flux(AB24) = %.3f ADU/pixel/exp for typical galaxy.' %(
+        args.band,args.flux_norm)
+    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel.' % (
+        args.nvisits,skyNoise)
+    print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
+
+    # calculate r0 from fwhm
+    r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
+    cpsf = math.pi*sbCut*r0psf*r0psf/(args.psf_beta-1.)
 
     # Initialize finite difference calculations if necessary
     if args.partials:
@@ -179,22 +203,6 @@ def main():
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
 
-    # Calculate the sky noise level in stacked ADU / pixel
-    skyNoise = math.sqrt(2*args.nvisits*args.sky_level)
-    
-    # Calculate the stacked pixel ADU threshold cut to use
-    pixelCut = args.sn_cut*skyNoise
-
-    # Calculate the corresponding surface brightness cut to use
-    sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
-    
-    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel.' % (args.nvisits,skyNoise)
-    print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
-
-    # calculate r0 from fwhm
-    r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
-    cpsf = math.pi*sbCut*r0psf*r0psf/(args.psf_beta-1.)
-
     # Loop over catalog entries
     nkeep = lineno = 0
     for line in cat:
@@ -209,10 +217,10 @@ def main():
         if RA < RAmin-margin or RA > RAmax+margin or DEC < DECmin-margin or DEC > DECmax+margin:
             continue
         
+        # Look up source AB magnitude in the requested band
+        abMag = float(cols[20+bandIndex])
         # Calculate total flux in ADU units
-        r_ab = float(cols[22]) # AB magnitude in r band
-        i_ab = float(cols[23]) # AB magnitude in i band
-        flux = args.flux_norm*math.pow(10,24-i_ab)
+        flux = args.flux_norm*math.pow(10,24-abMag)
         # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
         flux = 2*args.nvisits*flux
         # Skip objects whose total flux is below our pixel threshold
