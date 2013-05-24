@@ -111,11 +111,13 @@ def main():
     parser.add_argument("--psf-beta", type = float, default = 3.0,
         help = "psf Moffat parameter beta")
     parser.add_argument("--flux-norm", type = float, default = 711.,
-        help = "total flux in ADU for a typical galaxy of AB mag 24")
-    parser.add_argument("--nvisits", type = int, default = 230,
-        help = "number of visits to simulate")
+        help = "total flux in ADU for one exposure of a typical galaxy of AB mag 24")
     parser.add_argument("--sky-level", type = float, default = 780.778,
-        help = "average sky level to simulate (ADU/pixel)")
+        help = "average sky level to simulate (ADU/pixel in one exposure)")
+    parser.add_argument("--sn-cut", type = float, default = 0.1,
+        help = "keep all pixels above this signal-to-noise ratio cut")
+    parser.add_argument("--nvisits", type = int, default = 230,
+        help = "number of visits to simulate (1 visit = 2 exposures)")
     parser.add_argument("--g1", type = float, default = 0.,
         help = "constant shear component g1 to apply")
     parser.add_argument("--g2", type = float, default = 0.,
@@ -177,14 +179,21 @@ def main():
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
 
-    # surface brightness isophote to cut at in ADU units per pixel where, in the case of an
-    # image stack, ADU is an average rather than a sum so that the sky decreases with stacking.
-    fcut = 2.0
-    f0 = fcut/(args.pixel_scale*args.pixel_scale)
+    # Calculate the sky noise level in stacked ADU / pixel
+    skyNoise = math.sqrt(2*args.nvisits*args.sky_level)
+    
+    # Calculate the stacked pixel ADU threshold cut to use
+    pixelCut = args.sn_cut*skyNoise
+
+    # Calculate the corresponding surface brightness cut to use
+    sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
+    
+    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel.' % (args.nvisits,skyNoise)
+    print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
 
     # calculate r0 from fwhm
     r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
-    cpsf = math.pi*f0*r0psf*r0psf/(args.psf_beta-1.)
+    cpsf = math.pi*sbCut*r0psf*r0psf/(args.psf_beta-1.)
 
     # Loop over catalog entries
     nkeep = lineno = 0
@@ -204,8 +213,10 @@ def main():
         r_ab = float(cols[22]) # AB magnitude in r band
         i_ab = float(cols[23]) # AB magnitude in i band
         flux = args.flux_norm*math.pow(10,24-i_ab)
-        # Ignore objects whose total flux is below half of our per-pixel threshold
-        if flux < 0.5*fcut:
+        # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
+        flux = 2*args.nvisits*flux
+        # Skip objects whose total flux is below our pixel threshold
+        if flux < pixelCut:
             continue
         
         # disk components
@@ -219,24 +230,8 @@ def main():
         q_d = b_d/a_d # between 0.2 and 1
         # Convert position angle from degrees to radians
         pa_d = pa_d*deg2rad
-        
-        # Convert half-light radius of exponential profile to scale radius in arcsecs
-        r_scale = hlr_d/1.67835
-        # Calculate shear affine transform parameters
-        g = (1-q_d)/(1+q_d)
-        gp = g*math.cos(2*pa_d)
-        gx = g*math.sin(2*pa_d)
-        detM = 1 - gp*gp - gx*gx
-        # Calculate the bounding box for the limiting isophote with no psf
-        x = twopi*r_scale*r_scale*f0/(flux*detM)
-        rcut = -r_scale*math.log(x)
-        if rcut <= 0:
-            # object is below our threshold without any psf
-            continue
-        width = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
-        height = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
-        if (width,height) != sersicBounds(1,flux,hlr_d,q_d,pa_d,f0):
-            raise RuntimeError('uh-oh!')
+        # Calculate bounding box in arcsecs without psf or pixel convolution
+        (width,height) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
         # Calculate the psf padding
         arg = math.pow(cpsf/flux,-1./args.psf_beta) - 1
         if arg > 0:
@@ -246,9 +241,6 @@ def main():
         width += rpad
         height += rpad
 
-        # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
-        flux = 2*args.nvisits*flux
-        
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
         xoffset = (RA - RAmin)/args.pixel_scale
