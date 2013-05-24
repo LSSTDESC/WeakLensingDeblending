@@ -43,6 +43,49 @@ def createStamp(src,psf,pix,bbox):
     obj.draw(image = stamp)
     return stamp
 
+"""
+Returns (dx,dy) for the bounding box of a Sersic profile such that
+SB(x,y) < f0 is guaranteed for |x| > dx or |y| > dy, where the
+surface brightness is:
+
+  SB(x,y) = flux |M|/norm exp(-(s/r0)^(1/n))
+  
+with s = |M.(x,y)| and M the affine transform that makes isophotes round:
+    
+  M11 = 1 - g cos(2beta)
+  M12 = M21 = -g sin(2beta),
+  M22 = 1 + g cos(2beta)
+  g = (1-q)/(1+q)
+  
+The input hlr should be in arscecs and beta in radians. f0 is a surface
+brightness in ADU/arcsec^2. The returned (dx,dy) are in arcsecs.
+"""
+def sersicBounds(n,flux,hlr,q,beta,f0):
+    # Convert the half-light radius to the appropriate scale radius r0
+    # and calculate the Sersic normalization constant
+    if n == 1:
+        r0 = hlr/1.67835
+        norm = twopi*r0*r0
+    elif n == 4:
+        r0 = hlr/3459.49
+        norm = 2*twopi*r0*r0
+    else:
+        raise RuntimeError('Sersic index n = %d is not supported.' % n)
+    # Calculate shear affine transform parameters
+    g = (1-q)/(1+q)
+    gp = g*math.cos(2*beta)
+    gx = g*math.sin(2*beta)
+    detM = 1 - gp*gp - gx*gx
+    # Calculate the bounding box for the isophote SB = f0
+    x = norm*f0/(flux*detM)
+    if x >= 1:
+        # The max surface brightness is below our threshold SB(0,0) <= f0
+        return (0,0)
+    rcut = r0*math.pow(-math.log(x),n)
+    dx = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
+    dy = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
+    return (dx,dy)
+
 def main():
 
     # Parse command-line args
@@ -192,6 +235,8 @@ def main():
             continue
         width = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
         height = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
+        if (width,height) != sersicBounds(1,flux,hlr_d,q_d,pa_d,f0):
+            raise RuntimeError('uh-oh!')
         # Calculate the psf padding
         arg = math.pow(cpsf/flux,-1./args.psf_beta) - 1
         if arg > 0:
