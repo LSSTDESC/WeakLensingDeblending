@@ -107,7 +107,7 @@ def main():
     parser.add_argument("--pixel-scale", type = float, default = 0.2,
         help = "pixel scale (arscecs/pixel)")
     parser.add_argument("--psf-fwhm", type = float, default = 0.7,
-        help = "psf full-width-half-max in arcsecs")
+        help = "psf full-width-half-max in arcsecs (zero for no psf)")
     parser.add_argument("--psf-beta", type = float, default = 3.0,
         help = "psf Moffat parameter beta")
     parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
@@ -141,7 +141,10 @@ def main():
     pix = galsim.Pixel(args.pixel_scale)
 
     # Define the psf to use
-    psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
+    if args.psf_fwhm > 0:
+        psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
+    else:
+        psf = None
 
     # Create an empty image that represents the whole field
     field = galsim.ImageD(args.width,args.height)
