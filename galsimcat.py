@@ -40,7 +40,7 @@ def createStamp(src,psf,pix,bbox):
         obj = galsim.Convolve([src,pix], real_space = True)
     else:
         obj = galsim.Convolve([src,psf,pix])
-    obj.draw(image = stamp)
+    obj.draw(image = stamp, dx = pix.getXWidth())
     return stamp
 
 """
