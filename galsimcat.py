@@ -92,7 +92,7 @@ input image pixel value is above or below the specified threshold in ADU.
 """
 def createMask(image,threshold):
     # create an empty mask image with the same dimensions as the input image
-    mask = galsim.ImageD(image.bounds)
+    mask = galsim.ImageS(image.bounds)
     # loop over image pixels
     for (rowIndex,row) in enumerate(image.array):
         for (pixelIndex,pixelValue) in enumerate(row):
