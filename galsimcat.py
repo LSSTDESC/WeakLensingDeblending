@@ -86,6 +86,20 @@ def sersicBounds(n,flux,hlr,q,beta,f0):
     dy = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
     return (dx,dy)
 
+"""
+Returns a mask image of values 0 or 1 depending on whether the corresponding
+input image pixel value is above or below the specified threshold in ADU.
+"""
+def createMask(image,threshold):
+    # create an empty mask image with the same dimensions as the input image
+    mask = galsim.ImageD(image.bounds)
+    # loop over image pixels
+    for (rowIndex,row) in enumerate(image.array):
+        for (pixelIndex,pixelValue) in enumerate(row):
+            if pixelValue >= threshold:
+                mask.array[rowIndex,pixelIndex] = 1
+    return mask
+    
 def main():
 
     # Parse command-line args
