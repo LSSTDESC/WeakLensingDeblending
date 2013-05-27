@@ -376,10 +376,13 @@ def main():
 
         if args.verbose:
             logger.info('    flux: %.3g ADU (%s-band AB %.1f)' % (flux,args.band,abMag))
-            logger.info('  bounds: [%d-%d,%d-%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
+            logger.info('  bounds: [%d:%d,%d:%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
             logger.info('   shift: (%f,%f) arcsecs = (%f,%f) pixels' %
                 (xshift,yshift,xshift/args.pixel_scale,yshift/args.pixel_scale))
-            logger.info('    disk: hlr = %f arcsec, q = %f, beta = %f rad' % (hlr_d,q_d,pa_d))
+            logger.info('    disk: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
+                (1-bulgeFraction,hlr_d,q_d,pa_d))
+            logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
+                (bulgeFraction,hlr_b,q_b,pa_b))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
