@@ -23,9 +23,23 @@ arcmin2arcsec = 60.
 """
 Creates a source object with the specified parameters.
 """
-def createSource(flux,xc,yc,hlr,q,beta,g1,g2):
-    source = galsim.Exponential(flux = flux, half_light_radius = hlr)
-    source.applyShear(q = q, beta = beta*galsim.radians)
+def createSource(flux,bulgeFraction,xc,yc,hlr_d,q_d,beta_d,hlr_b,q_b,beta_b,g1,g2):
+    # Define the disk component, if any
+    if bulgeFraction < 1:
+        disk = galsim.Exponential(flux = flux*(1-bulgeFraction), half_light_radius = hlr_d)
+        disk.applyShear(q = q_d, beta = beta_d*galsim.radians)
+    # Define the bulge component, if any
+    if bulgeFraction > 0:
+        bulge = galsim.DeVaucouleurs(flux = flux*bulgeFraction, half_light_radius = hlr_b)
+        bulge.applyShear(q = q_b, beta = beta_b*galsim.radians)
+    # Combined the disk and bulge components
+    if bulgeFraction == 0:
+        source = disk
+    elif bulgeFraction == 1:
+        source = bulge
+    else:
+        source = disk + bulge
+    # Shift and shear the combined source
     source.applyShear(g1 = g1, g2 = g2)
     source.applyShift(dx = xc, dy = yc)
     return source
@@ -260,18 +274,48 @@ def main():
             bulgeFraction = 0
         
         # Get disk component parameters
-        hlr_d = float(cols[7]) # in arcsecs
-        if hlr_d <= 0:
-            continue
-        pa_d = float(cols[9]) # position angle in degrees
-        a_d = float(cols[17]) # major axis length in arcsecs
-        b_d = float(cols[19]) # minor axis length in arcsecs
-        # Calculate sheared ellipse aspect ratio
-        q_d = b_d/a_d # between 0.2 and 1
-        # Convert position angle from degrees to radians
-        pa_d = pa_d*deg2rad
-        # Calculate bounding box in arcsecs without psf or pixel convolution
-        (width,height) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
+        if bulgeFraction < 1:
+            hlr_d = float(cols[7]) # in arcsecs
+            if hlr_d <= 0:
+                raise RuntimeError('Unexpected hlr_d <= 0')
+            pa_d = float(cols[9]) # position angle in degrees
+            a_d = float(cols[17]) # major axis length in arcsecs
+            b_d = float(cols[19]) # minor axis length in arcsecs
+            # Calculate sheared ellipse aspect ratio
+            q_d = b_d/a_d # between 0.2 and 1
+            # Convert position angle from degrees to radians
+            pa_d = pa_d*deg2rad
+            # Calculate bounding box in arcsecs without psf or pixel convolution
+            (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
+            if (w_d,h_d) == (0,0):
+                # object's surface density is always below pixelCut
+                continue
+        else:
+            (hlr_d,q_d,pa_d) = (0,0,0)
+            (w_d,h_d) = (0,0)
+        
+        # Get bulge component parameters
+        if bulgeFraction > 0:
+            hlr_b = float(cols[6]) # in arcsecs
+            if hlr_b <= 0:
+                raise RuntimeError('Unexpected hlr_b <= 0')
+            pa_b = float(cols[8]) # position angle in degrees
+            a_b = float(cols[16]) # major axis length in arcsecs
+            b_b = float(cols[18]) # minor axis length in arcsecs
+            # Calculate sheared ellipse aspect ratio
+            q_b = b_b/a_b # between 0.2 and 1
+            # Convert position angle from degrees to radians
+            pa_b = pa_b*deg2rad
+            # Calculate bounding box in arcsecs without psf or pixel convolution
+            (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
+            if (w_b,h_b) == (0,0):
+                # object's surface density is always below pixelCut
+                continue
+        else:
+            (hlr_b,q_b,pa_b) = (0,0,0)
+            (w_b,h_b) = (0,0)
+        
+        '''
         # Calculate the psf padding
         arg = math.pow(cpsf/flux,-1./args.psf_beta) - 1
         if arg > 0:
@@ -280,13 +324,18 @@ def main():
             rpad = 0
         width += rpad
         height += rpad
-
+        '''
+        
+        # Combined the bulge and disk bounding boxes
+        width = max(w_d,w_b)
+        height = max(h_d,h_b)
+        
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
         xoffset = (RA - RAmin)/args.pixel_scale
         yoffset = (DEC - DECmin)/args.pixel_scale
         
-        # Calculate the coordinates of the image pixel that contains the source center
+        # Calculate the integer coordinates of the image pixel that contains the source center
         # (using the convention that the bottom left corner pixel has coordinates 1,1)
         xpixels = int(math.ceil(xoffset))
         ypixels = int(math.ceil(yoffset))
