@@ -68,7 +68,7 @@ def sersicBounds(n,flux,hlr,q,beta,f0):
         norm = twopi*r0*r0
     elif n == 4:
         r0 = hlr/3459.49
-        norm = 2*twopi*r0*r0
+        norm = 20160*twopi*r0*r0  # 20160 = n*Gamma[2*n]
     else:
         raise RuntimeError('Sersic index n = %d is not supported.' % n)
     # Calculate shear affine transform parameters
