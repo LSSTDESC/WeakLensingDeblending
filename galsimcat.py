@@ -142,6 +142,8 @@ def main():
         help = "constant shear component g2 to apply")
     parser.add_argument("--stamps", action = "store_true",
         help = "save postage stamps for each source")
+    parser.add_argument("--no-clip", action = "store_true",
+        help = "do not clip stamps to the image bounds")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives with respect to object parameters")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -298,7 +300,13 @@ def main():
         # Build this source's stamp bounding box
         bbox = galsim.BoundsI(xpixels-xhalf,xpixels+xhalf,ypixels-yhalf,ypixels+yhalf)
         
-        # Does this source overlap the image?
+        # Clip our source bounding box to the field's bounding box. Doing this can
+        # put the source center outside of the stamp, but not doing it can lead to
+        # un-necessarily large (and slow to render) stamps.
+        if not args.no_clip:
+            bbox &= field.bounds
+
+        # Skip objects that don't overlap our field
         if (bbox & field.bounds).area() == 0:
             continue
 
