@@ -246,7 +246,18 @@ def main():
         if flux < pixelCut:
             continue
         
-        # disk components
+        # Look up the disk and bulge fluxes, which are provided in the catalog as
+        # color-independent magnitudes.
+        bulgeMag = float(cols[10])
+        diskMag = float(cols[11])
+        if bulgeMag > 0 and diskMag > 0:
+            bulgeFraction = 1./(1.+math.exp(-(diskMag-bulgeMag)/2.5))
+        elif bulgeMag > 0:
+            bulgeFraction = 1
+        else:
+            bulgeFraction = 0
+        
+        # Get disk component parameters
         hlr_d = float(cols[7]) # in arcsecs
         if hlr_d <= 0:
             continue
