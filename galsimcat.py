@@ -383,8 +383,10 @@ def main():
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
-            'flux':flux, 'xc':xshift, 'yc':yshift,
-            'hlr':hlr_d, 'q':q_d, 'beta':pa_d,
+            'flux':flux, 'bulgeFraction': bulgeFraction,
+            'xc':xshift, 'yc':yshift,
+            'hlr_d':hlr_d, 'q_d':q_d, 'beta_d':pa_d,
+            'hlr_b':hlr_b, 'q_b':q_b, 'beta_b':pa_b,
             'g1':args.g1, 'g2': args.g2
         }
 
@@ -405,7 +407,7 @@ def main():
             # (we don't use a dictionary here since we want to control the order)
             variations = [
                 ('xc',args.pixel_scale/3.), ('yc',args.pixel_scale/3.),
-                ('hlr',0.05*hlr_d),
+                ('hlr_d',0.05*hlr_d),('hlr_b',0.05*hlr_b),
                 ('g1',0.03), ('g2',0.03)
             ]
             # loop over source parameters to vary
