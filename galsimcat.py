@@ -104,6 +104,8 @@ def main():
 
     # Parse command-line args
     parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", action = "store_true",
+        help = "provide more verbose output")
     parser.add_argument("-i", "--input", default = 'gcat.dat',
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
@@ -148,7 +150,7 @@ def main():
 
     # Configure the GalSim logger
     logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
-    logger = logging.getLogger("aliasing")
+    logger = logging.getLogger("galsimcat")
     logger.info('Using output prefix %r' % args.output)
 
     # Define the pixel response
@@ -291,13 +293,20 @@ def main():
 
         # If we get this far, we are definitely keeping this source
         nkeep += 1
-        logger.info('rendering stamp %d (line %d) with w x h = %d x %d' %
+        logger.info('Rendering stamp %d (line %d) with w x h = %d x %d' %
             (nkeep,lineno,2*xhalf+1,2*yhalf+1))
 
         # Calculate the subpixel shift in arcsecs (not pixels!) of the source center
         # relative to the center of pixel (xpixels,ypixels)
         xshift = (xoffset - (xpixels-0.5))*args.pixel_scale
         yshift = (yoffset - (ypixels-0.5))*args.pixel_scale
+
+        if args.verbose:
+            logger.info('    flux: %.3g ADU (%s-band AB %.1f)' % (flux,args.band,abMag))
+            logger.info('  bounds: [%d-%d,%d-%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
+            logger.info('   shift: (%f,%f) arcsecs = (%f,%f) pixels' %
+                (xshift,yshift,xshift/args.pixel_scale,yshift/args.pixel_scale))
+            logger.info('    disk: hlr = %f arcsec, q = %f, beta = %f rad' % (hlr_d,q_d,pa_d))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
