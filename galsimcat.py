@@ -162,6 +162,8 @@ def main():
         help = "calculate and save partial derivatives with respect to object parameters")
     parser.add_argument("--partials-order", type = int, default = 1,
         help = "order of finite difference equation to use for evaluating partials")
+    parser.add_argument("--only-line", type = int, default = 0,
+        help = "only use the specified line number from the input catalog (when non-zero)")
     args = parser.parse_args()
 
     # Configure the GalSim logger
@@ -242,6 +244,9 @@ def main():
     nkeep = lineno = 0
     for line in cat:
         lineno += 1
+
+        if args.only_line > 0 and lineno != args.only_line:
+            continue
 
         # position on the sky in arcsecs
         cols = line.split()
