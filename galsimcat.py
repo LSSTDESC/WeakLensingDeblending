@@ -315,10 +315,15 @@ def main():
         logger.info('Rendering stamp %d (line %d) with w x h = %d x %d' %
             (nkeep,lineno,2*xhalf+1,2*yhalf+1))
 
+        # Calculate the pixel coordinates of the stamp center.
+        xstamp = 0.5*(bbox.xmin + bbox.xmax)
+        ystamp = 0.5*(bbox.ymin + bbox.ymax)       
+
         # Calculate the subpixel shift in arcsecs (not pixels!) of the source center
-        # relative to the center of pixel (xpixels,ypixels)
-        xshift = (xoffset - (xpixels-0.5))*args.pixel_scale
-        yshift = (yoffset - (ypixels-0.5))*args.pixel_scale
+        # relative to the stamp center. Note that the resulting shift may be more than
+        # one pixel in either direction because of the clipping operation above.
+        xshift = (xoffset - (xstamp-0.5))*args.pixel_scale
+        yshift = (yoffset - (ystamp-0.5))*args.pixel_scale
 
         if args.verbose:
             logger.info('    flux: %.3g ADU (%s-band AB %.1f)' % (flux,args.band,abMag))
