@@ -309,6 +309,11 @@ def main():
         else:
             bulgeFraction = 0
         
+        # Calculate bounding-box padding in arcsecs for pixel and psf convolution
+        (w_pad,h_pad) = moffatBounds(args.psf_beta,flux,args.psf_fwhm,1,0,sbCut)
+        w_pad += args.pixel_scale
+        h_pad += args.pixel_scale
+        
         # Get disk component parameters
         if bulgeFraction < 1:
             hlr_d = float(cols[7]) # in arcsecs
@@ -323,9 +328,11 @@ def main():
             pa_d = pa_d*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
-            if (w_d,h_d) == (0,0):
-                # object's surface density is always below pixelCut
-                continue
+            # Add padding for psf and pixel convolution, unless disk's surface
+            # density is always below (1-bulgeFraction)*sbCut
+            if (w_d,h_d) != (0,0):
+                w_d += w_pad
+                h_d += h_pad
         else:
             (hlr_d,q_d,pa_d) = (0,0,0)
             (w_d,h_d) = (0,0)
@@ -344,27 +351,22 @@ def main():
             pa_b = pa_b*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
-            if (w_b,h_b) == (0,0):
-                # object's surface density is always below pixelCut
-                continue
+            # Add padding for psf and pixel convolution, unless bulge's surface
+            # density is always below bulgeFraction*sbCut
+            if (w_b,h_b) != (0,0):
+                w_b += w_pad
+                h_b += h_pad
         else:
             (hlr_b,q_b,pa_b) = (0,0,0)
             (w_b,h_b) = (0,0)
         
-        '''
-        # Calculate the psf padding
-        arg = math.pow(cpsf/flux,-1./args.psf_beta) - 1
-        if arg > 0:
-            rpad = r0psf*math.sqrt(arg)
-        else:
-            rpad = 0
-        width += rpad
-        height += rpad
-        '''
-        
         # Combined the bulge and disk bounding boxes
         width = max(w_d,w_b)
         height = max(h_d,h_b)
+        
+        # Skip this source if its pixels would all be below pixelCut
+        if (width,height) == (0,0):
+            continue
         
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
@@ -419,6 +421,8 @@ def main():
                 (1-bulgeFraction,hlr_d,q_d,pa_d))
             logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
                 (bulgeFraction,hlr_b,q_b,pa_b))
+            logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) pad (%.1f,%.1f) pixels' %
+                (w_d,h_d,w_b,h_b,w_pad,h_pad))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
