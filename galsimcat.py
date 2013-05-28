@@ -124,10 +124,10 @@ def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
     # Convert the fwhm to the corresponding scale radius
     r0 = 0.5*fwhm/math.sqrt(math.pow(2,1./moffatBeta)-1)
     # Calculate the normalization factor norm = 1/p(0)
-    norm = math.pi*r0*r0/(beta-1)
+    norm = math.pi*r0*r0/(moffatBeta-1)
     # Calculate and return the bounding box
     return boundingBox(flux/norm,f0,q,beta,
-        lambda b: r0*math.sqrt(1-math.pow(b,(beta-1)/beta)))
+        lambda b: r0*math.sqrt(1-math.pow(b,(moffatBeta-1.)/moffatBeta)))
     
 """
 Returns a mask image of values 0 or 1 depending on whether the corresponding
