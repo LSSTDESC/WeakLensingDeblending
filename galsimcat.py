@@ -66,7 +66,7 @@ has an underlying normalized radial profile p(r). The inputs are:
   thresholdSB = threshold surface brightness after shear
   q = ratio of minor to major axes of ellipse with 0 < q <= 1
   beta = angle of ellipse's major axis in radians
-  rFunction = returns R(b) such that p(R) = b*p(0)
+  rFunction = returns R(b) such that p(R) = b*p(0) with 0 < b < 1
 
 The returned (dx,dy) are in arcsecs, and defined such that SB(x,y) < f0
 is guaranteed for |x| > dx or |y| > dy. The result only depends on the
@@ -80,6 +80,8 @@ def boundingBox(maxSB,thresholdSB,q,beta,rFunction):
     detM = 1 - gp*gp - gx*gx
     # Calculate the dimensionless surface brightness ratio at threshold.
     b = thresholdSB/(maxSB*detM)
+    if b <= 0:
+        raise RuntimeError('boundingBox: invalid input parameters')
     if b >= 1:
         # The max surface brightness is below our threshold SB(0,0) <= f0
         return (0,0)
