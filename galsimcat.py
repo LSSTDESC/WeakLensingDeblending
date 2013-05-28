@@ -58,21 +58,43 @@ def createStamp(src,psf,pix,bbox):
     return stamp
 
 """
-Returns (dx,dy) for the bounding box of a Sersic profile such that
-SB(x,y) < f0 is guaranteed for |x| > dx or |y| > dy, where the
-surface brightness is:
+Returns (dx,dy) for the bounding box of a surface brightness profile
+SB(x,y) whose isophotes are ellipses with the shape (q,beta) and which
+has an underlying normalized radial profile p(r). The inputs are:
 
-  SB(x,y) = flux |M|/norm exp(-(s/r0)^(1/n))
-  
-with s = |M.(x,y)| and M the affine transform that makes isophotes round:
-    
-  M11 = 1 - g cos(2beta)
-  M12 = M21 = -g sin(2beta),
-  M22 = 1 + g cos(2beta)
-  g = (1-q)/(1+q)
-  
-The input hlr should be in arscecs and beta in radians. f0 is a surface
-brightness in ADU/arcsec^2. The returned (dx,dy) are in arcsecs.
+  maxSB = totalFlux*p(0) = maximum surface brightness before shear
+  thresholdSB = threshold surface brightness after shear
+  q = ratio of minor to major axes of ellipse with 0 < q <= 1
+  beta = angle of ellipse's major axis in radians
+  rFunction = returns R(b) such that p(R) = b*p(0)
+
+The returned (dx,dy) are in arcsecs, and defined such that SB(x,y) < f0
+is guaranteed for |x| > dx or |y| > dy. The result only depends on the
+ratio thresholdSB/maxSB so they must be in the same (abitrary) units.
+"""
+def boundingBox(maxSB,thresholdSB,q,beta,rFunction):
+    # Calculate shear affine transform parameters
+    g = (1-q)/(1+q)
+    gp = g*math.cos(2*beta)
+    gx = g*math.sin(2*beta)
+    detM = 1 - gp*gp - gx*gx
+    # Calculate the dimensionless surface brightness ratio at threshold.
+    b = thresholdSB/(maxSB*detM)
+    if b >= 1:
+        # The max surface brightness is below our threshold SB(0,0) <= f0
+        return (0,0)
+    # Calculate the threshold radius of the radial profile.
+    rcut = rFunction(b)
+    # Shear this circle and return its bounding box dimensions
+    dx = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
+    dy = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
+    return (dx,dy)
+
+"""
+Returns (dx,dy) for the bounding box of a Sersic profile with n = 1 or 4.
+The input flux should be in ADU, hlr in arscecs, beta in radians, f0 in
+ADU/arcsec^2. 0 < q <= 1 is dimensionless. The returned (dx,dy) are in
+arcsecs. See boundingBox above for details.
 """
 def sersicBounds(n,flux,hlr,q,beta,f0):
     # Convert the half-light radius to the appropriate scale radius r0
@@ -85,21 +107,28 @@ def sersicBounds(n,flux,hlr,q,beta,f0):
         norm = 20160*twopi*r0*r0  # 20160 = n*Gamma[2*n]
     else:
         raise RuntimeError('Sersic index n = %d is not supported.' % n)
-    # Calculate shear affine transform parameters
-    g = (1-q)/(1+q)
-    gp = g*math.cos(2*beta)
-    gx = g*math.sin(2*beta)
-    detM = 1 - gp*gp - gx*gx
-    # Calculate the bounding box for the isophote SB = f0
-    x = norm*f0/(flux*detM)
-    if x >= 1:
-        # The max surface brightness is below our threshold SB(0,0) <= f0
-        return (0,0)
-    rcut = r0*math.pow(-math.log(x),n)
-    dx = rcut*math.sqrt(((1+gp)*(1+gp)+gx*gx)/detM) # half width in arcsecs
-    dy = rcut*math.sqrt(((1-gp)*(1-gp)+gx*gx)/detM) # half height in arcsecs
-    return (dx,dy)
+    # Calculate and return the bounding box
+    return boundingBox(flux/norm,f0,q,beta,
+        lambda b: r0*math.pow(-math.log(b),n))
 
+"""
+Returns (dx,dy) for the bounding box of a Moffat profile. The input flux
+should be in ADU, fwhm in arcsecs, beta in radians, f0 in ADU/arcsec^2.
+0 < q <= 1 and beta > 1 are dimensionless. The returned (dx,dy) are in
+arcsecs. See boundingBox above for details.
+"""
+def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
+    # Check that beta is valid
+    if moffatBeta <= 1:
+        raise RuntimeError('Moffat beta < 1 is not valid.')
+    # Convert the fwhm to the corresponding scale radius
+    r0 = 0.5*fwhm/math.sqrt(math.pow(2,1./moffatBeta)-1)
+    # Calculate the normalization factor norm = 1/p(0)
+    norm = math.pi*r0*r0/(beta-1)
+    # Calculate and return the bounding box
+    return boundingBox(flux/norm,f0,q,beta,
+        lambda b: r0*math.sqrt(1-math.pow(b,(beta-1)/beta)))
+    
 """
 Returns a mask image of values 0 or 1 depending on whether the corresponding
 input image pixel value is above or below the specified threshold in ADU.
