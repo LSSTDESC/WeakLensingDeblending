@@ -144,7 +144,19 @@ def createMask(image,threshold):
             if pixelValue >= threshold:
                 mask.array[rowIndex,pixelIndex] = 1
     return mask
-    
+
+"""
+Performs any final processing on stamp, controlled by args, then appends it to stamps.
+"""
+def saveStamp(stamps,stamp,args):
+    # Clip the stamp so that does not extend beyond the field image. This results
+    # in potentially smaller files with sources that might not be centered.
+    if not args.no_clip:
+        overlap = stamp.bounds & galsim.BoundsI(1,args.width,1,args.height)
+        stamp = stamp[overlap]
+    # Remember this stamp.
+    stamps.append(stamp)
+
 def main():
 
     # Parse command-line args
@@ -383,21 +395,24 @@ def main():
         # (see Issue #380).
         xhalf = int(math.ceil(width/args.pixel_scale))
         yhalf = int(math.ceil(height/args.pixel_scale))
+        
+        # Trim the stamp so that the source is still centered but we do not extend
+        # beyond the final field image. This will only trim pixels above pixelCut
+        # that lie outside the field.
+        if xpixels-xhalf < 1 and xpixels+xhalf > args.width:
+            xhalf = max(xpixels-1,args.width-xpixels)
+        if ypixels-yhalf < 1 and ypixels+yhalf > args.height:
+            yhalf = max(ypixels-1,args.height-ypixels)
 
         # Build this source's stamp bounding box
         bbox = galsim.BoundsI(xpixels-xhalf,xpixels+xhalf,ypixels-yhalf,ypixels+yhalf)
         
-        # Clip our source bounding box to the field's bounding box. Doing this can
-        # put the source center outside of the stamp, but not doing it can lead to
-        # un-necessarily large (and slow to render) stamps.
-        if not args.no_clip:
-            bbox &= field.bounds
-
         # Skip objects that don't overlap our field
         if (bbox & field.bounds).area() == 0:
             continue
 
-        # If we get this far, we are definitely keeping this source
+        # If we get this far, we are definitely rendering this source (but it might
+        # still get trimmed out later)
         nkeep += 1
         logger.info('Rendering stamp %d (line %d) with w x h = %d x %d' %
             (nkeep,lineno,2*xhalf+1,2*yhalf+1))
@@ -436,14 +451,18 @@ def main():
         # Create stamps for the galaxy with and w/o the psf applied
         gal = createSource(**params)
         nopsf = createStamp(gal,None,pix,bbox)
-        nominal = createStamp(gal,psf,pix,bbox)
-
+        nominal = createStamp(gal,psf,pix,bbox)        
+        mask = createMask(nominal,pixelCut)
+        
         # Add the nominal galaxy to the full field image
         overlap = nominal.bounds & field.bounds
         field[overlap] += nominal[overlap]
         
         # Initialize the datacube of stamps that we will save for this object
-        datacube = [ nopsf, nominal ]
+        datacube = [ ]
+        saveStamp(datacube,nopsf,args)
+        saveStamp(datacube,mask,args)
+        saveStamp(datacube,nominal,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
@@ -470,7 +489,7 @@ def main():
                     # update the finite difference calculation of this partial
                     partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
-                datacube.append(partial)
+                saveStamp(datacube,partial,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
