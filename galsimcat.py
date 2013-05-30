@@ -201,6 +201,8 @@ def main():
         help = "save postage stamps for each source")
     parser.add_argument("--no-clip", action = "store_true",
         help = "do not clip stamps to the image bounds")
+    parser.add_argument("--no-bulge", action = "store_true",
+        help = "do not include any galactic bulge components")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives with respect to object parameters")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -320,6 +322,12 @@ def main():
             bulgeFraction = 1
         else:
             bulgeFraction = 0
+        if args.no_bulge:
+            if bulgeFraction == 1:
+                # skip sources that are only bulge
+                continue
+            else:
+                bulgeFraction = 0
         
         # Calculate bounding-box padding in arcsecs for pixel and psf convolution
         (w_pad,h_pad) = moffatBounds(args.psf_beta,flux,args.psf_fwhm,1,0,sbCut)
