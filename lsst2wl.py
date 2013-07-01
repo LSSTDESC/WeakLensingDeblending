@@ -20,10 +20,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action = "store_true",
         help = "provide more verbose output")
-    parser.add_argument("--maxrows", type = int, default = 100,
-        help = "maximum number of rows to fetch from the server")
     parser.add_argument("-o", "--output", default = "gcat.dat",
         help = "name of output catalog file to write")
+    parser.add_argument("--dec-min", type = float, default = -1,
+        help = "minimum DEC value to fetch (deg)")
+    parser.add_argument("--dec-max", type = float, default = 0,
+        help = "maximum DEC value to fetch (deg)")
+    parser.add_argument("--ra-min", type = float, default = 0,
+        help = "minimum RA value to fetch (deg)")
+    parser.add_argument("--ra-max", type = float, default = 1,
+        help = "maximum RA value to fetch (deg)")
+    parser.add_argument("--maxrows", type = int, default = 100,
+        help = "maximum number of rows to fetch from the server")
+    parser.add_argument("--null-sub", type = float, default = -1,
+        help = "numeric value to substitute for any SQL NULLs")
     args = parser.parse_args()
 
     # Check for a valid maxrows (total rows in the DB is about 17M)
@@ -40,11 +50,11 @@ def main():
         print str(e)
         sys.exit(-2)
 
-    # The numeric value to substitute for any SQL NULLs
-    nullSub = -1
-
     # The ra,dec window to retrieve
-    window = { 'RAmin':0, 'RAmax':1, 'DECmin':-1, 'DECmax':0 }
+    window = { 'RAmin':args.ra_min, 'RAmax':args.ra_max, 'DECmin':args.dec_min, 'DECmax':args.dec_max }
+    if args.ra_min >= args.ra_max or args.dec_min >= args.dec_max:
+        print 'Invalid RA-DEC window %r' % window
+        sys.exit(-2)
 
     def addColumns(patterns,types):
         text = ''
@@ -84,14 +94,14 @@ def main():
                     if col not in nulls:
                         nulls[col] = 0
                     nulls[col] += 1
-                    row[col] = nullSub
+                    row[col] = args.null_sub
             # Dump this row to our output file
             print >>f, ' '.join([str(row[col]) for col in clist])
             nrows += 1
         if args.verbose:
             print 'Dumped',nrows,'rows to',args.output
             if nulls:
-                print 'Replaced NULLs with',nullSub,'for:'
+                print 'Replaced NULLs with',args.null_sub,'for:'
                 for col in nulls:
                     print '%10d %s' % (nulls[col],col)
     except _mssql.MssqlDatabaseException,e:
