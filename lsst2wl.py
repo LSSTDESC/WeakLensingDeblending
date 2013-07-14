@@ -63,7 +63,7 @@ def main():
         return text
 
     # Specify the header columns we need
-    columns = 'id,ra,dec,redshift,r_ab,absmag_r_total'
+    columns = 'id,ra,dec,redshift,absmag_r_total'
 
     # Add bulge and disk specific columns
     columns += addColumns(('%sHalfLightRadius',),('Bulge','Disk'))
