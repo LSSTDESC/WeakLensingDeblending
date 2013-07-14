@@ -34,6 +34,8 @@ def main():
         help = "maximum number of rows to fetch from the server")
     parser.add_argument("--null-sub", type = float, default = -1,
         help = "numeric value to substitute for any SQL NULLs")
+    parser.add_argument("--bypass-stored-proc", action = "store_true",
+        help = "bypass stored procedure and use a direct query")
     args = parser.parse_args()
 
     # Check for a valid maxrows (total rows in the DB is about 17M)
@@ -73,8 +75,20 @@ def main():
     # Add filter-specific columns
     columns += addColumns(('%s_ab',),"ugrizy")
 
-    # SQL filter to use
-    filter = 'WHERE ra BETWEEN %(RAmin)s AND %(RAmax)s AND dec BETWEEN %(DECmin)s and %(DECmax)s' % window
+    # Build the query to execute
+    if args.bypass_stored_proc:
+        # SQL filter to use
+        filter = 'WHERE ra BETWEEN %(RAmin)s AND %(RAmax)s AND dec BETWEEN %(DECmin)s and %(DECmax)s' % window
+        query = "SELECT TOP %d %s FROM galaxy %s" % (args.maxrows,columns,filter)
+    else:
+        # calculate the radius in arcmins of a circle enclosing our search box
+        radius = 0.5*((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)*60.
+        # use the stored procedure described at http://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html
+        query = "GalaxySearchSpecColsConstraint2013 @RaSearch = %f, @DecSearch = %f, @apertureRadius = %f, @ColumnNames = '%s', @WhereClause = ''" % (
+            0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,columns)
+
+    if args.verbose:
+        print 'using query: "%s"' % query
 
     clist = columns.split(',')
     print >>f, ' '.join(clist)
@@ -85,7 +99,7 @@ def main():
             server='fatboy.npl.washington.edu', port=1433,
             user='LSST-2', password='L$$TUser',
             database='LSST')
-        conn.execute_query("SELECT TOP %d %s FROM galaxy %s" % (args.maxrows,columns,filter))
+        conn.execute_query(query)
         nrows = 0
         for row in conn:
             # Filter out any SQL NULLs
