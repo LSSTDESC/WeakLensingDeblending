@@ -95,6 +95,7 @@ def main():
     print >>f, ' '.join(clist)
     conn = None
     nulls = { }
+    clipCount = 0
     try:
         conn = _mssql.connect(
             server='fatboy.npl.washington.edu', port=1433,
@@ -110,6 +111,12 @@ def main():
                         nulls[col] = 0
                     nulls[col] += 1
                     row[col] = args.null_sub
+            # Skip any objects outside the requested bounding box
+            ra = row['ra']
+            dec = row['dec']
+            if ra < args.ra_min or ra > args.ra_max or dec < args.dec_min or dec > args.dec_max:
+                clipCount += 1
+                continue
             # Dump this row to our output file
             print >>f, ' '.join([str(row[col]) for col in clist])
             nrows += 1
@@ -119,6 +126,7 @@ def main():
                 print 'Replaced NULLs with',args.null_sub,'for:'
                 for col in nulls:
                     print '%10d %s' % (nulls[col],col)
+            print '%d rows with (ra,dec) outside window were clipped' % clipCount
     except _mssql.MssqlDatabaseException,e:
         print 'Database Exception'
         raise
