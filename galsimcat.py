@@ -303,7 +303,7 @@ def main():
             continue
         
         # Look up source AB magnitude in the requested band
-        abMag = float(cols[20+bandIndex])
+        abMag = float(cols[19+bandIndex])
         # Calculate total flux in ADU units
         flux = args.flux_norm*math.pow(10,24-abMag)
         # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
@@ -314,8 +314,8 @@ def main():
         
         # Look up the disk and bulge fluxes, which are provided in the catalog as
         # color-independent magnitudes.
-        bulgeMag = float(cols[10])
-        diskMag = float(cols[11])
+        bulgeMag = float(cols[9])
+        diskMag = float(cols[10])
         if bulgeMag > 0 and diskMag > 0:
             bulgeFraction = 1./(1.+math.exp(-(diskMag-bulgeMag)/2.5))
         elif bulgeMag > 0:
@@ -336,12 +336,12 @@ def main():
         
         # Get disk component parameters
         if bulgeFraction < 1:
-            hlr_d = float(cols[7]) # in arcsecs
+            hlr_d = float(cols[6]) # in arcsecs
             if hlr_d <= 0:
                 raise RuntimeError('Unexpected hlr_d <= 0')
-            pa_d = float(cols[9]) # position angle in degrees
-            a_d = float(cols[17]) # major axis length in arcsecs
-            b_d = float(cols[19]) # minor axis length in arcsecs
+            pa_d = float(cols[8]) # position angle in degrees
+            a_d = float(cols[16]) # major axis length in arcsecs
+            b_d = float(cols[18]) # minor axis length in arcsecs
             # Calculate sheared ellipse aspect ratio
             q_d = b_d/a_d # between 0.2 and 1
             # Convert position angle from degrees to radians
@@ -359,12 +359,12 @@ def main():
         
         # Get bulge component parameters
         if bulgeFraction > 0:
-            hlr_b = float(cols[6]) # in arcsecs
+            hlr_b = float(cols[5]) # in arcsecs
             if hlr_b <= 0:
                 raise RuntimeError('Unexpected hlr_b <= 0')
-            pa_b = float(cols[8]) # position angle in degrees
-            a_b = float(cols[16]) # major axis length in arcsecs
-            b_b = float(cols[18]) # minor axis length in arcsecs
+            pa_b = float(cols[7]) # position angle in degrees
+            a_b = float(cols[15]) # major axis length in arcsecs
+            b_b = float(cols[17]) # minor axis length in arcsecs
             # Calculate sheared ellipse aspect ratio
             q_b = b_b/a_b # between 0.2 and 1
             # Convert position angle from degrees to radians
