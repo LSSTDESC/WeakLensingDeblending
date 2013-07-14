@@ -227,6 +227,7 @@ def main():
 
     # Create an empty image that represents the whole field
     field = galsim.ImageD(args.width,args.height)
+    field.setScale(pix.getXWidth())
     
     # Calculate the corners of the image in arcsecs
     RAmin = (args.x_center - 0.5*args.width)*args.pixel_scale
