@@ -13,6 +13,7 @@
 import _mssql
 import sys
 import argparse
+import math
 
 def main():
 
@@ -82,7 +83,7 @@ def main():
         query = "SELECT TOP %d %s FROM galaxy %s" % (args.maxrows,columns,filter)
     else:
         # calculate the radius in arcmins of a circle enclosing our search box
-        radius = 0.5*((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)*60.
+        radius = 60*0.5*math.sqrt((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)
         # use the stored procedure described at http://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html
         query = "GalaxySearchSpecColsConstraint2013 @RaSearch = %f, @DecSearch = %f, @apertureRadius = %f, @ColumnNames = '%s', @WhereClause = ''" % (
             0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,columns)
