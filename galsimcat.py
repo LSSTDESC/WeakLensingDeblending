@@ -524,8 +524,7 @@ def main():
     if args.stamps:
         outname = args.output + '_stamps.fits'
         logger.info('Saving stamps to %r' % outname)
-        galsim.fits.write_file(outname, hdus = hduList, clobber = True,
-            file_compress = None, pyfits_compress = None)
+        galsim.fits.writeFile(outname, hduList)
 
 if __name__ == "__main__":
     main()
