@@ -487,17 +487,20 @@ def main():
                 # create stamps for each variation of this parameter
                 newparams = params.copy()
                 partial = galsim.ImageD(bbox)
-                for step in range(args.partials_order):
-                    # create and save the positive variation stamp
-                    newparams[pname] = params[pname] + (step+1)*delta
-                    newsource = createSource(**newparams)
-                    plus = createStamp(newsource,psf,pix,bbox)
-                    # create and save the negative variation stamp
-                    newparams[pname] = params[pname] - (step+1)*delta
-                    newsource = createSource(**newparams)
-                    minus = createStamp(newsource,psf,pix,bbox)
-                    # update the finite difference calculation of this partial
-                    partial += (fdCoefs[step]/delta)*(plus - minus)
+                partial.setScale(pix.getXWidth())
+                # delta might be zero, e.g., for hlr_b when bulge fraction = 0
+                if delta > 0:
+                    for step in range(args.partials_order):
+                        # create and save the positive variation stamp
+                        newparams[pname] = params[pname] + (step+1)*delta
+                        newsource = createSource(**newparams)
+                        plus = createStamp(newsource,psf,pix,bbox)
+                        # create and save the negative variation stamp
+                        newparams[pname] = params[pname] - (step+1)*delta
+                        newsource = createSource(**newparams)
+                        minus = createStamp(newsource,psf,pix,bbox)
+                        # update the finite difference calculation of this partial
+                        partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
                 saveStamp(datacube,partial,args)
 
