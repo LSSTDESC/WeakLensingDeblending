@@ -136,20 +136,44 @@ def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
 Returns a mask image of values 0 or 1 depending on whether the corresponding
 input image pixel value is above or below the specified threshold in ADU.
 """
-def createMask(image,threshold):
+def createMask(image,threshold,args):
     # create an empty mask image with the same dimensions as the input image
-    mask = galsim.ImageS(image.bounds)
+    box = image.bounds
+    mask = galsim.ImageS(box)
+    if not args.no_trim:
+        # initialize our trimmed bounds to just the central pixel
+        # (the numerator should always be even for odd width,height)
+        xmin = (box.getXMin()+box.getXMax())
+        ymin = (box.getYMin()+box.getYMax())
+        assert(xmin%2 == 0 and ymin%2 == 0);
+        xmin = xmin/2
+        ymin = ymin/2
+        xmax = xmin
+        ymax = ymin
     # loop over image pixels
     for (rowIndex,row) in enumerate(image.array):
+        y = box.getYMin()+rowIndex
         for (pixelIndex,pixelValue) in enumerate(row):
+            x = box.getXMin()+pixelIndex
             if pixelValue >= threshold:
                 mask.array[rowIndex,pixelIndex] = 1
+                if not args.no_trim:
+                    xmin = min(x,xmin)
+                    xmax = max(x,xmax)
+                    ymin = min(y,ymin)
+                    ymax = max(y,ymax)
+    if not args.no_trim:
+        trimmed = galsim.BoundsI(xmin,xmax,ymin,ymax)
+        mask = mask[trimmed]
     return mask
 
 """
 Performs any final processing on stamp, controlled by args, then appends it to stamps.
 """
-def saveStamp(stamps,stamp,args):
+def saveStamp(stamps,stamp,trimmed,args):
+    # Trim the stamp to its threshold bounding box
+    if not args.no_trim:
+        stamp = stamp[trimmed]
     # Clip the stamp so that does not extend beyond the field image. This results
     # in potentially smaller files with sources that might not be centered.
     if not args.no_clip:
@@ -202,6 +226,8 @@ def main():
         help = "save postage stamps for each source")
     parser.add_argument("--no-clip", action = "store_true",
         help = "do not clip stamps to the image bounds")
+    parser.add_argument("--no-trim", action = "store_true",
+        help = "do not trim stamps to their threshold bounding box")
     parser.add_argument("--no-bulge", action = "store_true",
         help = "do not include any galactic bulge components")
     parser.add_argument("--partials", action = "store_true",
@@ -462,7 +488,10 @@ def main():
         gal = createSource(**params)
         nopsf = createStamp(gal,None,pix,bbox)
         nominal = createStamp(gal,psf,pix,bbox)        
-        mask = createMask(nominal,pixelCut)
+        mask = createMask(nominal,pixelCut,args)
+        trimmed = mask.bounds
+        if not args.no_trim and args.verbose:
+            logger.info(' trimmed: [%d:%d,%d:%d] pixels' % (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
         
         # Add the nominal galaxy to the full field image
         overlap = nominal.bounds & field.bounds
@@ -470,9 +499,9 @@ def main():
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
-        saveStamp(datacube,nopsf,args)
-        saveStamp(datacube,mask,args)
-        saveStamp(datacube,nominal,args)
+        saveStamp(datacube,nopsf,trimmed,args)
+        saveStamp(datacube,mask,trimmed,args)
+        saveStamp(datacube,nominal,trimmed,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
@@ -502,7 +531,7 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
-                saveStamp(datacube,partial,args)
+                saveStamp(datacube,partial,trimmed,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
