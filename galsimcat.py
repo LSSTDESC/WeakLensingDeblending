@@ -504,13 +504,13 @@ def main():
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
+        saveStamp(datacube,nopsf,trimmed,args)
+        saveStamp(datacube,nominal,trimmed,args)
         if not saveStamp(datacube,mask,trimmed,args):
             # this stamp's mask falls completely outside our field
             logger.info('*** stamp %d not saved' % nkeep)
             nkeep -= 1
             continue
-        assert saveStamp(datacube,nopsf,trimmed,args)
-        assert saveStamp(datacube,nominal,trimmed,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
