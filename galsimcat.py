@@ -145,7 +145,7 @@ def createMask(image,threshold,args):
         # (the numerator should always be even for odd width,height)
         xmin = (box.getXMin()+box.getXMax())
         ymin = (box.getYMin()+box.getYMax())
-        assert(xmin%2 == 0 and ymin%2 == 0);
+        assert xmin%2 == 0 and ymin%2 == 0
         xmin = xmin/2
         ymin = ymin/2
         xmax = xmin
@@ -169,6 +169,7 @@ def createMask(image,threshold,args):
 
 """
 Performs any final processing on stamp, controlled by args, then appends it to stamps.
+Returns True if the stamp was saved, or otherwise False.
 """
 def saveStamp(stamps,stamp,trimmed,args):
     # Trim the stamp to its threshold bounding box
@@ -178,9 +179,13 @@ def saveStamp(stamps,stamp,trimmed,args):
     # in potentially smaller files with sources that might not be centered.
     if not args.no_clip:
         overlap = stamp.bounds & galsim.BoundsI(1,args.width,1,args.height)
+        if overlap.area() == 0:
+            # skip this stamp if it falls completely outside our field (after trimming)
+            return False
         stamp = stamp[overlap]
     # Remember this stamp.
     stamps.append(stamp)
+    return True
 
 def main():
 
@@ -499,9 +504,13 @@ def main():
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
-        saveStamp(datacube,nopsf,trimmed,args)
-        saveStamp(datacube,mask,trimmed,args)
-        saveStamp(datacube,nominal,trimmed,args)
+        if not saveStamp(datacube,mask,trimmed,args):
+            # this stamp's mask falls completely outside our field
+            logger.info('*** stamp %d not saved' % nkeep)
+            nkeep -= 1
+            continue
+        assert saveStamp(datacube,nopsf,trimmed,args)
+        assert saveStamp(datacube,nominal,trimmed,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
@@ -531,7 +540,7 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
-                saveStamp(datacube,partial,trimmed,args)
+                assert saveStamp(datacube,partial,trimmed,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
@@ -555,7 +564,7 @@ def main():
     # Write the object stamp datacubes
     if args.stamps:
         outname = args.output + '_stamps.fits'
-        logger.info('Saving stamps to %r' % outname)
+        logger.info('Saving %d stamps to %r' % (nkeep,outname))
         galsim.fits.writeFile(outname, hduList)
 
 if __name__ == "__main__":
