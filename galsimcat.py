@@ -289,10 +289,6 @@ def main():
         args.nvisits,skyNoise)
     print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
 
-    # calculate r0 from fwhm
-    r0psf = 0.5*args.psf_fwhm/math.sqrt(math.pow(2.,1./args.psf_beta)-1)
-    cpsf = math.pi*sbCut*r0psf*r0psf/(args.psf_beta-1.)
-
     # Initialize finite difference calculations if necessary
     if args.partials:
         args.stamps = True
