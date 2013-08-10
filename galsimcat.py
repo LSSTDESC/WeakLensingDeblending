@@ -169,6 +169,8 @@ def createMask(image,threshold,args):
 
 """
 Performs any final processing on stamp, controlled by args, then appends it to stamps.
+Saved stamps are always normalized to a single exposure, i.e., they are scaled by
+1/(2*nvisits) relative to what gets added to the full field image.
 Returns True if the stamp was saved, or otherwise False.
 """
 def saveStamp(stamps,stamp,trimmed,args):
@@ -228,7 +230,7 @@ def main():
     parser.add_argument("--g2", type = float, default = 0.,
         help = "constant shear component g2 to apply")
     parser.add_argument("--stamps", action = "store_true",
-        help = "save postage stamps for each source")
+        help = "save postage stamps for each source (normalized to 1 exposure)")
     parser.add_argument("--no-clip", action = "store_true",
         help = "do not clip stamps to the image bounds")
     parser.add_argument("--no-trim", action = "store_true",
@@ -236,7 +238,7 @@ def main():
     parser.add_argument("--no-bulge", action = "store_true",
         help = "do not include any galactic bulge components")
     parser.add_argument("--partials", action = "store_true",
-        help = "calculate and save partial derivatives with respect to object parameters")
+        help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
         help = "order of finite difference equation to use for evaluating partials")
     parser.add_argument("--only-line", type = int, default = 0,
@@ -500,8 +502,9 @@ def main():
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
-        saveStamp(datacube,nopsf,trimmed,args)
-        saveStamp(datacube,nominal,trimmed,args)
+        singleExposureNorm=1./(2*args.nvisits)
+        saveStamp(datacube,singleExposureNorm*nopsf,trimmed,args)
+        saveStamp(datacube,singleExposureNorm*nominal,trimmed,args)
         if not saveStamp(datacube,mask,trimmed,args):
             # this stamp's mask falls completely outside our field
             logger.info('*** stamp %d not saved' % nkeep)
@@ -536,7 +539,7 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
-                assert saveStamp(datacube,partial,trimmed,args)
+                assert saveStamp(datacube,singleExposureNorm*partial,trimmed,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
