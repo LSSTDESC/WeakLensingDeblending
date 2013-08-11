@@ -6,7 +6,7 @@
 ## Uses the pymsql package for talking to the remote Microsoft SQL server, which in turns requires
 ## that Cython and FreeTDS are installed.
 ##
-## Usage example: lsst2wl.py --maxrows 100 --output galaxies.dat
+## Usage example: lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min -0.5 --ra-max +0.5
 ##
 ## Created 07-Nov-2012 by David Kirkby <dkirkby@uci.edu>
 #######################################################################################################
@@ -31,12 +31,12 @@ def main():
         help = "minimum RA value to fetch (deg)")
     parser.add_argument("--ra-max", type = float, default = 1,
         help = "maximum RA value to fetch (deg)")
-    parser.add_argument("--maxrows", type = int, default = 100,
-        help = "maximum number of rows to fetch from the server")
     parser.add_argument("--null-sub", type = float, default = -1,
         help = "numeric value to substitute for any SQL NULLs")
     parser.add_argument("--bypass-stored-proc", action = "store_true",
         help = "bypass stored procedure and use a direct query")
+    parser.add_argument("--maxrows", type = int, default = 100,
+        help = "maximum number of rows to fetch from the server when bypassing stored proc")
     args = parser.parse_args()
 
     # Check for a valid maxrows (total rows in the DB is about 17M)
