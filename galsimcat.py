@@ -18,7 +18,7 @@ import pyfits
 twopi = 2*math.pi
 deg2rad = math.pi/180.
 deg2arcsec = 3600.
-arcmin2arcsec = 60.
+deg2arcmin = 60.
 
 """
 Creates a source object with the specified parameters.
@@ -199,10 +199,10 @@ def main():
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
         help = "base name of output files to write")
-    parser.add_argument("-x","--x-center", type = float, default = 2048.,
-        help = "central RA of image (pixels)")
-    parser.add_argument("-y","--y-center", type = float, default = -2048.,
-        help = "central DEC of image (pixels)")
+    parser.add_argument("-x","--x-center", type = float, default = 1.5828,
+        help = "central RA of image (degrees)")
+    parser.add_argument("-y","--y-center", type = float, default = 0.1874,
+        help = "central DEC of image (degrees)")
     parser.add_argument("--width", type = int, default = 512,
         help = "image width (pixels)")
     parser.add_argument("--height", type = int, default = 512,
@@ -263,15 +263,15 @@ def main():
     field = galsim.ImageD(args.width,args.height)
     field.setScale(pix.getXWidth())
     
-    # Calculate the corners of the image in arcsecs
-    RAmin = (args.x_center - 0.5*args.width)*args.pixel_scale
-    RAmax = (args.x_center + 0.5*args.width)*args.pixel_scale
-    DECmin = (args.y_center - 0.5*args.height)*args.pixel_scale
-    DECmax = (args.y_center + 0.5*args.height)*args.pixel_scale
+    # Calculate the corners of the image in degrees
+    RAmin = args.x_center - 0.5*args.width*args.pixel_scale/deg2arcsec
+    RAmax = args.x_center + 0.5*args.width*args.pixel_scale/deg2arcsec
+    DECmin = args.y_center - 0.5*args.height*args.pixel_scale/deg2arcsec
+    DECmax = args.y_center + 0.5*args.height*args.pixel_scale/deg2arcsec
     
-    # Calculate margin size in arcsecs (sources outside of our image margins
+    # Calculate margin size in degrees (sources outside of our image margins
     # are always skipped, for speed, even if their tails might overlap our image)
-    margin = args.margin*arcmin2arcsec
+    margin = args.margin/deg2arcmin
     
     # Convert the band into an integer index
     bandIndex = "ugrizy".find(args.band)
@@ -324,10 +324,10 @@ def main():
         if args.only_line > 0 and lineno != args.only_line:
             continue
 
-        # position on the sky in arcsecs
+        # position on the sky in degrees
         cols = line.split()
-        RA = float(cols[1])*deg2arcsec
-        DEC = float(cols[2])*deg2arcsec
+        RA = float(cols[1])
+        DEC = float(cols[2])
         
         # skip sources outside our margins
         if RA < RAmin-margin or RA > RAmax+margin or DEC < DECmin-margin or DEC > DECmax+margin:
@@ -421,8 +421,8 @@ def main():
         
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
-        xoffset = (RA - RAmin)/args.pixel_scale
-        yoffset = (DEC - DECmin)/args.pixel_scale
+        xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale
+        yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
         
         # Calculate the integer coordinates of the image pixel that contains the source center
         # (using the convention that the bottom left corner pixel has coordinates 1,1)
