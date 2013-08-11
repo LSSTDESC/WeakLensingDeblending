@@ -263,9 +263,12 @@ def main():
     field = galsim.ImageD(args.width,args.height)
     field.setScale(pix.getXWidth())
     
+    # Calculate the relative scaling of RA and angles relative to the image center
+    RAscale = math.cos(args.y_center*deg2rad)
+
     # Calculate the corners of the image in degrees
-    RAmin = args.x_center - 0.5*args.width*args.pixel_scale/deg2arcsec
-    RAmax = args.x_center + 0.5*args.width*args.pixel_scale/deg2arcsec
+    RAmin = args.x_center - 0.5*args.width*args.pixel_scale/deg2arcsec/RAscale
+    RAmax = args.x_center + 0.5*args.width*args.pixel_scale/deg2arcsec/RAscale
     DECmin = args.y_center - 0.5*args.height*args.pixel_scale/deg2arcsec
     DECmax = args.y_center + 0.5*args.height*args.pixel_scale/deg2arcsec
     
@@ -421,7 +424,7 @@ def main():
         
         # Calculate the offsets of this source from our image's bottom left corner in pixels
         # (which might be negative, or byeond our image bounds)
-        xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale
+        xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale*RAscale
         yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
         
         # Calculate the integer coordinates of the image pixel that contains the source center
