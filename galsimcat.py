@@ -199,9 +199,9 @@ def main():
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
         help = "base name of output files to write")
-    parser.add_argument("-x","--x-center", type = float, default = 1.5828,
+    parser.add_argument("-x","--x-center", type = float, default = 0.5,
         help = "central RA of image (degrees)")
-    parser.add_argument("-y","--y-center", type = float, default = 0.1874,
+    parser.add_argument("-y","--y-center", type = float, default = 0.0,
         help = "central DEC of image (degrees)")
     parser.add_argument("--width", type = int, default = 512,
         help = "image width (pixels)")

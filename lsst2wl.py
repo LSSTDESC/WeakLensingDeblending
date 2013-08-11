@@ -6,7 +6,7 @@
 ## Uses the pymsql package for talking to the remote Microsoft SQL server, which in turns requires
 ## that Cython and FreeTDS are installed.
 ##
-## Usage example: lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min -0.5 --ra-max +0.5
+## Usage example: lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
 ##
 ## Created 07-Nov-2012 by David Kirkby <dkirkby@uci.edu>
 #######################################################################################################
