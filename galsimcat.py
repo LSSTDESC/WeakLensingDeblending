@@ -556,7 +556,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xstamp,ystamp,flux
+        print >>outcat, lineno,xstamp,ystamp,abMag,flux/(2*args.nvisits)
 
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
