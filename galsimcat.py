@@ -314,6 +314,12 @@ def main():
     cat = open(args.input)
     cathdr = cat.readline().split()
     logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
+
+    # Open the output catalog to write
+    outname = args.output + '_catalog.dat'
+    outcat = open(outname,'w')
+    if args.verbose:
+        logger.info('Creating output catalog to %r' % outname)
     
     # Initialize the list of per-object stamp HDUs we will fill
     hdu = pyfits.PrimaryHDU()
@@ -461,7 +467,7 @@ def main():
 
         # Calculate the pixel coordinates of the stamp center.
         xstamp = 0.5*(bbox.xmin + bbox.xmax)
-        ystamp = 0.5*(bbox.ymin + bbox.ymax)       
+        ystamp = 0.5*(bbox.ymin + bbox.ymax)
 
         # Calculate the subpixel shift in arcsecs (not pixels!) of the source center
         # relative to the stamp center. Note that the resulting shift may be more than
@@ -549,6 +555,9 @@ def main():
         # and mathematica cannot Import it.
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
+        # Write an entry for this object to the output catalog
+        print >>outcat, lineno,xstamp,ystamp,flux
+
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
     logger.info('Saving full field to %r' % outname)
@@ -568,6 +577,10 @@ def main():
         outname = args.output + '_stamps.fits'
         logger.info('Saving %d stamps to %r' % (nkeep,outname))
         galsim.fits.writeFile(outname, hduList)
+
+    # Close catalog files
+    cat.close()
+    outcat.close()
 
 if __name__ == "__main__":
     main()
