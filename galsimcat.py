@@ -140,6 +140,7 @@ def createMask(image,threshold,args):
     # create an empty mask image with the same dimensions as the input image
     box = image.bounds
     mask = galsim.ImageS(box)
+    mask.setScale(image.getScale())
     if not args.no_trim:
         # initialize our trimmed bounds to just the central pixel
         # (the numerator should always be even for odd width,height)
