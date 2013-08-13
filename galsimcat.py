@@ -506,20 +506,23 @@ def main():
         if not args.no_trim and args.verbose:
             logger.info(' trimmed: [%d:%d,%d:%d] pixels' % (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
         
-        # Add the nominal galaxy to the full field image
-        overlap = nominal.bounds & field.bounds
-        field[overlap] += nominal[overlap]
+        # Add the nominal galaxy to the full field image after applying the threshold mask
+        # (the mask must be the second term in the product so that the result is double precision)
+        masked = nominal[trimmed]*mask
+        overlap = trimmed & field.bounds
+        if overlap.area() == 0:
+             # this stamp's mask falls completely outside our field
+            logger.info('*** stamp %d not saved' % nkeep)
+            nkeep -= 1
+            continue
+        field[overlap] += masked[overlap]
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
         singleExposureNorm=1./(2*args.nvisits)
-        saveStamp(datacube,singleExposureNorm*nopsf,trimmed,args)
-        saveStamp(datacube,singleExposureNorm*nominal,trimmed,args)
-        if not saveStamp(datacube,mask,trimmed,args):
-            # this stamp's mask falls completely outside our field
-            logger.info('*** stamp %d not saved' % nkeep)
-            nkeep -= 1
-            continue
+        assert saveStamp(datacube,singleExposureNorm*nopsf,trimmed,args)
+        assert saveStamp(datacube,singleExposureNorm*nominal,trimmed,args)
+        assert saveStamp(datacube,mask,trimmed,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
