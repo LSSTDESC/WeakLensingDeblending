@@ -290,8 +290,8 @@ def main():
     
     print 'Simulating %s-band observations with flux(AB24) = %.3f ADU/pixel/exp for typical galaxy.' %(
         args.band,args.flux_norm)
-    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel.' % (
-        args.nvisits,skyNoise)
+    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel (%.3f sky ADU/pixel/exp)' % (
+        args.nvisits,skyNoise,args.sky_level)
     print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
 
     # Initialize finite difference calculations if necessary
