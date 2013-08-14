@@ -240,6 +240,8 @@ def main():
         help = "do not trim stamps to their threshold bounding box")
     parser.add_argument("--no-bulge", action = "store_true",
         help = "do not include any galactic bulge components")
+    parser.add_argument("--shape", action = "store_true",
+        help = "run HSM adaptive moments calculation on no-psf stamp")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -521,10 +523,21 @@ def main():
         overlap = trimmed & field.bounds
         if overlap.area() == 0:
              # this stamp's mask falls completely outside our field
-            logger.info('*** stamp %d not saved' % nkeep)
+            logger.info('*** stamp %d does not overlap field' % nkeep)
             nkeep -= 1
             continue
         field[overlap] += masked[overlap]
+
+        # Calculate the shape of the nominal galaxy
+        shear = None
+        if args.shape:
+            shape = galsim.hsm.FindAdaptiveMom(nopsf,strict=False)
+            if shape.error_message:
+                logger.info("*** %s" % shape.error_message[:-1])
+            else:
+                shear = shape.observed_shape
+                if args.verbose:
+                    logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (shear.g1,shear.g2))
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
@@ -569,7 +582,9 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits)
+        g1 = shear.g1 if shear else -1
+        g2 = shear.g2 if shear else -1
+        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),g1,g2
 
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
