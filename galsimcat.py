@@ -529,15 +529,19 @@ def main():
         field[overlap] += masked[overlap]
 
         # Calculate the shape of the nominal galaxy
-        shear = None
+        size = -1
+        (g1,g2) = (-1,-1)
         if args.shape:
             shape = galsim.hsm.FindAdaptiveMom(nopsf,strict=False)
             if shape.error_message:
                 logger.info("*** %s" % shape.error_message[:-1])
             else:
+                size = shape.moments_sigma
                 shear = shape.observed_shape
+                (g1,g2) = (shear.g1,shear.g2)
                 if args.verbose:
-                    logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (shear.g1,shear.g2))
+                    logger.info('    size: %.2f pixels' % size)
+                    logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (g1,g2))
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
@@ -582,9 +586,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Write an entry for this object to the output catalog
-        g1 = shear.g1 if shear else -1
-        g2 = shear.g2 if shear else -1
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),g1,g2
+        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,g1,g2
 
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
