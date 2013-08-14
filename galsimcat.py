@@ -135,6 +135,8 @@ def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
 """
 Returns a mask image of values 0 or 1 depending on whether the corresponding
 input image pixel value is above or below the specified threshold in ADU.
+Note that if all pixels are above threshold, then the returned mask will
+contain only the central pixel with image.array.sum() == 0.
 """
 def createMask(image,threshold,args):
     # create an empty mask image with the same dimensions as the input image
@@ -500,12 +502,19 @@ def main():
         # Create stamps for the galaxy with and w/o the psf applied
         gal = createSource(**params)
         nopsf = createStamp(gal,None,pix,bbox)
-        nominal = createStamp(gal,psf,pix,bbox)        
+        nominal = createStamp(gal,psf,pix,bbox)
+
+        # Create a mask for pixels above threshold
         mask = createMask(nominal,pixelCut,args)
+        if mask.array.sum() == 0:
+            # this stamp has no pixels above threshold
+            logger.info('*** stamp %d is below threshold' % nkeep)
+            nkeep -= 1
+            continue
         trimmed = mask.bounds
         if not args.no_trim and args.verbose:
             logger.info(' trimmed: [%d:%d,%d:%d] pixels' % (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
-        
+
         # Add the nominal galaxy to the full field image after applying the threshold mask
         # (the mask must be the second term in the product so that the result is double precision)
         masked = nominal[trimmed]*mask
