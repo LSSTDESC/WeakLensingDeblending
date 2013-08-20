@@ -53,7 +53,7 @@ def createStamp(src,psf,pix,bbox):
     if psf == None:
         obj = galsim.Convolve([src,pix], real_space = True)
     else:
-        gsp = galsim.GSParams(maximum_fft_size=8192)
+        gsp = galsim.GSParams(maximum_fft_size=16384)
         obj = galsim.Convolve([src,psf,pix],gsparams=gsp)
     obj.draw(image = stamp, dx = pix.getXWidth())
     return stamp
