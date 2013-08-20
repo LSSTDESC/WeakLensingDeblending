@@ -4,4 +4,6 @@
 *.fits
 *.gz
 *.png
+*.log
+*.pdf
 catalogAnalysis
