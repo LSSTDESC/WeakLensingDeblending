@@ -117,11 +117,11 @@ def sersicBounds(n,flux,hlr,q,beta,f0):
 """
 Returns (dx,dy) for the bounding box of a Moffat profile. The input flux
 should be in ADU, fwhm in arcsecs, beta in radians, f0 in ADU/arcsec^2.
-0 < q <= 1 and beta > 1 are dimensionless. The returned (dx,dy) are in
+0 < q <= 1 and moffatBeta > 1 are dimensionless. The returned (dx,dy) are in
 arcsecs. See boundingBox above for details.
 """
 def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
-    # Check that beta is valid
+    # Check that moffatBeta is valid
     if moffatBeta <= 1:
         raise RuntimeError('Moffat beta < 1 is not valid.')
     # Convert the fwhm to the corresponding scale radius
