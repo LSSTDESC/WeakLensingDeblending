@@ -216,8 +216,8 @@ def main():
         help = "pixel scale (arscecs/pixel)")
     parser.add_argument("--psf-fwhm", type = float, default = 0.7,
         help = "psf full-width-half-max in arcsecs (zero for no psf)")
-    parser.add_argument("--psf-beta", type = float, default = 3.0,
-        help = "psf Moffat parameter beta")
+    parser.add_argument("--psf-beta", type = float, default = 0.0,
+        help = "psf Moffat parameter beta (uses Kolmogorov psf if beta <= 0)")
     parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
         help = "LSST imaging band to use for source fluxes")
     parser.add_argument("--flux-norm", type = float, default = 711.,
@@ -260,7 +260,10 @@ def main():
 
     # Define the psf to use
     if args.psf_fwhm > 0:
-        psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
+        if args.psf_beta > 0:
+            psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
+        else:
+            psf = galsim.Kolmogorov(fwhm = args.psf_fwhm)
     else:
         psf = None
 
@@ -375,7 +378,14 @@ def main():
                 bulgeFraction = 0
         
         # Calculate bounding-box padding in arcsecs for pixel and psf convolution
-        (w_pad,h_pad) = moffatBounds(args.psf_beta,flux,args.psf_fwhm,1,0,sbCut)
+        if args.psf_fwhm > 0:
+            if args.psf_beta > 0:
+                (w_pad,h_pad) = moffatBounds(args.psf_beta,flux,args.psf_fwhm,1,0,sbCut)
+            else:
+                # Approximate Kolmogorov bounds with beta=3 Moffat bounds
+                (w_pad,h_pad) = moffatBounds(3.0,flux,args.psf_fwhm,1,0,sbCut)
+        else:
+            (w_pad,h_pad) = (0,0)
         w_pad += args.pixel_scale
         h_pad += args.pixel_scale
         
