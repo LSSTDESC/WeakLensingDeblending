@@ -21,42 +21,54 @@ deg2arcsec = 3600.
 deg2arcmin = 60.
 
 """
-Creates a source object with the specified parameters.
+Returns a (disk,bulge) tuple of source objects using the specified parameters.
 """
 def createSource(flux,bulgeFraction,xc,yc,hlr_d,q_d,beta_d,hlr_b,q_b,beta_b,g1,g2):
     # Define the disk component, if any
     if bulgeFraction < 1:
         disk = galsim.Exponential(flux = flux*(1-bulgeFraction), half_light_radius = hlr_d)
+        # Apply intrinsic shear
         disk.applyShear(q = q_d, beta = beta_d*galsim.radians)
+        # Apply cosmic shear
+        disk.applyShear(g1 = g1, g2 = g2)
+        # Shift to this object's centroid
+        disk.applyShift(dx = xc, dy = yc)
+    else:
+        disk = None
     # Define the bulge component, if any
     if bulgeFraction > 0:
         bulge = galsim.DeVaucouleurs(flux = flux*bulgeFraction, half_light_radius = hlr_b)
+        # Apply intrinsic shear
         bulge.applyShear(q = q_b, beta = beta_b*galsim.radians)
-    # Combined the disk and bulge components
-    if bulgeFraction == 0:
-        source = disk
-    elif bulgeFraction == 1:
-        source = bulge
+        # Apply cosmic shear
+        bulge.applyShear(g1 = g1, g2 = g2)
+        # Shift to this object's centroid
+        bulge.applyShift(dx = xc, dy = yc)
     else:
-        source = disk + bulge
-    # Shift and shear the combined source
-    source.applyShear(g1 = g1, g2 = g2)
-    source.applyShift(dx = xc, dy = yc)
-    return source
+        bulge = None
+    return (disk,bulge)
 
 """
 Renders the specified source convolved with a psf (which might be None)
 and pixel response into a postage stamp with the specified bounding box.
 """
-def createStamp(src,psf,pix,bbox):
+def renderStamp(src,psf,pix,bbox):
     stamp = galsim.ImageD(bbox)
-    if psf == None:
-        obj = galsim.Convolve([src,pix], real_space = True)
-    else:
-        gsp = galsim.GSParams(maximum_fft_size=16384)
-        obj = galsim.Convolve([src,psf,pix],gsparams=gsp)
-    obj.draw(image = stamp, dx = pix.getXWidth())
+    stamp.setScale(pix.getXWidth())
+    if src:
+        if psf == None:
+            obj = galsim.Convolve([src,pix], real_space = True)
+        else:
+            gsp = galsim.GSParams(maximum_fft_size=16384)
+            obj = galsim.Convolve([src,psf,pix],gsparams=gsp)
+        obj.draw(image = stamp)
     return stamp
+
+def createStamp(src,psf,pix,bbox):
+    (disk,bulge) = src
+    diskStamp = renderStamp(disk,psf,pix,bbox)
+    bulgeStamp = renderStamp(bulge,psf,pix,bbox)
+    return diskStamp + bulgeStamp
 
 """
 Returns (dx,dy) for the bounding box of a surface brightness profile
