@@ -244,6 +244,8 @@ def main():
         help = "do not include any galactic bulge (Sersic n=4) components")
     parser.add_argument("--shape", action = "store_true",
         help = "run HSM adaptive moments calculation on no-psf stamp")
+    parser.add_argument("--render-nopsf", action = "store_true",
+        help = "save a stamp rendered without any psf for each galaxy")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -525,7 +527,12 @@ def main():
 
         # Create stamps for the galaxy with and w/o the psf applied
         gal = createSource(**params)
-        nopsf = createStamp(gal,None,pix,bbox)
+        if args.render_nopsf:
+            # We don't do this by default for speed
+            nopsf = createStamp(gal,None,pix,bbox)
+        else:
+            # Use an empty placeholder so we don't change the shape of the output
+            nopsf = galsim.ImageD(bbox)
         nominal = createStamp(gal,psf,pix,bbox)
 
         # Create a mask for pixels above threshold
@@ -553,7 +560,7 @@ def main():
         # Calculate the shape of the nominal galaxy
         size = -1
         (g1,g2) = (-1,-1)
-        if args.shape:
+        if args.shape and args.render_nopsf:
             shape = galsim.hsm.FindAdaptiveMom(nopsf,strict=False)
             if shape.error_message:
                 logger.info("*** %s" % shape.error_message[:-1])
