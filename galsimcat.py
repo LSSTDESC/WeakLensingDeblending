@@ -499,7 +499,7 @@ def main():
                 (1-bulgeFraction,hlr_d,q_d,pa_d))
             logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
                 (bulgeFraction,hlr_b,q_b,pa_b))
-            logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) pad (%.1f,%.1f) pixels' %
+            logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) pad (%.1f,%.1f) arcsec' %
                 (w_d,h_d,w_b,h_b,w_pad,h_pad))
         
         # Define the nominal source parameters for rendering this object within its stamp
