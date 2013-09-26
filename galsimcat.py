@@ -238,8 +238,10 @@ def main():
         help = "do not clip stamps to the image bounds")
     parser.add_argument("--no-trim", action = "store_true",
         help = "do not trim stamps to their threshold bounding box")
+    parser.add_argument("--no-disk", action = "store_true",
+        help = "do not include any galactic disk (Sersic n=1) components")
     parser.add_argument("--no-bulge", action = "store_true",
-        help = "do not include any galactic bulge components")
+        help = "do not include any galactic bulge (Sersic n=4) components")
     parser.add_argument("--shape", action = "store_true",
         help = "run HSM adaptive moments calculation on no-psf stamp")
     parser.add_argument("--partials", action = "store_true",
@@ -375,7 +377,17 @@ def main():
                 # skip sources that are only bulge
                 continue
             else:
+                # only render flux associated with the disk
+                flux = (1-bulgeFraction)*flux
                 bulgeFraction = 0
+        elif args.no_disk:
+            if bulgeFraction == 0:
+                # skip sources that are only disk
+                continue
+            else:
+                # only render flux associated with the bulge
+                flux = bulgeFraction*flux
+                bulgeFraction = 1
         
         # Calculate bounding-box padding in arcsecs for pixel and psf convolution
         if args.psf_fwhm > 0:
