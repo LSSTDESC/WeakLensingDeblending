@@ -204,6 +204,24 @@ def saveStamp(stamps,stamp,trimmed,args):
     stamps.append(stamp)
     return True
 
+def getPsfBoundsEstimator(psf,pix,size):
+    stamp = galsim.ImageD(2*size,2*size)
+    stamp.setScale(pix.getXWidth())
+    obj = galsim.Convolve([psf,pix])
+    obj.draw(image=stamp)
+    row = stamp.array[size,size:]
+    # Create a function that gives the size of bounding box necessary to contain
+    # psf pixels down to the specified threshold assuming the specified total flux
+    # and that the psf is round. The return value is clipped at 2*size for large fluxes.
+    def estimator(flux,threshold):
+        index = 0
+        while index < size:
+            if flux*row[index] < threshold:
+                return 2*index+1
+            index += 1
+        return 2*size
+    return estimator
+
 def main():
 
     # Parse command-line args
@@ -222,7 +240,7 @@ def main():
         help = "image width (pixels)")
     parser.add_argument("--height", type = int, default = 512,
         help = "image height (pixels)")
-    parser.add_argument("--max-size", type = float, default = 10.,
+    parser.add_argument("--max-size", type = float, default = 20.,
         help = "flux from any object is truncated beyond this size (arcsecs)")
     parser.add_argument("--no-margin", action = "store_true",
         help = "do not simulate the tails of objects just outside the field")
@@ -282,6 +300,7 @@ def main():
             psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
         else:
             psf = galsim.Kolmogorov(fwhm = args.psf_fwhm)
+        psfBounds = getPsfBoundsEstimator(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
     else:
         psf = None
 
