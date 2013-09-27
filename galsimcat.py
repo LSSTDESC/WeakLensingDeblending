@@ -222,8 +222,10 @@ def main():
         help = "image width (pixels)")
     parser.add_argument("--height", type = int, default = 512,
         help = "image height (pixels)")
-    parser.add_argument("--margin", type = float, default = 10.,
-        help = "size of surrounding margin where objects might leak into image (arcmins)")
+    parser.add_argument("--max-size", type = float, default = 10.,
+        help = "flux from any object is truncated beyond this size (arcsecs)")
+    parser.add_argument("--no-margin", action = "store_true",
+        help = "do not simulate the tails of objects just outside the field")
     parser.add_argument("--pixel-scale", type = float, default = 0.2,
         help = "pixel scale (arscecs/pixel)")
     parser.add_argument("--psf-fwhm", type = float, default = 0.7,
@@ -298,7 +300,10 @@ def main():
     
     # Calculate margin size in degrees (sources outside of our image margins
     # are always skipped, for speed, even if their tails might overlap our image)
-    margin = args.margin/deg2arcmin
+    if args.no_margin:
+        margin = 0
+    else:
+        margin = 0.5*args.max_size/deg2arcsec
     
     # Convert the band into an integer index
     bandIndex = "ugrizy".find(args.band)
