@@ -156,6 +156,9 @@ def createMask(image,threshold,args):
     box = image.bounds
     mask = galsim.ImageS(box)
     mask.setScale(image.getScale())
+    borderMax = 0.
+    lastRow = box.ymax - box.ymin
+    lastPixel = box.xmax - box.xmin
     if not args.no_trim:
         # initialize our trimmed bounds to just the central pixel
         # (the numerator should always be even for odd width,height)
@@ -171,6 +174,9 @@ def createMask(image,threshold,args):
         y = box.getYMin()+rowIndex
         for (pixelIndex,pixelValue) in enumerate(row):
             x = box.getXMin()+pixelIndex
+            if rowIndex == 0 or rowIndex == lastRow or pixelIndex == 0 or pixelIndex == lastPixel:
+                # update the largest pixel value on our 1-pixel wide border
+                borderMax = max(borderMax,pixelValue)
             if pixelValue >= threshold:
                 mask.array[rowIndex,pixelIndex] = 1
                 if not args.no_trim:
@@ -178,6 +184,11 @@ def createMask(image,threshold,args):
                     xmax = max(x,xmax)
                     ymin = min(y,ymin)
                     ymax = max(y,ymax)
+    # is the stamp too small to contain the threshold contour?
+    if borderMax > threshold:
+        print '### stamp truncated at %.1f > %.1f ADU' % (borderMax,threshold)
+        # build a new mask using the border max as the threshold
+        return createMask(image,borderMax,args)
     if not args.no_trim:
         trimmed = galsim.BoundsI(xmin,xmax,ymin,ymax)
         mask = mask[trimmed]
