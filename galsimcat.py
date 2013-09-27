@@ -147,7 +147,7 @@ def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
 """
 Returns a mask image of values 0 or 1 depending on whether the corresponding
 input image pixel value is above or below the specified threshold in ADU.
-Note that if all pixels are above threshold, then the returned mask will
+Note that if all pixels are below threshold, then the returned mask will
 contain only the central pixel with image.array.sum() == 0.
 """
 def createMask(image,threshold,args):
