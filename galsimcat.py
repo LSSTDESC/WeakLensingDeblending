@@ -482,6 +482,12 @@ def main():
         # Add the psf size in quadrature
         width = math.sqrt(width*width + psfSize*psfSize)
         height = math.sqrt(height*height + psfSize*psfSize)
+
+        # Truncate the bounding box, if necessary
+        if width > args.max_size or height > args.max_size:
+            logger.info('...truncating bbbox from (%.1f,%.1f)' % (width,height))
+            width = min(width,args.max_size)
+            height = min(height,args.max_size)
         
         # Skip this source if its pixels would all be below pixelCut (can this ever happen?)
         if (width,height) == (0,0):
