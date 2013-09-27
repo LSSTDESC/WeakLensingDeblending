@@ -427,18 +427,6 @@ def main():
                 flux = bulgeFraction*flux
                 bulgeFraction = 1
         
-        # Calculate bounding-box padding in arcsecs for pixel and psf convolution
-        if args.psf_fwhm > 0:
-            if args.psf_beta > 0:
-                (w_pad,h_pad) = moffatBounds(args.psf_beta,flux,args.psf_fwhm,1,0,sbCut)
-            else:
-                # Approximate Kolmogorov bounds with beta=3 Moffat bounds
-                (w_pad,h_pad) = moffatBounds(3.0,flux,args.psf_fwhm,1,0,sbCut)
-        else:
-            (w_pad,h_pad) = (0,0)
-        w_pad += args.pixel_scale
-        h_pad += args.pixel_scale
-        
         # Get disk component parameters
         if bulgeFraction < 1:
             hlr_d = float(cols[6]) # in arcsecs
@@ -453,11 +441,6 @@ def main():
             pa_d = pa_d*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
-            # Add padding for psf and pixel convolution, unless disk's surface
-            # density is always below (1-bulgeFraction)*sbCut
-            if (w_d,h_d) != (0,0):
-                w_d += w_pad
-                h_d += h_pad
         else:
             (hlr_d,q_d,pa_d) = (0,0,0)
             (w_d,h_d) = (0,0)
@@ -476,11 +459,6 @@ def main():
             pa_b = pa_b*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
-            # Add padding for psf and pixel convolution, unless bulge's surface
-            # density is always below bulgeFraction*sbCut
-            if (w_b,h_b) != (0,0):
-                w_b += w_pad
-                h_b += h_pad
         else:
             (hlr_b,q_b,pa_b) = (0,0,0)
             (w_b,h_b) = (0,0)
@@ -488,8 +466,14 @@ def main():
         # Combined the bulge and disk bounding boxes
         width = max(w_d,w_b)
         height = max(h_d,h_b)
+
+        # Estimate the (round) bounding box for the psf in arscecs given our total flux
+        psfSize = psfBounds(flux,pixelCut)*args.pixel_scale if psf else 0
+        # Add the psf size in quadrature
+        width = math.sqrt(width*width + psfSize*psfSize)
+        height = math.sqrt(height*height + psfSize*psfSize)
         
-        # Skip this source if its pixels would all be below pixelCut
+        # Skip this source if its pixels would all be below pixelCut (can this ever happen?)
         if (width,height) == (0,0):
             continue
         
@@ -549,8 +533,8 @@ def main():
                 (1-bulgeFraction,hlr_d,q_d,pa_d))
             logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
                 (bulgeFraction,hlr_b,q_b,pa_b))
-            logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) pad (%.1f,%.1f) arcsec' %
-                (w_d,h_d,w_b,h_b,w_pad,h_pad))
+            logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
+                (w_d,h_d,w_b,h_b,psfSize))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
