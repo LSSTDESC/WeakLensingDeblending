@@ -14,6 +14,7 @@ import argparse
 import logging
 import galsim
 import pyfits
+import numpy
 
 twopi = 2*math.pi
 deg2rad = math.pi/180.
@@ -209,14 +210,23 @@ def getPsfBoundsEstimator(psf,pix,size):
     stamp.setScale(pix.getXWidth())
     obj = galsim.Convolve([psf,pix])
     obj.draw(image=stamp)
-    row = stamp.array[size,size:]
+    # build the circularized psf profile
+    profile = numpy.zeros(size,dtype=float)
+    for x in range(2*size):
+        for y in range(2*size):
+            dx = x - size + 0.5
+            dy = y - size + 0.5
+            r = math.sqrt(dx*dx + dy*dy)
+            ipix = int(math.floor(r))
+            if ipix < size:
+                profile[ipix] = max(profile[ipix],stamp.array[x,y])
     # Create a function that gives the size of bounding box necessary to contain
-    # psf pixels down to the specified threshold assuming the specified total flux
-    # and that the psf is round. The return value is clipped at 2*size for large fluxes.
+    # psf pixels down to the specified threshold assuming the specified total flux.
+    # The return value is clipped at 2*size for large fluxes.
     def estimator(flux,threshold):
         index = 0
         while index < size:
-            if flux*row[index] < threshold:
+            if flux*profile[index] < threshold:
                 return 2*index+1
             index += 1
         return 2*size
