@@ -426,7 +426,8 @@ def main():
         bulgeMag = float(cols[9])
         diskMag = float(cols[10])
         if bulgeMag > 0 and diskMag > 0:
-            bulgeFraction = 1./(1.+math.exp(-(diskMag-bulgeMag)/2.5))
+            bulgeFraction = 1./(1.+math.pow(10,-(diskMag-bulgeMag)/2.5))
+            print diskMag,bulgeMag,bulgeFraction
         elif bulgeMag > 0:
             bulgeFraction = 1
         else:
