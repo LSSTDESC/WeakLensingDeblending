@@ -240,6 +240,61 @@ def getPsfBoundsEstimator(psf,pix,size):
         return 2*size
     return estimator
 
+# Returns the combined ellipticity for the specified disk and bulge components,
+# assuming they have the same centroid.
+def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
+    # ensure that single-component models give correct results
+    if f_b == 0:
+        q_b = 1
+    elif f_b == 1:
+        q_d = 1
+
+    # calculate the disk and bulge component ellipticities
+    ed = (1-q_d)/(1+q_d)
+    ed1 = ed*math.cos(2*pa_d)
+    ed2 = ed*math.sin(2*pa_d)
+    eb = (1-q_b)/(1+q_b)
+    eb1 = eb*math.cos(2*pa_b)
+    eb2 = eb*math.sin(2*pa_b)
+
+    # calculate the corresponding second-moment tensors assuming unit total flux
+    cd = 2.13003
+    nd = cd*(hlr_d/(1-ed*ed))**2
+    Qd11 = nd*(1+ed*ed+2*ed1)
+    Qd12 = nd*2*ed2
+    Qd22 = nd*(1+ed*ed-2*ed1)
+    detQd = Qd11*Qd22 - Qd12*Qd12
+    cb = 21.6793
+    nb = cb*(hlr_b/(1-eb*eb))**2
+    Qb11 = nb*(1+eb*eb+2*eb1)
+    Qb12 = nb*2*eb2
+    Qb22 = nb*(1+eb*eb-2*eb1)
+    detQb = Qb11*Qb22 - Qb12*Qb12
+
+    # add the component second-moment tensors
+    Q11 = (1-f_b)*Qd11 + f_b*Qb11
+    Q12 = (1-f_b)*Qd12 + f_b*Qb12
+    Q22 = (1-f_b)*Qd22 + f_b*Qb22
+    detQ = Q11*Q22 - Q12*Q12
+
+    # calculate the corresponding combined ellipticity
+    denom = Q11 + Q22 + 2*math.sqrt(detQ)
+    e1 = (Q11 - Q22)/denom
+    e2 = 2*Q12/denom
+
+    """
+    # check direct calculation of emag when pa_d == pa_b
+    emag = math.sqrt(e1*e1 + e2*e2)
+    wd = (1-f_b)*cd*hlr_d**2*(1+q_d)**2/(8*q_d**2) if f_b < 1 else 0
+    wm = f_b*cb*hlr_b**2*(1+q_b)**2/(8*q_b**2) if f_b > 0 else 0
+    ep = wd*(1+q_d**2) + wm*(1+q_b**2)
+    em = wd*(1-q_d**2) + wm*(1-q_b**2)
+    emag2 = em/(ep+math.sqrt(ep*ep-em*em))
+    print 'emag:',emag-emag2
+    """
+
+    return (e1,e2)
+
 def main():
 
     # Parse command-line args
@@ -480,6 +535,9 @@ def main():
         else:
             (hlr_b,q_b,pa_b) = (0,0,0)
             (w_b,h_b) = (0,0)
+
+        # Combine the bulge and disk ellipticities
+        (e1true,e2true) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
         
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
