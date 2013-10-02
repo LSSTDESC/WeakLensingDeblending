@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 #######################################################################################
-## TODO:
-## - add bulge components
-## - use more realistic (COSMOS) distribution of intrinsic ellipticities?
-## - add variations over galaxy size parameters (and others?)
+## Created by David Kirkby, University of California, Irvine <dkirkby@uci.edu>
 #######################################################################################
 
 import sys
@@ -485,7 +482,7 @@ def main():
             (hlr_b,q_b,pa_b) = (0,0,0)
             (w_b,h_b) = (0,0)
         
-        # Combined the bulge and disk bounding boxes
+        # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
         height = max(h_d,h_b)
 
