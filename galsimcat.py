@@ -519,7 +519,8 @@ def main():
             # Convert position angle from degrees to radians
             pa_d = pa_d*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
+            if not args.catscan:
+                (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
         else:
             (hlr_d,q_d,pa_d) = (0,0,0)
             (w_d,h_d) = (0,0)
@@ -537,7 +538,8 @@ def main():
             # Convert position angle from degrees to radians
             pa_b = pa_b*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
+            if not args.catscan:
+                (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
         else:
             (hlr_b,q_b,pa_b) = (0,0,0)
             (w_b,h_b) = (0,0)
