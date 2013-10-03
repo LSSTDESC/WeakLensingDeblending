@@ -306,6 +306,8 @@ def main():
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
         help = "base name of output files to write")
+    parser.add_argument("--catscan", action = "store_true",
+        help = "build output catalog only, with no rendering")
     parser.add_argument("-x","--x-center", type = float, default = 0.5,
         help = "central RA of image (degrees)")
     parser.add_argument("-y","--y-center", type = float, default = 0.0,
@@ -438,17 +440,15 @@ def main():
     logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
 
     # Open the output catalog to write
-    outname = args.output + '_catalog.dat'
-    outcat = open(outname,'w')
-    if args.verbose:
-        logger.info('Creating output catalog to %r' % outname)
+    catoutname = args.output + '_catalog.dat'
+    outcat = open(catoutname,'w')
     
     # Initialize the list of per-object stamp HDUs we will fill
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
 
     # Loop over catalog entries
-    nkeep = lineno = 0
+    ncat = nkeep = lineno = 0
     for line in cat:
         lineno += 1
 
@@ -463,6 +463,11 @@ def main():
         # skip sources outside our margins
         if RA < RAmin-margin or RA > RAmax+margin or DEC < DECmin-margin or DEC > DECmax+margin:
             continue
+        
+        # Calculate the offsets of this source from our image's bottom left corner in pixels
+        # (which might be negative or byeond our image bounds because of the margins)
+        xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale*RAscale
+        yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
         
         # Look up source AB magnitude in the requested band
         abMag = float(cols[19+bandIndex])
@@ -539,7 +544,15 @@ def main():
 
         # Combine the bulge and disk ellipticities
         (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
-        
+
+        # Write an entry for this object to the output catalog
+        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2
+        ncat += 1
+
+        # All done now in catscan mode
+        if args.catscan:
+            continue
+
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
         height = max(h_d,h_b)
@@ -559,11 +572,6 @@ def main():
         # Skip this source if its pixels would all be below pixelCut (can this ever happen?)
         if (width,height) == (0,0):
             continue
-        
-        # Calculate the offsets of this source from our image's bottom left corner in pixels
-        # (which might be negative, or byeond our image bounds)
-        xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale*RAscale
-        yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
         
         # Calculate the integer coordinates of the image pixel that contains the source center
         # (using the convention that the bottom left corner pixel has coordinates 1,1)
@@ -704,16 +712,14 @@ def main():
         # and mathematica cannot Import it.
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
-        # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2
-
     # Write the full field image to a separate file
-    outname = args.output + '_field.fits'
-    logger.info('Saving full field to %r' % outname)
-    galsim.fits.write(field,outname)
+    if not args.catscan:
+        outname = args.output + '_field.fits'
+        logger.info('Saving full field to %r' % outname)
+        galsim.fits.write(field,outname)
 
     # Write out the full field image with noise added
-    if args.sky_level > 0:
+    if not args.catscan and args.sky_level > 0:
         rng = galsim.BaseDeviate(123)
         noise = galsim.PoissonNoise(rng,sky_level = 2*args.nvisits*args.sky_level)
         field.addNoise(noise)
@@ -730,6 +736,7 @@ def main():
     # Close catalog files
     cat.close()
     outcat.close()
+    logger.info('Wrote %d of %d catalog entries to %r' % (ncat,lineno,catoutname))
 
 if __name__ == "__main__":
     main()
