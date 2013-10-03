@@ -240,7 +240,7 @@ def getPsfBoundsEstimator(psf,pix,size):
         return 2*size
     return estimator
 
-# Returns the combined ellipticity for the specified disk and bulge components,
+# Returns the combined size and ellipticity for the specified disk and bulge components,
 # assuming they have the same centroid.
 def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     # ensure that single-component models give correct results
@@ -276,6 +276,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     Q12 = (1-f_b)*Qd12 + f_b*Qb12
     Q22 = (1-f_b)*Qd22 + f_b*Qb22
     detQ = Q11*Q22 - Q12*Q12
+    size = math.pow(detQ,0.25)
 
     # calculate the corresponding combined ellipticity
     denom = Q11 + Q22 + 2*math.sqrt(detQ)
@@ -293,7 +294,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     print 'emag:',emag-emag2
     """
 
-    return (e1,e2)
+    return (size,e1,e2)
 
 def main():
 
@@ -537,7 +538,7 @@ def main():
             (w_b,h_b) = (0,0)
 
         # Combine the bulge and disk ellipticities
-        (e1true,e2true) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
+        (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
         
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
@@ -617,6 +618,8 @@ def main():
                 (bulgeFraction,hlr_b,q_b,pa_b))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfSize))
+            logger.info('    size: %.2f pixels' % size)
+            logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (e1,e2))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
@@ -658,21 +661,6 @@ def main():
             nkeep -= 1
             continue
         field[overlap] += masked[overlap]
-
-        # Calculate the shape of the nominal galaxy
-        size = -1
-        (g1,g2) = (-1,-1)
-        if args.shape and args.render_nopsf:
-            shape = galsim.hsm.FindAdaptiveMom(nopsf,strict=False)
-            if shape.error_message:
-                logger.info("*** %s" % shape.error_message[:-1])
-            else:
-                size = shape.moments_sigma
-                shear = shape.observed_shape
-                (g1,g2) = (shear.g1,shear.g2)
-                if args.verbose:
-                    logger.info('    size: %.2f pixels' % size)
-                    logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (g1,g2))
         
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
@@ -717,7 +705,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,g1,g2
+        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2
 
     # Write the full field image to a separate file
     outname = args.output + '_field.fits'
