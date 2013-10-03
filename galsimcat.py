@@ -258,13 +258,13 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     eb2 = eb*math.sin(2*pa_b)
 
     # calculate the corresponding second-moment tensors assuming unit total flux
-    cd = 2.13003
+    cd = 1.06502
     nd = cd*(hlr_d/(1-ed*ed))**2
     Qd11 = nd*(1+ed*ed+2*ed1)
     Qd12 = nd*2*ed2
     Qd22 = nd*(1+ed*ed-2*ed1)
     detQd = Qd11*Qd22 - Qd12*Qd12
-    cb = 21.6793
+    cb = 10.8396
     nb = cb*(hlr_b/(1-eb*eb))**2
     Qb11 = nb*(1+eb*eb+2*eb1)
     Qb12 = nb*2*eb2
