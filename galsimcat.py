@@ -522,7 +522,7 @@ def main():
             if not args.catscan:
                 (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
         else:
-            (hlr_d,q_d,pa_d) = (0,0,0)
+            (hlr_d,q_d,pa_d) = (0,1,0)
             (w_d,h_d) = (0,0)
         
         # Get bulge component parameters
@@ -541,7 +541,7 @@ def main():
             if not args.catscan:
                 (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
         else:
-            (hlr_b,q_b,pa_b) = (0,0,0)
+            (hlr_b,q_b,pa_b) = (0,1,0)
             (w_b,h_b) = (0,0)
 
         # Combine the bulge and disk ellipticities
