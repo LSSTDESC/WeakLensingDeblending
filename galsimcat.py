@@ -277,6 +277,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     Q22 = (1-f_b)*Qd22 + f_b*Qb22
     detQ = Q11*Q22 - Q12*Q12
     size = math.pow(detQ,0.25)
+    #semiMajorAxis = math.sqrt(0.5*(Q11+Q22+math.sqrt((Q11-Q22)**2+4*Q12**2)))
 
     # calculate the corresponding combined ellipticity
     denom = Q11 + Q22 + 2*math.sqrt(detQ)
@@ -468,6 +469,9 @@ def main():
         # (which might be negative or byeond our image bounds because of the margins)
         xoffset = (RA - RAmin)*deg2arcsec/args.pixel_scale*RAscale
         yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
+
+        # Look up redshift
+        z = float(cols[3])
         
         # Look up source AB magnitude in the requested band
         abMag = float(cols[19+bandIndex])
@@ -548,7 +552,7 @@ def main():
         (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
 
         # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2
+        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z
         ncat += 1
 
         # All done now in catscan mode
