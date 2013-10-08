@@ -490,6 +490,8 @@ def main():
         
         # Look up source AB magnitude in the requested band
         abMag = float(cols[19+bandIndex])
+        # Correct for extinction
+        abMag += args.extinction*(args.airmass - 1)
         # Calculate total flux in ADU units
         flux = args.flux_norm*math.pow(10,24-abMag)
         # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
