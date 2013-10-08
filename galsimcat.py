@@ -496,7 +496,7 @@ def main():
         # Correct for extinction
         abMag += args.extinction*(args.airmass - 1)
         # Calculate total detected signal in electrons
-        flux = args.exposure_time*args.zero_point*math.pow(10,-1.0*(abMag-24))
+        flux = args.exposure_time*args.zero_point*math.pow(10,-0.4*(abMag-24))
         # Skip objects whose total flux is below our pixel threshold
         if flux < pixelCut:
             continue
