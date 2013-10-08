@@ -328,7 +328,7 @@ def main():
         help = "airmass value to use for atmospheric PSF and extinction")
     parser.add_argument("--extinction", type = float, default = 0.07,
         help = "atmospheric extinction coefficient")
-    parser.add_argument("--zenith-fwhm", type = float, default = 0.7,
+    parser.add_argument("--zenith-fwhm", type = float, default = 0.67,
         help = "atmospheric psf full-width-half-max in arcsecs at zenith")
     parser.add_argument("--instrumental-fwhm", type = float, default = 0.4,
         help = "instrumental psf full-width-half-max in arcsecs")
