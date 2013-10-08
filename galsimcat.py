@@ -307,8 +307,6 @@ def main():
         help = "name of input catalog to read")
     parser.add_argument("-o","--output", default = 'catout',
         help = "base name of output files to write")
-    parser.add_argument("--catscan", action = "store_true",
-        help = "build output catalog only, with no rendering")
     parser.add_argument("-x","--x-center", type = float, default = 0.5,
         help = "central RA of image (degrees)")
     parser.add_argument("-y","--y-center", type = float, default = 0.0,
@@ -347,6 +345,8 @@ def main():
         help = "constant shear component g1 to apply")
     parser.add_argument("--g2", type = float, default = 0.,
         help = "constant shear component g2 to apply")
+    parser.add_argument("--save-field", action = "store_true",
+        help = "save full field images with and without noise")
     parser.add_argument("--stamps", action = "store_true",
         help = "save postage stamps for each source (normalized to 1 exposure)")
     parser.add_argument("--no-clip", action = "store_true",
@@ -448,18 +448,18 @@ def main():
     # Open the source input catalog to use and read the header line
     cat = open(args.input)
     cathdr = cat.readline().split()
-    logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
+    if args.verbose:
+        logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
 
-    # Open the output catalog to write
-    catoutname = args.output + '_catalog.dat'
-    outcat = open(catoutname,'w')
+    # Initialize the output catalog in memory
+    outputCatalog = [ ]
     
     # Initialize the list of per-object stamp HDUs we will fill
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
 
     # Loop over catalog entries
-    ncat = nkeep = lineno = 0
+    nkeep = lineno = 0
     for line in cat:
         lineno += 1
 
@@ -533,8 +533,7 @@ def main():
             # Convert position angle from degrees to radians
             pa_d = pa_d*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            if not args.catscan:
-                (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
+            (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
         else:
             (hlr_d,q_d,pa_d) = (0,1,0)
             (w_d,h_d) = (0,0)
@@ -552,22 +551,13 @@ def main():
             # Convert position angle from degrees to radians
             pa_b = pa_b*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            if not args.catscan:
-                (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
+            (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
         else:
             (hlr_b,q_b,pa_b) = (0,1,0)
             (w_b,h_b) = (0,0)
 
         # Combine the bulge and disk ellipticities
         (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
-
-        # Write an entry for this object to the output catalog
-        print >>outcat, lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z
-        ncat += 1
-
-        # All done now in catscan mode
-        if args.catscan:
-            continue
 
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
@@ -617,9 +607,8 @@ def main():
 
         # If we get this far, we are definitely rendering this source (but it might
         # still get trimmed out later)
-        nkeep += 1
-        logger.info('Rendering stamp %d (line %d) with w x h = %d x %d' %
-            (nkeep,lineno,2*xhalf+1,2*yhalf+1))
+        logger.info('Rendering input catalog line %d with w x h = %d x %d' %
+            (lineno,2*xhalf+1,2*yhalf+1))
 
         # Calculate the pixel coordinates of the stamp center.
         xstamp = 0.5*(bbox.xmin + bbox.xmax)
@@ -668,12 +657,12 @@ def main():
         mask = createMask(nominal,pixelCut,args)
         if mask.array.sum() == 0:
             # this stamp has no pixels above threshold
-            logger.info('*** stamp %d is below threshold' % nkeep)
-            nkeep -= 1
+            logger.info('*** line %d is below threshold' % lineno)
             continue
         trimmed = mask.bounds
         if not args.no_trim and args.verbose:
-            logger.info(' trimmed: [%d:%d,%d:%d] pixels' % (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
+            logger.info(' trimmed: [%d:%d,%d:%d] pixels' %
+                (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
 
         # Add the nominal galaxy to the full field image after applying the threshold mask
         # (the mask must be the second term in the product so that the result is double precision)
@@ -681,8 +670,7 @@ def main():
         overlap = trimmed & field.bounds
         if overlap.area() == 0:
              # this stamp's mask falls completely outside our field
-            logger.info('*** stamp %d does not overlap field' % nkeep)
-            nkeep -= 1
+            logger.info('*** line %d does not overlap field' % lineno)
             continue
         field[overlap] += masked[overlap]
         
@@ -728,20 +716,25 @@ def main():
         # and mathematica cannot Import it.
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
-    # Write the full field image to a separate file
-    if not args.catscan:
+        # Add a catalog entry for this galaxy
+        entry = (lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z)
+        outputCatalog.append(entry)
+        nkeep += 1
+
+    # Write our the full field image
+    if args.save_field:
+        # First without noise
         outname = args.output + '_field.fits'
         logger.info('Saving full field to %r' % outname)
         galsim.fits.write(field,outname)
-
-    # Write out the full field image with noise added
-    if not args.catscan and args.sky_level > 0:
-        rng = galsim.BaseDeviate(123)
-        noise = galsim.PoissonNoise(rng,sky_level = 2*args.nvisits*args.sky_level)
-        field.addNoise(noise)
-        outname = args.output + '_noise.fits'
-        logger.info('Saving full field to %r' % outname)
-        galsim.fits.write(field,outname)
+        # Now with noise added
+        if args.sky_level > 0:
+            rng = galsim.BaseDeviate(123)
+            noise = galsim.PoissonNoise(rng,sky_level = 2*args.nvisits*args.sky_level)
+            field.addNoise(noise)
+            outname = args.output + '_noise.fits'
+            logger.info('Saving full field with noise added to %r' % outname)
+            galsim.fits.write(field,outname)
 
     # Write the object stamp datacubes
     if args.stamps:
@@ -749,10 +742,16 @@ def main():
         logger.info('Saving %d stamps to %r' % (nkeep,outname))
         galsim.fits.writeFile(outname, hduList)
 
-    # Close catalog files
+    # Close the input catalog
     cat.close()
-    outcat.close()
-    logger.info('Wrote %d of %d catalog entries to %r' % (ncat,lineno,catoutname))
+
+    # Write the output catalog from memory
+    outname = args.output + '_catalog.dat'
+    out = open(outname,'w')
+    for entry in outputCatalog:
+        print >>out, ' '.join(map(str,entry))
+    out.close()
+    logger.info('Wrote %d of %d catalog entries to %r' % (nkeep,lineno,outname))
 
 if __name__ == "__main__":
     main()
