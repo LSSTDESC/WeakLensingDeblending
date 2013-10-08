@@ -297,6 +297,11 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
 
     return (size,e1,e2)
 
+def signalToNoiseRatio(stamp,pixelNoise):
+    flat = stamp.array.reshape(-1)
+    snr = math.sqrt(numpy.dot(flat,flat)/pixelNoise)
+    return snr
+
 def main():
 
     # Parse command-line args
@@ -674,6 +679,13 @@ def main():
             continue
         field[overlap] += masked[overlap]
         
+        # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
+        # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
+        # to the field boundary (use --no-clip to disable this).
+        snr = signalToNoiseRatio(masked,2*args.nvisits*args.sky_level)
+        if args.verbose:
+            logger.info('     S/N: %.6f' % snr)
+
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
         singleExposureNorm=1./(2*args.nvisits)
@@ -717,9 +729,11 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = (lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z)
+        entry = (lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z,snr)
         outputCatalog.append(entry)
+
         nkeep += 1
+        logger.info("saved stamp %d" % nkeep)
 
     # Write our the full field image
     if args.save_field:
