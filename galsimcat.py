@@ -323,8 +323,14 @@ def main():
         help = "do not simulate the tails of objects just outside the field")
     parser.add_argument("--pixel-scale", type = float, default = 0.2,
         help = "pixel scale (arscecs/pixel)")
-    parser.add_argument("--psf-fwhm", type = float, default = 0.7,
-        help = "psf full-width-half-max in arcsecs (zero for no psf)")
+    parser.add_argument("--airmass", type = float, default = 1.2,
+        help = "airmass value to use for atmospheric PSF and extinction")
+    parser.add_argument("--extinction", type = float, default = 0.07,
+        help = "atmospheric extinction coefficient")
+    parser.add_argument("--zenith-fwhm", type = float, default = 0.7,
+        help = "atmospheric psf full-width-half-max in arcsecs at zenith")
+    parser.add_argument("--instrumental-fwhm", type = float, default = 0.4,
+        help = "instrumental psf full-width-half-max in arcsecs")
     parser.add_argument("--psf-beta", type = float, default = 0.0,
         help = "psf Moffat parameter beta (uses Kolmogorov psf if beta <= 0)")
     parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
@@ -372,11 +378,15 @@ def main():
     pix = galsim.Pixel(args.pixel_scale)
 
     # Define the psf to use
-    if args.psf_fwhm > 0:
+    atmos_fwhm = args.zenith_fwhm*math.pow(args.airmass,0.6)
+    fwhm = math.sqrt(atmos_fwhm**2 + args.instrumental_fwhm**2)
+    logger.info('Using PSF fwhm = %.4f" (%.4f" zenith => %.4f" at X = %.3d, %.4f" instrumental)' %
+        (fwhm,args.zenith_fwhm,atmos_fwhm,args.airmass,args.instrumental_fwhm))
+    if fwhm > 0:
         if args.psf_beta > 0:
-            psf = galsim.Moffat(beta = args.psf_beta, fwhm = args.psf_fwhm)
+            psf = galsim.Moffat(beta = args.psf_beta, fwhm = fwhm)
         else:
-            psf = galsim.Kolmogorov(fwhm = args.psf_fwhm)
+            psf = galsim.Kolmogorov(fwhm = fwhm)
         psfBounds = getPsfBoundsEstimator(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
     else:
         psf = None
