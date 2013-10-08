@@ -339,7 +339,7 @@ def main():
         help = "total flux in ADU for one exposure of a typical galaxy of AB mag 24")
     parser.add_argument("--sky-level", type = float, default = 780.778,
         help = "average sky level to simulate (ADU/pixel in one exposure)")
-    parser.add_argument("--sn-cut", type = float, default = 0.1,
+    parser.add_argument("--sn-cut", type = float, default = 0.5,
         help = "keep all pixels above this signal-to-noise ratio cut")
     parser.add_argument("--nvisits", type = int, default = 230,
         help = "number of visits to simulate (1 visit = 2 exposures)")
