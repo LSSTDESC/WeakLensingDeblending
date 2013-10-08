@@ -105,8 +105,8 @@ def boundingBox(maxSB,thresholdSB,q,beta,rFunction):
 
 """
 Returns (dx,dy) for the bounding box of a Sersic profile with n = 1 or 4.
-The input flux should be in ADU, hlr in arscecs, beta in radians, f0 in
-ADU/arcsec^2. 0 < q <= 1 is dimensionless. The returned (dx,dy) are in
+The input flux should be in electrons, hlr in arscecs, beta in radians, f0 in
+elec/arcsec^2. 0 < q <= 1 is dimensionless. The returned (dx,dy) are in
 arcsecs. See boundingBox above for details.
 """
 def sersicBounds(n,flux,hlr,q,beta,f0):
@@ -126,7 +126,7 @@ def sersicBounds(n,flux,hlr,q,beta,f0):
 
 """
 Returns (dx,dy) for the bounding box of a Moffat profile. The input flux
-should be in ADU, fwhm in arcsecs, beta in radians, f0 in ADU/arcsec^2.
+should be in electrons, fwhm in arcsecs, beta in radians, f0 in elec/arcsec^2.
 0 < q <= 1 and moffatBeta > 1 are dimensionless. The returned (dx,dy) are in
 arcsecs. See boundingBox above for details.
 """
@@ -144,7 +144,7 @@ def moffatBounds(moffatBeta,flux,fwhm,q,beta,f0):
     
 """
 Returns a mask image of values 0 or 1 depending on whether the corresponding
-input image pixel value is above or below the specified threshold in ADU.
+input image pixel value is above or below the specified threshold in electrons.
 Note that if all pixels are below threshold, then the returned mask will
 contain only the central pixel with image.array.sum() == 0.
 """
@@ -183,7 +183,7 @@ def createMask(image,threshold,args):
                     ymax = max(y,ymax)
     # is the stamp too small to contain the threshold contour?
     if borderMax > threshold:
-        print '### stamp truncated at %.1f > %.1f ADU' % (borderMax,threshold)
+        print '### stamp truncated at %.1f > %.1f electrons' % (borderMax,threshold)
         # build a new mask using the border max as the threshold
         return createMask(image,borderMax,args)
     if not args.no_trim:
@@ -193,8 +193,6 @@ def createMask(image,threshold,args):
 
 """
 Performs any final processing on stamp, controlled by args, then appends it to stamps.
-Saved stamps are always normalized to a single exposure, i.e., they are scaled by
-1/(2*nvisits) relative to what gets added to the full field image.
 Returns True if the stamp was saved, or otherwise False.
 """
 def saveStamp(stamps,stamp,trimmed,args):
@@ -338,20 +336,22 @@ def main():
         help = "psf Moffat parameter beta (uses Kolmogorov psf if beta <= 0)")
     parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
         help = "LSST imaging band to use for source fluxes")
-    parser.add_argument("--flux-norm", type = float, default = 711.,
-        help = "total flux in ADU for one exposure of a typical galaxy of AB mag 24")
-    parser.add_argument("--sky-level", type = float, default = 780.778,
-        help = "average sky level to simulate (ADU/pixel in one exposure)")
+    parser.add_argument("--zero-point", type = float, default = 41.5,
+        help = "zero point for converting magnitude to detected signal in elec/sec")
+    parser.add_argument("--sky-brightness", type = float, default = 20.0,
+        help = "sky brightness in mag/sq.arcsec.")
     parser.add_argument("--sn-cut", type = float, default = 0.5,
         help = "keep all pixels above this signal-to-noise ratio cut")
-    parser.add_argument("--nvisits", type = int, default = 230,
-        help = "number of visits to simulate (1 visit = 2 exposures)")
+    parser.add_argument("--exposure-time", type = float, default = 6900.,
+        help = "full-depth exposure time in seconds")
     parser.add_argument("--g1", type = float, default = 0.,
         help = "constant shear component g1 to apply")
     parser.add_argument("--g2", type = float, default = 0.,
         help = "constant shear component g2 to apply")
     parser.add_argument("--save-field", action = "store_true",
-        help = "save full field images with and without noise")
+        help = "save full field image without noise")
+    parser.add_argument("--save-noise", action = "store_true",
+        help = "save full field image with random noise added")
     parser.add_argument("--stamps", action = "store_true",
         help = "save postage stamps for each source (normalized to 1 exposure)")
     parser.add_argument("--no-clip", action = "store_true",
@@ -419,20 +419,23 @@ def main():
     # Convert the band into an integer index
     bandIndex = "ugrizy".find(args.band)
 
-    # Calculate the sky noise level in stacked ADU / pixel
-    skyNoise = math.sqrt(2*args.nvisits*args.sky_level)
+    # Calculate the sky background rate in elec/sec/pixel
+    skyRate = args.zero_point*math.pow(10,-0.4*(args.sky_brightness-24))*args.pixel_scale**2
+
+    # Calculate the mean sky noise level for the full exposure time in elec/pixel
+    skyNoise = math.sqrt(args.exposure_time*skyRate)
     
-    # Calculate the stacked pixel ADU threshold cut to use
+    # Calculate the pixel threshold cut to use in detected electrons during the full exposure
     pixelCut = args.sn_cut*skyNoise
 
     # Calculate the corresponding surface brightness cut to use
     sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
     
-    print 'Simulating %s-band observations with flux(AB24) = %.3f ADU/pixel/exp for typical galaxy.' %(
-        args.band,args.flux_norm)
-    print 'Simulating %d visits with stacked sky noise level %.3f ADU/pixel (%.3f sky ADU/pixel/exp)' % (
-        args.nvisits,skyNoise,args.sky_level)
-    print 'Will keep all stacked pixels > %.3f ADU (%.1f ADU/arcsec^2)' % (pixelCut,sbCut)
+    print 'Simulating %s-band observations with flux(AB24) = %.3f elec/sec.' %(
+        args.band,args.zero_point)
+    print 'Simulating %.1fs exposure with total sky noise level %.3f elec/pixel (%.3f mag/sq.arcsec.)' % (
+        args.exposure_time,skyNoise,args.sky_brightness)
+    print 'Will keep all stacked pixels > %.3f elec (%.1f elec/arcsec^2)' % (pixelCut,sbCut)
 
     # Initialize finite difference calculations if necessary
     if args.partials:
@@ -492,10 +495,8 @@ def main():
         abMag = float(cols[19+bandIndex])
         # Correct for extinction
         abMag += args.extinction*(args.airmass - 1)
-        # Calculate total flux in ADU units
-        flux = args.flux_norm*math.pow(10,24-abMag)
-        # Scale flux to number of vists (extra factor of 2 because 1 visit = 2 exposures)
-        flux = 2*args.nvisits*flux
+        # Calculate total detected signal in electrons
+        flux = args.exposure_time*args.zero_point*math.pow(10,-1.0*(abMag-24))
         # Skip objects whose total flux is below our pixel threshold
         if flux < pixelCut:
             continue
@@ -628,7 +629,7 @@ def main():
         yshift = (yoffset - (ystamp-0.5))*args.pixel_scale
 
         if args.verbose:
-            logger.info('    flux: %.3g ADU (%s-band AB %.1f)' % (flux,args.band,abMag))
+            logger.info('    flux: %.3g electrons (%s-band AB %.1f)' % (flux,args.band,abMag))
             logger.info('  bounds: [%d:%d,%d:%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
             logger.info('   shift: (%f,%f) arcsecs = (%f,%f) pixels' %
                 (xshift,yshift,xshift/args.pixel_scale,yshift/args.pixel_scale))
@@ -684,15 +685,15 @@ def main():
         # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
         # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
         # to the field boundary (use --no-clip to disable this).
-        snr = signalToNoiseRatio(masked,2*args.nvisits*args.sky_level)
+        snr = signalToNoiseRatio(masked,args.exposure_time*skyRate)
         if args.verbose:
             logger.info('     S/N: %.6f' % snr)
 
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
-        singleExposureNorm=1./(2*args.nvisits)
-        assert saveStamp(datacube,singleExposureNorm*nopsf,trimmed,args)
-        assert saveStamp(datacube,singleExposureNorm*nominal,trimmed,args)
+        # Save individual stamps in units of elec/sec
+        assert saveStamp(datacube,nopsf/args.exposure_time,trimmed,args)
+        assert saveStamp(datacube,nominal/args.exposure_time,trimmed,args)
         assert saveStamp(datacube,mask,trimmed,args)
 
         if args.partials:
@@ -723,7 +724,7 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube
-                assert saveStamp(datacube,singleExposureNorm*partial,trimmed,args)
+                assert saveStamp(datacube,partial/args.exposure_time,trimmed,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
@@ -731,26 +732,27 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = (lineno,xoffset,yoffset,abMag,flux/(2*args.nvisits),size,e1,e2,bulgeFraction,z,snr)
+        entry = (lineno,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,bulgeFraction,z,snr)
         outputCatalog.append(entry)
 
         nkeep += 1
         logger.info("saved stamp %d" % nkeep)
 
-    # Write our the full field image
+    # Write the full field image without noise
     if args.save_field:
         # First without noise
         outname = args.output + '_field.fits'
         logger.info('Saving full field to %r' % outname)
         galsim.fits.write(field,outname)
-        # Now with noise added
-        if args.sky_level > 0:
-            rng = galsim.BaseDeviate(123)
-            noise = galsim.PoissonNoise(rng,sky_level = 2*args.nvisits*args.sky_level)
-            field.addNoise(noise)
-            outname = args.output + '_noise.fits'
-            logger.info('Saving full field with noise added to %r' % outname)
-            galsim.fits.write(field,outname)
+
+    # Write the full field image with random noise added
+    if args.save_noise:
+        rng = galsim.BaseDeviate(123)
+        noise = galsim.PoissonNoise(rng,sky_level = args.exposure_time*skyRate)
+        field.addNoise(noise)
+        outname = args.output + '_noise.fits'
+        logger.info('Saving full field with noise added to %r' % outname)
+        galsim.fits.write(field,outname)
 
     # Write the object stamp datacubes
     if args.stamps:
