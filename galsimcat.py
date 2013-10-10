@@ -474,8 +474,8 @@ def main():
 
         # prepare to read this catalog entry
         entryCols = line.split()
-        def catalog(fieldName):
-            return float(entryCols[catDict[fieldName]])
+        def catalog(fieldName,type=float):
+            return type(entryCols[catDict[fieldName]])
 
         # position on the sky in degrees
         RA = catalog('ra')
