@@ -66,12 +66,13 @@ def main():
         return text
 
     # Specify the header columns we need
-    columns = 'id,ra,dec,redshift,absmag_r_total'
+    columns = 'galid,ra,dec,redshift'
 
     # Add bulge and disk specific columns
-    columns += addColumns(('%sHalfLightRadius',),('Bulge','Disk'))
-    columns += addColumns(('pa_%s','magnorm_%s','sedid_%s','sedname_%s'),('bulge','disk'))
+    columns += addColumns(('fluxnorm_%s',),('bulge','disk','agn'))
     columns += addColumns(('a_%s','b_%s'),('b','d'))
+    columns += addColumns(('pa_%s',),('bulge','disk'))
+    columns += addColumns(('%sHalfLightRadius',),('Bulge','Disk'))
 
     # Add filter-specific columns
     columns += addColumns(('%s_ab',),"ugrizy")
