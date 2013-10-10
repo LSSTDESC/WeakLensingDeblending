@@ -503,35 +503,26 @@ def main():
         if flux < pixelCut:
             continue
         
-        # Look up the disk and bulge fluxes, which are provided in the catalog as
-        # color-independent magnitudes.
-        bulgeMag = catalog('magnorm_bulge')
-        diskMag = catalog('magnorm_disk')
-        if bulgeMag > 0 and diskMag > 0:
-            bulgeFraction = 1./(1.+math.pow(10,-(diskMag-bulgeMag)/2.5))
-        elif bulgeMag > 0:
-            bulgeFraction = 1
+        # Look up the component flux relative normalizations
+        diskFluxNorm = catalog('fluxnorm_disk')
+        bulgeFluxNorm = catalog('fluxnorm_bulge')
+        agnFluxNorm = catalog('fluxnorm_agn')
+        totalFluxNorm = diskFluxNorm + bulgeFluxNorm + agnFluxNorm
+
+        # Calculate the disk and bulge fluxes to simulate
+        if args.no_disk:
+            diskFlux = 0
         else:
-            bulgeFraction = 0
+            diskFlux = flux*diskFluxNorm/totalFluxNorm
         if args.no_bulge:
-            if bulgeFraction == 1:
-                # skip sources that are only bulge
-                continue
-            else:
-                # only render flux associated with the disk
-                flux = (1-bulgeFraction)*flux
-                bulgeFraction = 0
-        elif args.no_disk:
-            if bulgeFraction == 0:
-                # skip sources that are only disk
-                continue
-            else:
-                # only render flux associated with the bulge
-                flux = bulgeFraction*flux
-                bulgeFraction = 1
+            bulgeFlux = 0
+        else:
+            bulgeFlux = flux*bulgeFluxNorm/totalFluxNorm
+        if diskFlux == 0 and bulgeFlux == 0:
+            continue
         
         # Get disk component parameters
-        if bulgeFraction < 1:
+        if diskFlux > 0:
             hlr_d = catalog('DiskHalfLightRadius') # in arcsecs
             if hlr_d <= 0:
                 raise RuntimeError('Unexpected DiskHalfLightRadius <= 0')
@@ -543,16 +534,16 @@ def main():
             # Convert position angle from degrees to radians
             pa_d = pa_d*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            (w_d,h_d) = sersicBounds(1,flux,hlr_d,q_d,pa_d,sbCut)
+            (w_d,h_d) = sersicBounds(1,diskFlux+bulgeFlux,hlr_d,q_d,pa_d,sbCut)
         else:
             (hlr_d,q_d,pa_d) = (0,1,0)
             (w_d,h_d) = (0,0)
         
         # Get bulge component parameters
-        if bulgeFraction > 0:
+        if bulgeFlux > 0:
             hlr_b = catalog('BulgeHalfLightRadius') # in arcsecs
             if hlr_b <= 0:
-                raise RuntimeError('Unexpected hlr_b <= 0')
+                raise RuntimeError('Unexpected BulgeHalfLightRadius <= 0')
             pa_b = catalog('pa_bulge') # position angle in degrees
             a_b = catalog('a_b') # major axis length in arcsecs
             b_b = catalog('b_b') # minor axis length in arcsecs
@@ -561,13 +552,13 @@ def main():
             # Convert position angle from degrees to radians
             pa_b = pa_b*deg2rad
             # Calculate bounding box in arcsecs without psf or pixel convolution
-            (w_b,h_b) = sersicBounds(4,flux,hlr_b,q_b,pa_b,sbCut)
+            (w_b,h_b) = sersicBounds(4,diskFlux+bulgeFlux,hlr_b,q_b,pa_b,sbCut)
         else:
             (hlr_b,q_b,pa_b) = (0,1,0)
             (w_b,h_b) = (0,0)
 
         # Combine the bulge and disk ellipticities
-        (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFraction)
+        (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
 
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
@@ -635,10 +626,11 @@ def main():
             logger.info('  bounds: [%d:%d,%d:%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
             logger.info('   shift: (%f,%f) arcsecs = (%f,%f) pixels' %
                 (xshift,yshift,xshift/args.pixel_scale,yshift/args.pixel_scale))
-            logger.info('    disk: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
-                (1-bulgeFraction,hlr_d,q_d,pa_d))
+            logger.info('    disk: f = %f elec, hlr = %f arcsec, q = %f, beta = %f rad' %
+                (diskFlux/flux,hlr_d,q_d,pa_d))
             logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
-                (bulgeFraction,hlr_b,q_b,pa_b))
+                (bulgeFlux/flux,hlr_b,q_b,pa_b))
+            logger.info('     agn: f = %f' % (agnFlux/flux))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfSize))
             logger.info('    size: %.2f pixels' % size)
@@ -646,7 +638,7 @@ def main():
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
-            'flux':flux, 'bulgeFraction': bulgeFraction,
+            'flux':diskFlux+bulgeFlux, 'bulgeFraction': bulgeFlux/(diskFlux+bulgeFlux),
             'xc':xshift, 'yc':yshift,
             'hlr_d':hlr_d, 'q_d':q_d, 'beta_d':pa_d,
             'hlr_b':hlr_b, 'q_b':q_b, 'beta_b':pa_b,
@@ -734,7 +726,8 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = (lineno,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,bulgeFraction,z,snr)
+        entry = (lineno,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
+            bulgeFlux/(diskFlux+bulgeFlux),z,snr)
         outputCatalog.append(entry)
 
         nkeep += 1
