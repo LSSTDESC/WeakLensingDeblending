@@ -524,8 +524,6 @@ def main():
         # Get disk component parameters
         if diskFlux > 0:
             hlr_d = catalog('DiskHalfLightRadius') # in arcsecs
-            if hlr_d <= 0:
-                raise RuntimeError('Unexpected DiskHalfLightRadius <= 0')
             pa_d = catalog('pa_disk') # position angle in degrees
             a_d = catalog('a_d') # major axis length in arcsecs
             b_d = catalog('b_d') # minor axis length in arcsecs
@@ -536,14 +534,11 @@ def main():
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_d,h_d) = sersicBounds(1,diskFlux+bulgeFlux,hlr_d,q_d,pa_d,sbCut)
         else:
-            (hlr_d,q_d,pa_d) = (0,1,0)
             (w_d,h_d) = (0,0)
         
         # Get bulge component parameters
         if bulgeFlux > 0:
             hlr_b = catalog('BulgeHalfLightRadius') # in arcsecs
-            if hlr_b <= 0:
-                raise RuntimeError('Unexpected BulgeHalfLightRadius <= 0')
             pa_b = catalog('pa_bulge') # position angle in degrees
             a_b = catalog('a_b') # major axis length in arcsecs
             b_b = catalog('b_b') # minor axis length in arcsecs
@@ -554,8 +549,13 @@ def main():
             # Calculate bounding box in arcsecs without psf or pixel convolution
             (w_b,h_b) = sersicBounds(4,diskFlux+bulgeFlux,hlr_b,q_b,pa_b,sbCut)
         else:
-            (hlr_b,q_b,pa_b) = (0,1,0)
             (w_b,h_b) = (0,0)
+
+        # If a component is missing, set its nominal size and shape from the other component.
+        if diskFlux == 0:
+            (hlr_d,q_d,pa_d) = (hlr_b,q_b,pa_b)
+        if bulgeFlux == 0:
+            (hlr_b,q_b,pa_b) = (hlr_d,q_d,pa_d)
 
         # Combine the bulge and disk ellipticities
         (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
