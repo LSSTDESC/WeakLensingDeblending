@@ -416,9 +416,6 @@ def main():
     else:
         margin = 0.5*args.max_size/deg2arcsec
     
-    # Convert the band into an integer index
-    bandIndex = "ugrizy".find(args.band)
-
     # Calculate the sky background rate in elec/sec/pixel
     skyRate = args.zero_point*math.pow(10,-0.4*(args.sky_brightness-24))*args.pixel_scale**2
 
@@ -453,11 +450,12 @@ def main():
         else:
             fdCoefs = (4./5.,-1./5.,4./105.,-1./280.)
 
-    # Open the source input catalog to use and read the header line
+    # Open the source input catalog to use and initialize a keyword-based lookup for catalog entries
     cat = open(args.input)
-    cathdr = cat.readline().split()
+    catFields = cat.readline().split()
+    catDict = dict(zip(catFields,range(len(catFields))))
     if args.verbose:
-        logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(cathdr)))
+        logger.info('Reading input catalog %r with fields:\n%s' % (args.input,','.join(catFields)))
 
     # Initialize the output catalog in memory
     outputCatalog = [ ]
@@ -474,10 +472,14 @@ def main():
         if args.only_line > 0 and lineno != args.only_line:
             continue
 
+        # prepare to read this catalog entry
+        entryCols = line.split()
+        def catalog(fieldName):
+            return float(entryCols[catDict[fieldName]])
+
         # position on the sky in degrees
-        cols = line.split()
-        RA = float(cols[1])
-        DEC = float(cols[2])
+        RA = catalog('ra')
+        DEC = catalog('dec')
         
         # skip sources outside our margins
         if RA < RAmin-margin or RA > RAmax+margin or DEC < DECmin-margin or DEC > DECmax+margin:
@@ -489,10 +491,10 @@ def main():
         yoffset = (DEC - DECmin)*deg2arcsec/args.pixel_scale
 
         # Look up redshift
-        z = float(cols[3])
+        z = catalog('redshift')
         
         # Look up source AB magnitude in the requested band
-        abMag = float(cols[19+bandIndex])
+        abMag = catalog(args.band + '_ab')
         # Correct for extinction
         abMag += args.extinction*(args.airmass - 1)
         # Calculate total detected signal in electrons
@@ -503,8 +505,8 @@ def main():
         
         # Look up the disk and bulge fluxes, which are provided in the catalog as
         # color-independent magnitudes.
-        bulgeMag = float(cols[9])
-        diskMag = float(cols[10])
+        bulgeMag = catalog('magnorm_bulge')
+        diskMag = catalog('magnorm_disk')
         if bulgeMag > 0 and diskMag > 0:
             bulgeFraction = 1./(1.+math.pow(10,-(diskMag-bulgeMag)/2.5))
         elif bulgeMag > 0:
@@ -530,12 +532,12 @@ def main():
         
         # Get disk component parameters
         if bulgeFraction < 1:
-            hlr_d = float(cols[6]) # in arcsecs
+            hlr_d = catalog('DiskHalfLightRadius') # in arcsecs
             if hlr_d <= 0:
-                raise RuntimeError('Unexpected hlr_d <= 0')
-            pa_d = float(cols[8]) # position angle in degrees
-            a_d = float(cols[16]) # major axis length in arcsecs
-            b_d = float(cols[18]) # minor axis length in arcsecs
+                raise RuntimeError('Unexpected DiskHalfLightRadius <= 0')
+            pa_d = catalog('pa_disk') # position angle in degrees
+            a_d = catalog('a_d') # major axis length in arcsecs
+            b_d = catalog('b_d') # minor axis length in arcsecs
             # Calculate sheared ellipse aspect ratio
             q_d = b_d/a_d # between 0.2 and 1
             # Convert position angle from degrees to radians
@@ -548,12 +550,12 @@ def main():
         
         # Get bulge component parameters
         if bulgeFraction > 0:
-            hlr_b = float(cols[5]) # in arcsecs
+            hlr_b = catalog('BulgeHalfLightRadius') # in arcsecs
             if hlr_b <= 0:
                 raise RuntimeError('Unexpected hlr_b <= 0')
-            pa_b = float(cols[7]) # position angle in degrees
-            a_b = float(cols[15]) # major axis length in arcsecs
-            b_b = float(cols[17]) # minor axis length in arcsecs
+            pa_b = catalog('pa_bulge') # position angle in degrees
+            a_b = catalog('a_b') # major axis length in arcsecs
+            b_b = catalog('b_b') # minor axis length in arcsecs
             # Calculate sheared ellipse aspect ratio
             q_b = b_b/a_b # between 0.2 and 1
             # Convert position angle from degrees to radians
