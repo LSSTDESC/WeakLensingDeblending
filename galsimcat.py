@@ -18,30 +18,29 @@ deg2rad = math.pi/180.
 deg2arcsec = 3600.
 deg2arcmin = 60.
 
+def createComponent(type,electrons,xc,yc,hlr,q,beta,g1,g2):
+    # create a radial profile of the requested type and size
+    comp = type(flux = electrons, half_light_radius = hlr)
+    # set the intrinsic shape
+    comp.applyShear(q = q, beta = beta*galsim.radians)
+    # apply cosmic shear
+    comp.applyShear(g1 = g1, g2 = g2)
+    # shift to this component's centroid
+    comp.applyShift(dx = xc, dy = yc)
+    return comp
+
 """
 Returns a (disk,bulge) tuple of source objects using the specified parameters.
 """
 def createSource(flux,bulgeFraction,xc,yc,hlr_d,q_d,beta_d,hlr_b,q_b,beta_b,g1,g2):
     # Define the disk component, if any
     if bulgeFraction < 1:
-        disk = galsim.Exponential(flux = flux*(1-bulgeFraction), half_light_radius = hlr_d)
-        # Apply intrinsic shear
-        disk.applyShear(q = q_d, beta = beta_d*galsim.radians)
-        # Apply cosmic shear
-        disk.applyShear(g1 = g1, g2 = g2)
-        # Shift to this object's centroid
-        disk.applyShift(dx = xc, dy = yc)
+        disk = createComponent(galsim.Exponential,flux*(1-bulgeFraction),xc,yc,hlr_d,q_d,beta_d,g1,g2)
     else:
         disk = None
     # Define the bulge component, if any
     if bulgeFraction > 0:
-        bulge = galsim.DeVaucouleurs(flux = flux*bulgeFraction, half_light_radius = hlr_b)
-        # Apply intrinsic shear
-        bulge.applyShear(q = q_b, beta = beta_b*galsim.radians)
-        # Apply cosmic shear
-        bulge.applyShear(g1 = g1, g2 = g2)
-        # Shift to this object's centroid
-        bulge.applyShift(dx = xc, dy = yc)
+        bulge = createComponent(galsim.DeVaucouleurs,flux*bulgeFraction,xc,yc,hlr_b,q_b,beta_b,g1,g2)
     else:
         bulge = None
     return (disk,bulge)
