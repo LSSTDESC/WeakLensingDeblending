@@ -31,16 +31,24 @@ def createComponent(type,electrons,xc,yc,hlr,q,beta,g1,g2):
 
 """
 Returns a (disk,bulge) tuple of source objects using the specified parameters.
+Note that f_d and f_b are fractions of the total flux and need not sum to one.
 """
-def createSource(flux,bulgeFraction,xc,yc,hlr_d,q_d,beta_d,hlr_b,q_b,beta_b,g1,g2):
+def createSource(
+    total_flux,f_d,f_b,
+    x_d,y_d,hlr_d,q_d,beta_d,
+    x_b,y_b,hlr_b,q_b,beta_b,
+    dx,dy,relsize,dbeta,
+    g1,g2):
     # Define the disk component, if any
-    if bulgeFraction < 1:
-        disk = createComponent(galsim.Exponential,flux*(1-bulgeFraction),xc,yc,hlr_d,q_d,beta_d,g1,g2)
+    if f_d > 0:
+        disk = createComponent(galsim.Exponential,
+            total_flux*f_d,x_d+dx,y_d+dy,hlr_d*relsize,q_d,beta_d+dbeta,g1,g2)
     else:
         disk = None
     # Define the bulge component, if any
-    if bulgeFraction > 0:
-        bulge = createComponent(galsim.DeVaucouleurs,flux*bulgeFraction,xc,yc,hlr_b,q_b,beta_b,g1,g2)
+    if f_b > 0:
+        bulge = createComponent(galsim.DeVaucouleurs,
+            total_flux*f_b,x_b+dx,y_b+dy,hlr_b*relsize,q_b,beta_b+dbeta,g1,g2)
     else:
         bulge = None
     return (disk,bulge)
@@ -638,11 +646,12 @@ def main():
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
-            'flux':diskFlux+bulgeFlux, 'bulgeFraction': bulgeFlux/(diskFlux+bulgeFlux),
-            'xc':xshift, 'yc':yshift,
-            'hlr_d':hlr_d, 'q_d':q_d, 'beta_d':pa_d,
-            'hlr_b':hlr_b, 'q_b':q_b, 'beta_b':pa_b,
-            'g1':args.g1, 'g2': args.g2
+            'total_flux': diskFlux + bulgeFlux,
+            'f_d': diskFlux/(diskFlux+bulgeFlux), 'f_b': bulgeFlux/(diskFlux+bulgeFlux), 
+            'x_d': xshift, 'y_d': yshift, 'hlr_d': hlr_d, 'q_d': q_d, 'beta_d': pa_d,
+            'x_b': xshift, 'y_b': yshift, 'hlr_b': hlr_b, 'q_b': q_b, 'beta_b': pa_b,
+            'dx': 0., 'dy': 0., 'relsize': 1., 'dbeta': 0.,
+            'g1': args.g1, 'g2': args.g2
         }
 
         # Create stamps for the galaxy with and w/o the psf applied
@@ -694,8 +703,9 @@ def main():
             # Specify the amount to vary each parameter for partial derivatives
             # (we don't use a dictionary here since we want to control the order)
             variations = [
-                ('xc',args.pixel_scale/3.), ('yc',args.pixel_scale/3.),
-                ('hlr_d',0.05*hlr_d),('hlr_b',0.05*hlr_b),
+                ('f_d',0.01), ('f_b',0.01),
+                ('dx',args.pixel_scale/3.),('dy',args.pixel_scale/3.),
+                ('relsize',0.05),
                 ('g1',0.03), ('g2',0.03)
             ]
             # loop over source parameters to vary
