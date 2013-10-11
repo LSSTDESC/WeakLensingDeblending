@@ -371,8 +371,6 @@ def main():
         help = "do not include any galactic bulge (Sersic n=4) components")
     parser.add_argument("--shape", action = "store_true",
         help = "run HSM adaptive moments calculation on no-psf stamp")
-    parser.add_argument("--render-nopsf", action = "store_true",
-        help = "save a stamp rendered without any psf for each galaxy")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -654,14 +652,8 @@ def main():
             'g1': args.g1, 'g2': args.g2
         }
 
-        # Create stamps for the galaxy with and w/o the psf applied
+        # Render the nominal stamps for this galaxy
         gal = createSource(**params)
-        if args.render_nopsf:
-            # We don't do this by default for speed
-            nopsf = createStamp(gal,None,pix,bbox)
-        else:
-            # Use an empty placeholder so we don't change the shape of the output
-            nopsf = galsim.ImageD(bbox)
         nominal = createStamp(gal,psf,pix,bbox)
 
         # Create a mask for pixels above threshold
@@ -695,7 +687,6 @@ def main():
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
         # Save individual stamps in units of elec/sec
-        assert saveStamp(datacube,nopsf/args.exposure_time,trimmed,args)
         assert saveStamp(datacube,nominal/args.exposure_time,trimmed,args)
         assert saveStamp(datacube,mask,trimmed,args)
 
