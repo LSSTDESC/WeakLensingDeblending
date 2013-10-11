@@ -428,8 +428,8 @@ def main():
     # Calculate the corresponding surface brightness cut to use
     sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
     
-    print 'Simulating %s-band observations with flux(AB24) = %.3f elec/sec.' %(
-        args.band,args.zero_point)
+    print 'Simulating %s-band observations with signal(AB24) = %.3f elec/sec and sky = %.3f elec/sec/pixel' %(
+        args.band,args.zero_point,skyRate)
     print 'Simulating %.1fs exposure with total sky noise level %.3f elec/pixel (%.3f mag/sq.arcsec.)' % (
         args.exposure_time,skyNoise,args.sky_brightness)
     print 'Will keep all stacked pixels > %.3f elec (%.1f elec/arcsec^2)' % (pixelCut,sbCut)
