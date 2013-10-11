@@ -163,16 +163,15 @@ def createMask(image,threshold,args):
     borderMax = 0.
     lastRow = box.ymax - box.ymin
     lastPixel = box.xmax - box.xmin
-    if not args.no_trim:
-        # initialize our trimmed bounds to just the central pixel
-        # (the numerator should always be even for odd width,height)
-        xmin = (box.getXMin()+box.getXMax())
-        ymin = (box.getYMin()+box.getYMax())
-        assert xmin%2 == 0 and ymin%2 == 0
-        xmin = xmin/2
-        ymin = ymin/2
-        xmax = xmin
-        ymax = ymin
+    # initialize our trimmed bounds to just the central pixel
+    # (the numerator should always be even for odd width,height)
+    xmin = (box.getXMin()+box.getXMax())
+    ymin = (box.getYMin()+box.getYMax())
+    assert xmin%2 == 0 and ymin%2 == 0
+    xmin = xmin/2
+    ymin = ymin/2
+    xmax = xmin
+    ymax = ymin
     # loop over image pixels
     for (rowIndex,row) in enumerate(image.array):
         y = box.getYMin()+rowIndex
@@ -183,29 +182,24 @@ def createMask(image,threshold,args):
                 borderMax = max(borderMax,pixelValue)
             if pixelValue >= threshold:
                 mask.array[rowIndex,pixelIndex] = 1
-                if not args.no_trim:
-                    xmin = min(x,xmin)
-                    xmax = max(x,xmax)
-                    ymin = min(y,ymin)
-                    ymax = max(y,ymax)
+                xmin = min(x,xmin)
+                xmax = max(x,xmax)
+                ymin = min(y,ymin)
+                ymax = max(y,ymax)
     # is the stamp too small to contain the threshold contour?
     if borderMax > threshold:
         print '### stamp truncated at %.1f > %.1f electrons' % (borderMax,threshold)
         # build a new mask using the border max as the threshold
         return createMask(image,borderMax,args)
-    if not args.no_trim:
-        trimmed = galsim.BoundsI(xmin,xmax,ymin,ymax)
-        mask = mask[trimmed]
+    trimmed = galsim.BoundsI(xmin,xmax,ymin,ymax)
+    mask = mask[trimmed]
     return mask
 
 """
 Performs any final processing on stamp, controlled by args, then appends it to stamps.
 Returns True if the stamp was saved, or otherwise False.
 """
-def saveStamp(stamps,stamp,trimmed,args):
-    # Trim the stamp to its threshold bounding box
-    if not args.no_trim:
-        stamp = stamp[trimmed]
+def saveStamp(stamps,stamp,args):
     # Clip the stamp so that does not extend beyond the field image. This results
     # in potentially smaller files with sources that might not be centered.
     if not args.no_clip:
@@ -363,8 +357,6 @@ def main():
         help = "save postage stamps for each source (normalized to 1 exposure)")
     parser.add_argument("--no-clip", action = "store_true",
         help = "do not clip stamps to the image bounds")
-    parser.add_argument("--no-trim", action = "store_true",
-        help = "do not trim stamps to their threshold bounding box")
     parser.add_argument("--no-disk", action = "store_true",
         help = "do not include any galactic disk (Sersic n=1) components")
     parser.add_argument("--no-bulge", action = "store_true",
@@ -663,7 +655,7 @@ def main():
             logger.info('*** line %d (id %d) is below threshold' % (lineno,entryID))
             continue
         trimmed = mask.bounds
-        if not args.no_trim and args.verbose:
+        if args.verbose:
             logger.info(' trimmed: [%d:%d,%d:%d] pixels' %
                 (trimmed.xmin,trimmed.xmax,trimmed.ymin,trimmed.ymax))
 
@@ -687,8 +679,8 @@ def main():
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
         # Save individual stamps in units of elec/sec
-        assert saveStamp(datacube,nominal/args.exposure_time,trimmed,args)
-        assert saveStamp(datacube,mask,trimmed,args)
+        assert saveStamp(datacube,masked/args.exposure_time,args)
+        assert saveStamp(datacube,mask,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
@@ -718,8 +710,8 @@ def main():
                         minus = createStamp(newsource,psf,pix,bbox)
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
-                # append this partial to our datacube
-                assert saveStamp(datacube,partial/args.exposure_time,trimmed,args)
+                # append this partial to our datacube after trimming and masking
+                assert saveStamp(datacube,(partial[trimmed]*mask)/args.exposure_time,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
