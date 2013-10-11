@@ -427,7 +427,7 @@ def main():
     # Calculate the corresponding surface brightness cut to use
     sbCut = pixelCut/(args.pixel_scale*args.pixel_scale)
     
-    print 'Simulating %s-band observations with signal(AB24) = %.3f elec/sec and sky = %.3f elec/sec/pixel' %(
+    print 'Simulating %s-band observations with AB24 zero point %.3f elec/sec, sky rate = %.3f elec/sec/pixel' %(
         args.band,args.zero_point,skyRate)
     print 'Simulating %.1fs exposure with total sky noise level %.3f elec/pixel (%.3f mag/sq.arcsec.)' % (
         args.exposure_time,skyNoise,args.sky_brightness)
@@ -626,11 +626,11 @@ def main():
             logger.info('  bounds: [%d:%d,%d:%d] pixels' % (bbox.xmin,bbox.xmax,bbox.ymin,bbox.ymax))
             logger.info('   shift: (%f,%f) arcsecs = (%f,%f) pixels' %
                 (xshift,yshift,xshift/args.pixel_scale,yshift/args.pixel_scale))
-            logger.info('    disk: f = %f elec, hlr = %f arcsec, q = %f, beta = %f rad' %
+            logger.info('    disk: frac = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
                 (diskFlux/flux,hlr_d,q_d,pa_d))
-            logger.info('   bulge: f = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
+            logger.info('   bulge: frac = %f, hlr = %f arcsec, q = %f, beta = %f rad' %
                 (bulgeFlux/flux,hlr_b,q_b,pa_b))
-            logger.info('     agn: f = %f' % (agnFlux/flux))
+            logger.info('     agn: frac = %f' % (agnFluxNorm/flux))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfSize))
             logger.info('    size: %.2f pixels' % size)
