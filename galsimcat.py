@@ -476,6 +476,7 @@ def main():
         entryCols = line.split()
         def catalog(fieldName,type=float):
             return type(entryCols[catDict[fieldName]])
+        entryID = catalog('id',int)
 
         # position on the sky in degrees
         RA = catalog('ra')
@@ -608,8 +609,8 @@ def main():
 
         # If we get this far, we are definitely rendering this source (but it might
         # still get trimmed out later)
-        logger.info('Rendering input catalog line %d with w x h = %d x %d' %
-            (lineno,2*xhalf+1,2*yhalf+1))
+        logger.info('Rendering input catalog line %d (entry id %d) with w x h = %d x %d' %
+            (lineno,entryID,2*xhalf+1,2*yhalf+1))
 
         # Calculate the pixel coordinates of the stamp center.
         xstamp = 0.5*(bbox.xmin + bbox.xmax)
@@ -659,7 +660,7 @@ def main():
         mask = createMask(nominal,pixelCut,args)
         if mask.array.sum() == 0:
             # this stamp has no pixels above threshold
-            logger.info('*** line %d is below threshold' % lineno)
+            logger.info('*** line %d (id %d) is below threshold' % (lineno,entryID))
             continue
         trimmed = mask.bounds
         if not args.no_trim and args.verbose:
@@ -672,7 +673,7 @@ def main():
         overlap = trimmed & field.bounds
         if overlap.area() == 0:
              # this stamp's mask falls completely outside our field
-            logger.info('*** line %d does not overlap field' % lineno)
+            logger.info('*** line %d (id %d) does not overlap field' % (lineno,entryID))
             continue
         field[overlap] += masked[overlap]
         
@@ -726,12 +727,12 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = (lineno,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
+        entry = (entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
             bulgeFlux/(diskFlux+bulgeFlux),z,snr)
         outputCatalog.append(entry)
 
         nkeep += 1
-        logger.info("saved stamp %d" % nkeep)
+        logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
 
     # Write the full field image without noise
     if args.save_field:

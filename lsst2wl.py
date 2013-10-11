@@ -66,7 +66,7 @@ def main():
         return text
 
     # Specify the header columns we need
-    columns = 'galid,ra,dec,redshift'
+    columns = 'id,ra,dec,redshift'
 
     # Add bulge and disk specific columns
     columns += addColumns(('fluxnorm_%s',),('bulge','disk','agn'))
