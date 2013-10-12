@@ -303,6 +303,16 @@ def signalToNoiseRatio(stamp,pixelNoise):
     snr = math.sqrt(numpy.dot(flat,flat)/pixelNoise)
     return snr
 
+# Returns True if the stamps s1 and s2 have overlapping pixels with non-zero flux.
+def overlapping(s1,s2):
+    # test for overlapping bounding boxes
+    overlapBounds = s1.bounds & s2.bounds
+    if overlapBounds.area() == 0:
+        return False
+    # test for overlapping flux within the overlapping pixels
+    overlapFluxProduct = numpy.sum(s1[overlapBounds].array * s2[overlapBounds].array)
+    return False if overlapFluxProduct == 0 else True
+
 def main():
 
     # Parse command-line args
@@ -462,6 +472,7 @@ def main():
     # Initialize the list of per-object stamp HDUs we will fill
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
+    stampList = [ ]
 
     # Loop over catalog entries
     nkeep = lineno = 0
@@ -670,6 +681,9 @@ def main():
             logger.info('*** line %d (id %d) does not overlap field' % (lineno,entryID))
             continue
         field[overlap] += maskedNominal[overlap]
+
+        # Remember the nominal stamp (clipped to the field) for overlap calculations.
+        stampList.append(maskedNominal[overlap])
         
         # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
         # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
@@ -757,6 +771,11 @@ def main():
 
         nkeep += 1
         logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
+
+    # Loop over all saved objects to test for overlaps
+    for (i1,s1) in enumerate(stampList):
+        for (i2,s2) in enumerate(stampList[:i1]):
+            print (i1,i2,overlapping(s1,s2))
 
     # Write the full field image without noise
     if args.save_field:
