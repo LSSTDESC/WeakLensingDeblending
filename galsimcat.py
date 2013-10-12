@@ -208,6 +208,8 @@ def saveStamp(stamps,stamp,args):
             # skip this stamp if it falls completely outside our field (after trimming)
             return False
         stamp = stamp[overlap]
+    # Convert normalization from elec/exposure to elec/second
+    stamp = stamp/args.exposure_time
     # Remember this stamp.
     stamps.append(stamp)
     return True
@@ -678,9 +680,8 @@ def main():
 
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
-        # Save individual stamps in units of elec/sec
-        assert saveStamp(datacube,masked/args.exposure_time,args)
-        assert saveStamp(datacube,mask,args)
+        # Save the nominal (masked and trimmed) stamp
+        assert saveStamp(datacube,masked,args)
 
         if args.partials:
             # Specify the amount to vary each parameter for partial derivatives
@@ -711,7 +712,7 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube after trimming and masking
-                assert saveStamp(datacube,(partial[trimmed]*mask)/args.exposure_time,args)
+                assert saveStamp(datacube,partial[trimmed]*mask,args)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
