@@ -663,27 +663,30 @@ def main():
 
         # Add the nominal galaxy to the full field image after applying the threshold mask
         # (the mask must be the second term in the product so that the result is double precision)
-        masked = nominal[trimmed]*mask
+        maskedNominal = nominal[trimmed]*mask
         overlap = trimmed & field.bounds
         if overlap.area() == 0:
              # this stamp's mask falls completely outside our field
             logger.info('*** line %d (id %d) does not overlap field' % (lineno,entryID))
             continue
-        field[overlap] += masked[overlap]
+        field[overlap] += maskedNominal[overlap]
         
         # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
         # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
         # to the field boundary (use --no-clip to disable this).
-        snr = signalToNoiseRatio(masked,args.exposure_time*skyRate)
+        snr = signalToNoiseRatio(maskedNominal,args.exposure_time*skyRate)
         if args.verbose:
             logger.info('     S/N: %.6f' % snr)
 
         # Initialize the datacube of stamps that we will save for this object
         datacube = [ ]
+        partialsArray = [ ]
         # Save the nominal (masked and trimmed) stamp
-        assert saveStamp(datacube,masked,args)
+        assert saveStamp(datacube,maskedNominal,args)
 
         if args.partials:
+            # Calculate the denominator array for our Fisher matrix elements
+            fisherDenominator = maskedNominal.array + args.exposure_time*skyRate
             # Specify the amount to vary each parameter for partial derivatives
             # (we don't use a dictionary here since we want to control the order)
             variations = [
@@ -692,6 +695,10 @@ def main():
                 ('relsize',0.05),
                 ('g1',0.03), ('g2',0.03)
             ]
+            # the shape measurement parameters must always be the last 2 variations
+            # since we make this assumption when slicing the covariance matrix below
+            assert variations[-2][0] == 'g1'
+            assert variations[-1][0] == 'g2'
             # loop over source parameters to vary
             for (pname,delta) in variations:
                 # create stamps for each variation of this parameter
@@ -712,7 +719,31 @@ def main():
                         # update the finite difference calculation of this partial
                         partial += (fdCoefs[step]/delta)*(plus - minus)
                 # append this partial to our datacube after trimming and masking
-                assert saveStamp(datacube,partial[trimmed]*mask,args)
+                maskedPartial = partial[trimmed]*mask
+                assert saveStamp(datacube,maskedPartial,args)
+                # remember this partial's numpy image array
+                partialsArray.append(maskedPartial.array)
+            # calculate the Fisher matrix for this object
+            nvar = len(partialsArray)
+            fisherMatrix = numpy.zeros((nvar,nvar))
+            for i in range(nvar):
+                fisherMatrix[i,i] = numpy.sum(partialsArray[i]**2/fisherDenominator)
+                for j in range(i+1,nvar):
+                    fisherMatrix[i,j] = numpy.sum(partialsArray[i]*partialsArray[j]/fisherDenominator)
+                    fisherMatrix[j,i] = fisherMatrix[i,j]
+            # try to calculate corresponding shape measurement error, which will fail unless
+            # the Fisher matrix is invertible
+            try:
+                fullCov = numpy.linalg.inv(fisherMatrix)
+                # this is where we assume that the last 2 variations are g1,g2
+                varEps = 0.5*(fullCov[-2,-2]+fullCov[-1,-1])
+                # variance might be negative if inverse has large numerical errors
+                sigmaEps = 0 if varEps <= 0 else math.sqrt(varEps)
+            except numpy.linalg.LinAlgError:
+                # assign a shape-measurement error of zero if the Fisher matrix is not invertible.
+                sigmaEps = 0.
+            if args.verbose:
+                logger.info('sig(eps): %.6f' % sigmaEps)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
@@ -721,7 +752,7 @@ def main():
 
         # Add a catalog entry for this galaxy
         entry = (entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
-            bulgeFlux/(diskFlux+bulgeFlux),z,snr)
+            bulgeFlux/(diskFlux+bulgeFlux),z,snr,sigmaEps)
         outputCatalog.append(entry)
 
         nkeep += 1
