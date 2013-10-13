@@ -338,13 +338,13 @@ def analyzeOverlaps(stamps):
 
 # Builds the Fisher matrix from the specified array of npar*(npar+1)/2 Fisher images and
 # calculates the corresponding shape-measurment error, if possible.
-def shapeError(npar,fisherImages):
+def shapeError(npar,fisherImages,mask):
     # calculate the Fisher matrix elements by summing pixels of the specified Fisher matrix images
     fisherMatrix = numpy.zeros((npar,npar))
     index = 0
     for i in range(npar):
         for j in range(i,npar):
-            fisherMatrix[i,j] = numpy.sum(fisherImages[index])
+            fisherMatrix[i,j] = numpy.sum(fisherImages[index]*mask)
             if i != j:
                 fisherMatrix[j,i] = fisherMatrix[i,j]
             index += 1
@@ -360,6 +360,24 @@ def shapeError(npar,fisherImages):
         # assign a shape-measurement error of zero if the Fisher matrix is not invertible.
         sigmaEps = 0.
     return sigmaEps
+
+# Calculate shape measurment errors with the specified purity cuts. Returns a tuple of the
+# corresponding errors, in a list, and an integer-valued image that identifies the purity
+# regions by assigning each pixel the value of the largest index such that
+# nominal > purity[index]*field (or zero if this criteria is not met for any purity).
+def shapeErrorsAnalysis(npar,nominal,fisherImages,field,purities):
+    # find the overlap of this object in the full field
+    overlap = nominal.bounds & field.bounds
+    subNominal = nominal[overlap].array
+    subField = field[overlap].array
+    regions = numpy.zeros(nominal.array.shape)
+    errors = [ ]
+    for (i,purity) in enumerate(purities):
+        mask = (subNominal >= purity*subField)
+        regions += i*mask
+        sigeps = shapeError(npar,fisherImages,mask)
+        errors.append(sigeps)
+    return (errors,regions)
 
 def main():
 
@@ -522,6 +540,7 @@ def main():
     hduList = pyfits.HDUList([hdu])
     stampList = [ ]
     fisherImagesList = [ ]
+    nvar = 0 # declared here so it stays in scope after loop over galaxies
 
     # Loop over catalog entries
     nkeep = lineno = 0
@@ -724,15 +743,15 @@ def main():
         # Add the nominal galaxy to the full field image after applying the threshold mask
         # (the mask must be the second term in the product so that the result is double precision)
         maskedNominal = nominal[trimmed]*mask
-        overlap = trimmed & field.bounds
-        if overlap.area() == 0:
+        fieldOverlap = trimmed & field.bounds
+        if fieldOverlap.area() == 0:
              # this stamp's mask falls completely outside our field
             logger.info('*** line %d (id %d) does not overlap field' % (lineno,entryID))
             continue
-        field[overlap] += maskedNominal[overlap]
+        field[fieldOverlap] += maskedNominal[fieldOverlap]
 
         # Remember the nominal stamp (clipped to the field) for overlap calculations.
-        stampList.append(maskedNominal[overlap])
+        stampList.append(maskedNominal[fieldOverlap])
         
         # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
         # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
@@ -749,7 +768,7 @@ def main():
 
         if args.partials:
             # Calculate the denominator array for our Fisher matrix elements
-            fisherDenominator = maskedNominal.array + args.exposure_time*skyRate
+            fisherDenominator = maskedNominal[fieldOverlap].array + args.exposure_time*skyRate
             # Specify the amount to vary each parameter for partial derivatives
             # (we don't use a dictionary here since we want to control the order)
             variations = [
@@ -785,23 +804,18 @@ def main():
                 maskedPartial = partial[trimmed]*mask
                 assert saveStamp(datacube,maskedPartial,args)
                 # remember this partial's numpy image array
-                partialsArray.append(maskedPartial.array)
+                partialsArray.append(maskedPartial[fieldOverlap].array)
             # calculate the Fisher matrix images for this object
             nvar = len(partialsArray)
             nfisher = ((nvar+1)*nvar)/2
-            (h,w) = maskedNominal.array.shape
+            (h,w) = partialsArray[0].shape
             fisherImage = numpy.zeros((nfisher,h,w))
             index = 0
             for i in range(nvar):
-                fisherImage[index] = partialsArray[i]**2/fisherDenominator
-                index += 1
-                for j in range(i+1,nvar):
+                for j in range(i,nvar):
                     fisherImage[index] = partialsArray[i]*partialsArray[j]/fisherDenominator
                     index += 1
             fisherImagesList.append(fisherImage)
-            sigmaEps = shapeError(nvar,fisherImage)
-            if args.verbose:
-                logger.info('sig(eps): %.6f' % sigmaEps)
 
         # Add a new HDU with a datacube for this object's stamps
         # We don't use compression = 'gzip_tile' for now since it is lossy
@@ -810,11 +824,17 @@ def main():
 
         # Add a catalog entry for this galaxy
         entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
-            bulgeFlux/(diskFlux+bulgeFlux),z,snr,sigmaEps]
+            bulgeFlux/(diskFlux+bulgeFlux),z,snr]
         outputCatalog.append(entry)
 
         nkeep += 1
         logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
+
+    # Do shape measurement error analysis for each galaxy
+    purities = (0,0.5,)
+    for i in range(nkeep):
+        (errors,regions) = shapeErrorsAnalysis(nvar,stampList[i],fisherImagesList[i],field,purities)
+        outputCatalog[i].append(errors[0])
 
     # Loop over all saved objects to test for overlaps and build overlap groups
     (groupID,groupSize) = analyzeOverlaps(stampList)
