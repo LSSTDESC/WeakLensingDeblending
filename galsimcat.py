@@ -336,6 +336,31 @@ def analyzeOverlaps(stamps):
                         groupSize[gold] -= 1
     return (groupID,groupSize)
 
+# Builds the Fisher matrix from the specified array of npar*(npar+1)/2 Fisher images and
+# calculates the corresponding shape-measurment error, if possible.
+def shapeError(npar,fisherImages):
+    # calculate the Fisher matrix elements by summing pixels of the specified Fisher matrix images
+    fisherMatrix = numpy.zeros((npar,npar))
+    index = 0
+    for i in range(npar):
+        for j in range(i,npar):
+            fisherMatrix[i,j] = numpy.sum(fisherImages[index])
+            if i != j:
+                fisherMatrix[j,i] = fisherMatrix[i,j]
+            index += 1
+    # try to calculate corresponding shape measurement error, which will fail unless
+    # the Fisher matrix is invertible
+    try:
+        fullCov = numpy.linalg.inv(fisherMatrix)
+        # this is where we assume that the last 2 variations are g1,g2
+        varEps = 0.5*(fullCov[-2,-2]+fullCov[-1,-1])
+        # variance might be negative if inverse has large numerical errors
+        sigmaEps = 0 if varEps <= 0 else math.sqrt(varEps)
+    except numpy.linalg.LinAlgError:
+        # assign a shape-measurement error of zero if the Fisher matrix is not invertible.
+        sigmaEps = 0.
+    return sigmaEps
+
 def main():
 
     # Parse command-line args
@@ -496,6 +521,7 @@ def main():
     hdu = pyfits.PrimaryHDU()
     hduList = pyfits.HDUList([hdu])
     stampList = [ ]
+    fisherImagesList = [ ]
 
     # Loop over catalog entries
     nkeep = lineno = 0
@@ -760,25 +786,20 @@ def main():
                 assert saveStamp(datacube,maskedPartial,args)
                 # remember this partial's numpy image array
                 partialsArray.append(maskedPartial.array)
-            # calculate the Fisher matrix for this object
+            # calculate the Fisher matrix images for this object
             nvar = len(partialsArray)
-            fisherMatrix = numpy.zeros((nvar,nvar))
+            nfisher = ((nvar+1)*nvar)/2
+            (h,w) = maskedNominal.array.shape
+            fisherImage = numpy.zeros((nfisher,h,w))
+            index = 0
             for i in range(nvar):
-                fisherMatrix[i,i] = numpy.sum(partialsArray[i]**2/fisherDenominator)
+                fisherImage[index] = partialsArray[i]**2/fisherDenominator
+                index += 1
                 for j in range(i+1,nvar):
-                    fisherMatrix[i,j] = numpy.sum(partialsArray[i]*partialsArray[j]/fisherDenominator)
-                    fisherMatrix[j,i] = fisherMatrix[i,j]
-            # try to calculate corresponding shape measurement error, which will fail unless
-            # the Fisher matrix is invertible
-            try:
-                fullCov = numpy.linalg.inv(fisherMatrix)
-                # this is where we assume that the last 2 variations are g1,g2
-                varEps = 0.5*(fullCov[-2,-2]+fullCov[-1,-1])
-                # variance might be negative if inverse has large numerical errors
-                sigmaEps = 0 if varEps <= 0 else math.sqrt(varEps)
-            except numpy.linalg.LinAlgError:
-                # assign a shape-measurement error of zero if the Fisher matrix is not invertible.
-                sigmaEps = 0.
+                    fisherImage[index] = partialsArray[i]*partialsArray[j]/fisherDenominator
+                    index += 1
+            fisherImagesList.append(fisherImage)
+            sigmaEps = shapeError(nvar,fisherImage)
             if args.verbose:
                 logger.info('sig(eps): %.6f' % sigmaEps)
 
