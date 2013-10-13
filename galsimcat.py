@@ -370,13 +370,15 @@ def shapeErrorsAnalysis(npar,nominal,fisherImages,field,purities):
     overlap = nominal.bounds & field.bounds
     subNominal = nominal[overlap].array
     subField = field[overlap].array
-    regions = numpy.zeros(nominal.array.shape)
+    regions = galsim.ImageI(nominal.bounds)
+    regionsArray = regions.array
     errors = [ ]
     for (i,purity) in enumerate(purities):
-        mask = (subNominal >= purity*subField)
-        regions += i*mask
+        mask = (subNominal > purity*subField)
+        regionsArray = numpy.maximum(regionsArray,i*mask)
         sigeps = shapeError(npar,fisherImages,mask)
         errors.append(sigeps)
+    regions.array[:] = regionsArray[:]
     return (errors,regions)
 
 def main():
@@ -839,9 +841,16 @@ def main():
 
     # Do shape measurement error analysis for each galaxy
     purities = (0,0.5,0.9)
+    regionsList = [ ]
     for i in range(nkeep):
         (errors,regions) = shapeErrorsAnalysis(nvar,stampList[i],fisherImagesList[i],field,purities)
         outputCatalog[i].extend(errors)
+        regionsList.append(regions)
+
+    # Save the regions for each object
+    outname = args.output + '_regions.fits'
+    logger.info('Saving regions to %r' % outname)
+    galsim.fits.writeMulti(regionsList,outname)
 
     # Save group sizes to a file
     outname = args.output + '_groups.dat'
