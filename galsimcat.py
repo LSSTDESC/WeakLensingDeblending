@@ -313,6 +313,29 @@ def overlapping(s1,s2):
     overlapFluxProduct = numpy.sum(s1[overlapBounds].array * s2[overlapBounds].array)
     return False if overlapFluxProduct == 0 else True
 
+# Assigns a group ID to each stamp in stamps based on its overlaps with other stamps.
+def analyzeOverlaps(stamps):
+    groupID = range(len(stamps))
+    groupSize = [1]*len(stamps)
+    for (i1,s1) in enumerate(stamps):
+        for (i2,s2) in enumerate(stamps[:i1]):
+            if overlapping(s1,s2):
+                # get the current group IDs of these overlapping stamps
+                gid1 = groupID[i1]
+                gid2 = groupID[i2]
+                if gid1 == gid2:
+                    continue
+                # decide which group joins the other
+                gnew = min(gid1,gid2)
+                gold = max(gid1,gid2)
+                # re-assign all stamps in gold to gnew
+                for i in range(i1+1):
+                    if groupID[i] == gold:
+                        groupID[i] = gnew
+                        groupSize[gnew] += 1
+                        groupSize[gold] -= 1
+    return (groupID,groupSize)
+
 def main():
 
     # Parse command-line args
@@ -765,17 +788,30 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = (entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
-            bulgeFlux/(diskFlux+bulgeFlux),z,snr,sigmaEps)
+        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
+            bulgeFlux/(diskFlux+bulgeFlux),z,snr,sigmaEps]
         outputCatalog.append(entry)
 
         nkeep += 1
         logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
 
-    # Loop over all saved objects to test for overlaps
-    for (i1,s1) in enumerate(stampList):
-        for (i2,s2) in enumerate(stampList[:i1]):
-            print (i1,i2,overlapping(s1,s2))
+    # Loop over all saved objects to test for overlaps and build overlap groups
+    (groupID,groupSize) = analyzeOverlaps(stampList)
+
+    # Add group id to output catalog
+    for (i,entry) in enumerate(outputCatalog):
+        entry.append(groupID[i])
+
+    # Save group sizes to a file
+    outname = args.output + '_groups.dat'
+    out = open(outname,'w')
+    ntot = 0
+    for (i,n) in enumerate(groupSize):
+        if n > 0:
+            print >>out,i,n
+            ntot += n
+    out.close()
+    assert ntot == len(groupSize)
 
     # Write the full field image without noise
     if args.save_field:
