@@ -830,18 +830,18 @@ def main():
         nkeep += 1
         logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
 
-    # Do shape measurement error analysis for each galaxy
-    purities = (0,0.5,)
-    for i in range(nkeep):
-        (errors,regions) = shapeErrorsAnalysis(nvar,stampList[i],fisherImagesList[i],field,purities)
-        outputCatalog[i].append(errors[0])
-
     # Loop over all saved objects to test for overlaps and build overlap groups
     (groupID,groupSize) = analyzeOverlaps(stampList)
 
     # Add group id to output catalog
     for (i,entry) in enumerate(outputCatalog):
         entry.append(groupID[i])
+
+    # Do shape measurement error analysis for each galaxy
+    purities = (0,0.5,0.9)
+    for i in range(nkeep):
+        (errors,regions) = shapeErrorsAnalysis(nvar,stampList[i],fisherImagesList[i],field,purities)
+        outputCatalog[i].extend(errors)
 
     # Save group sizes to a file
     outname = args.output + '_groups.dat'
