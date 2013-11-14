@@ -724,7 +724,7 @@ def main():
             logger.info('     agn: frac = %f' % (agnFluxNorm/flux))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfSize))
-            logger.info('    size: %.2f pixels' % size)
+            logger.info('    size: %.2f arcsec' % size)
             logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (e1,e2))
         
         # Define the nominal source parameters for rendering this object within its stamp
