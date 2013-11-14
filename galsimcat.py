@@ -842,6 +842,9 @@ def main():
         nkeep += 1
         logger.info("saved entry id %d as stamp %d" % (entryID,nkeep))
 
+    # Close the input catalog
+    cat.close()
+
     # Loop over all saved objects to test for overlaps and build overlap groups
     (groupID,groupSize) = analyzeOverlaps(stampList)
 
@@ -894,9 +897,6 @@ def main():
         outname = args.output + '_stamps.fits'
         logger.info('Saving %d stamps to %r' % (nkeep,outname))
         galsim.fits.writeFile(outname, hduList)
-
-    # Close the input catalog
-    cat.close()
 
     # Write the output catalog from memory
     outname = args.output + '_catalog.dat'
