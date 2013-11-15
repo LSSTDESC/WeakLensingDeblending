@@ -64,8 +64,9 @@ def createSource(
     return (disk,bulge)
 
 """
-Renders the specified source convolved with a psf (which might be None)
-and pixel response into a postage stamp with the specified bounding box.
+Renders the convolution of [src,psf,pix] into the specified bounding box.
+If psf is None, only [src,pix] are convolved. If src is None, an empty
+stamp is returned (we use this below when either the bulge or disk is absent).
 """
 def renderStamp(src,psf,pix,bbox):
     stamp = galsim.ImageD(bbox)
@@ -79,6 +80,10 @@ def renderStamp(src,psf,pix,bbox):
         obj.draw(image = stamp)
     return stamp
 
+"""
+Renders the specified source convolved with a psf (which might be None)
+and pixel response into a postage stamp with the specified bounding box.
+"""
 def createStamp(src,psf,pix,bbox):
     (disk,bulge) = src
     diskStamp = renderStamp(disk,psf,pix,bbox)
