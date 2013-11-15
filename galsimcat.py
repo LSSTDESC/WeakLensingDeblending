@@ -72,11 +72,9 @@ def renderStamp(src,psf,pix,bbox):
     stamp = galsim.ImageD(bbox)
     stamp.setScale(pix.getXWidth())
     if src:
-        if psf == None:
-            obj = galsim.Convolve([src,pix], real_space = True)
-        else:
-            gsp = galsim.GSParams(maximum_fft_size=16384)
-            obj = galsim.Convolve([src,psf,pix],gsparams=gsp)
+        models = [src,pix] if psf is None else [src,psf,pix]
+        gsp = galsim.GSParams(maximum_fft_size=16384)
+        obj = galsim.Convolve(models,gsparams=gsp)
         obj.draw(image = stamp)
     return stamp
 
@@ -111,8 +109,8 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10):
     x = numpy.sum(xproj*xcoords)/numpy.sum(xproj)
     y = numpy.sum(yproj*ycoords)/numpy.sum(yproj)
     print (x,y)
-    shape = stamp.FindAdaptiveMom()
-    print (shape.moments_centroid.x,shape.moments_centroid.y)
+    #shape = stamp.FindAdaptiveMom()
+    #print (shape.moments_centroid.x,shape.moments_centroid.y)
 
 """
 Returns (dx,dy) for the bounding box of a surface brightness profile
