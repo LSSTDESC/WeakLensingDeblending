@@ -92,7 +92,9 @@ def createStamp(src,psf,pix,bbox):
 Calculate the centroid, size, and shape of the convolution of [src,psf,pix]
 in the specified bounding box using a high-resolution image whose pixels
 are smaller by a factor of oversampling (in each direction), and whose
-stamp is larger by a factor of zoom (in each direction).
+stamp is larger by a factor of zoom (in each direction). The centroid and
+size are returned in arcsecs. The centroid is relative to the center of
+the input bounding box.
 """
 def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
     # Create a high-resolution pixel grid that covers the same area, and
@@ -113,9 +115,6 @@ def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
     smallPix = galsim.Pixel(scale)
     # Render a high-resolution stamp of this source
     stamp = createStamp(src,psf,smallPix,bigBbox)
-    # Calculate the adaptive moments
-    shape = stamp.FindAdaptiveMom()
-    print 'AdaptiveShape:',shape.observed_shape,shape.moments_sigma
     # Calculate this stamp's moments
     pixels = stamp.array
     xproj = numpy.sum(pixels,axis=0)
@@ -126,7 +125,6 @@ def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
     ycoords = numpy.arange(y1,y2+1) - ymid
     x = numpy.sum(xproj*xcoords)/total
     y = numpy.sum(yproj*ycoords)/total
-    print 'centroid:',(x*scale,y*scale)
     # Calculate the second-moments matrix
     xcoords -= x
     ycoords -= y
@@ -134,15 +132,12 @@ def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
     xx = numpy.sum(xproj*xcoords**2)/total
     yy = numpy.sum(yproj*ycoords**2)/total
     xy = numpy.sum(pixels*xycoords)/total
-    print 'Q:',(xx,xy,yy)
     # Calculate the ellipticity and size
     detQ = xx*yy - xy*xy
     denom = xx + yy + 2*math.sqrt(detQ)
     eps1 = (xx - yy)/denom
     eps2 = 2*xy/denom
     sigma = math.pow(detQ,0.25)*scale
-    print 'shape:',eps1,eps2
-    print 'size:',sigma,math.pow(detQ,0.25)
     return (x*scale,y*scale,sigma,eps1,eps2)
 
 """
