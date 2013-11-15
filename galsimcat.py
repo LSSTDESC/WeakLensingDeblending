@@ -224,12 +224,18 @@ def saveStamp(stamps,stamp,args):
     stamps.append(stamp)
     return True
 
-def getPsfBoundsEstimator(psf,pix,size):
+"""
+Performs initializations for the psf we will be using.
+"""
+def initializeForPsf(psf,pix,size):
+    # Render a centered psf image
     stamp = galsim.ImageD(2*size,2*size)
     stamp.setScale(pix.getXWidth())
     obj = galsim.Convolve([psf,pix])
     obj.draw(image=stamp)
-    # build the circularized psf profile
+    # Calculate the psf size from the image's adaptive moments
+    shape = stamp.FindAdaptiveMom()
+    # Build the circularized psf profile
     profile = numpy.zeros(size,dtype=float)
     for x in range(2*size):
         for y in range(2*size):
@@ -479,7 +485,7 @@ def main():
             psf = galsim.Moffat(beta = args.psf_beta, fwhm = fwhm)
         else:
             psf = galsim.Kolmogorov(fwhm = fwhm)
-        psfBounds = getPsfBoundsEstimator(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
+        psfBounds = initializeForPsf(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
     else:
         psf = None
 
