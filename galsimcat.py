@@ -96,7 +96,7 @@ stamp is larger by a factor of zoom (in each direction). The centroid and
 size are returned in arcsecs. The centroid is relative to the center of
 the input bounding box.
 """
-def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
+def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     # Create a high-resolution pixel grid that covers the same area, and
     # preserves the even/oddness and mean (min+max)/2. of each dimension.
     (x1,x2,y1,y2) = (bbox.getXMin(),bbox.getXMax(),bbox.getYMin(),bbox.getYMax())
@@ -284,12 +284,12 @@ Performs initializations for the psf we will be using.
 """
 def initializeForPsf(psf,pix,size):
     # Render a centered psf image
-    stamp = galsim.ImageD(2*size,2*size)
-    stamp.setScale(pix.getXWidth())
+    bbox = galsim.BoundsI(1,2*size,1,2*size)
+    stamp = galsim.ImageD(bbox)
+    scale = pix.getXWidth()
+    stamp.setScale(scale)
     obj = galsim.Convolve([psf,pix])
     obj.draw(image=stamp)
-    # Calculate the psf size from the image's adaptive moments
-    shape = stamp.FindAdaptiveMom()
     # Build the circularized psf profile
     profile = numpy.zeros(size,dtype=float)
     for x in range(2*size):
@@ -310,7 +310,11 @@ def initializeForPsf(psf,pix,size):
                 return 2*index+1
             index += 1
         return 2*size
-    return estimator
+    # Calculate the psf size from a high-resolution rendering
+    (xc,yc,size,e1,e2) = getStampMoments((psf,None),None,pix,bbox)
+    assert abs(xc) < 0.01*scale and abs(yc) < 0.01*scale
+    assert abs(e1) < 1e-6 and abs(e2) < 1e-6
+    return (estimator,size)
 
 # Returns the combined size and ellipticity for the specified disk and bulge components,
 # assuming they have the same centroid.
@@ -533,14 +537,15 @@ def main():
     # Define the psf to use
     atmos_fwhm = args.zenith_fwhm*math.pow(args.airmass,0.6)
     fwhm = math.sqrt(atmos_fwhm**2 + args.instrumental_fwhm**2)
-    logger.info('Using PSF fwhm = %.4f" (%.4f" zenith => %.4f" at X = %.3d, %.4f" instrumental)' %
+    logger.info('Using PSF fwhm = %.4f" (%.4f" zenith => %.4f" at X = %.3f, %.4f" instrumental)' %
         (fwhm,args.zenith_fwhm,atmos_fwhm,args.airmass,args.instrumental_fwhm))
     if fwhm > 0:
         if args.psf_beta > 0:
             psf = galsim.Moffat(beta = args.psf_beta, fwhm = fwhm)
         else:
             psf = galsim.Kolmogorov(fwhm = fwhm)
-        psfBounds = initializeForPsf(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
+        (psfBounds,psfSize) = initializeForPsf(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
+        logger.info('PSF size = %.5f arcsec' % psfSize)
     else:
         psf = None
 
