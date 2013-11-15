@@ -91,6 +91,30 @@ def createStamp(src,psf,pix,bbox):
     return diskStamp + bulgeStamp
 
 """
+Calculate the centroid, size, and shape of the convolution of [src,psf,pix]
+in the specified bounding box using an oversampled image.
+"""
+def getStampMoments(src,psf,pix,bbox,oversampling=10):
+    # Render a high-resolution stamp of this source
+    smallPix = galsim.Pixel(pix.getXWidth()/oversampling)
+    (x1,x2,y1,y2) = (bbox.getXMin(),bbox.getXMax(),bbox.getYMin(),bbox.getYMax())
+    bigBbox = galsim.BoundsI(x1,x2,y1,y2)
+    bigBbox.expand(oversampling)
+    stamp = createStamp(src,psf,smallPix,bigBbox)
+    # Calculate this stamp's moments
+    (x1,x2,y1,y2) = (bigBbox.getXMin(),bigBbox.getXMax(),bigBbox.getYMin(),bigBbox.getYMax())
+    print (x1,x2,y1,y2)
+    xproj = numpy.sum(stamp.array,axis=0)
+    yproj = numpy.sum(stamp.array,axis=1)
+    xcoords = numpy.arange(x1,x2+1)
+    ycoords = numpy.arange(y1,y2+1)
+    x = numpy.sum(xproj*xcoords)/numpy.sum(xproj)
+    y = numpy.sum(yproj*ycoords)/numpy.sum(yproj)
+    print (x,y)
+    shape = stamp.FindAdaptiveMom()
+    print (shape.moments_centroid.x,shape.moments_centroid.y)
+
+"""
 Returns (dx,dy) for the bounding box of a surface brightness profile
 SB(x,y) whose isophotes are ellipses with the shape (q,beta) and which
 has an underlying normalized radial profile p(r). The inputs are:
@@ -751,6 +775,8 @@ def main():
         # Render the nominal stamps for this galaxy
         gal = createSource(**params)
         nominal = createStamp(gal,psf,pix,bbox)
+
+        getStampMoments(gal,psf,pix,bbox)
 
         # Create a mask for pixels above threshold
         mask = createMask(nominal,pixelCut,args)
