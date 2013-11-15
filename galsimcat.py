@@ -90,27 +90,60 @@ def createStamp(src,psf,pix,bbox):
 
 """
 Calculate the centroid, size, and shape of the convolution of [src,psf,pix]
-in the specified bounding box using an oversampled image.
+in the specified bounding box using a high-resolution image whose pixels
+are smaller by a factor of oversampling (in each direction), and whose
+stamp is larger by a factor of zoom (in each direction).
 """
-def getStampMoments(src,psf,pix,bbox,oversampling=10):
-    # Render a high-resolution stamp of this source
-    smallPix = galsim.Pixel(pix.getXWidth()/oversampling)
+def getStampMoments(src,psf,pix,bbox,oversampling=20,zoom=2):
+    # Create a high-resolution pixel grid that covers the same area, and
+    # preserves the even/oddness and mean (min+max)/2. of each dimension.
     (x1,x2,y1,y2) = (bbox.getXMin(),bbox.getXMax(),bbox.getYMin(),bbox.getYMax())
+    xmid = (x1+x2)/2.
+    dx = oversampling*(x2-x1)/2.
+    x1 = int(math.floor(xmid - zoom*dx))
+    x2 = int(math.ceil(xmid + zoom*dx))
+    assert (x1+x2)/2. == xmid
+    ymid = (y1+y2)/2.
+    dy = oversampling*(y2-y1)/2.
+    y1 = int(math.floor(ymid - zoom*dy))
+    y2 = int(math.ceil(ymid + zoom*dy))
+    assert (y1+y2)/2. == ymid
     bigBbox = galsim.BoundsI(x1,x2,y1,y2)
-    bigBbox.expand(oversampling)
+    scale = pix.getXWidth()/oversampling
+    smallPix = galsim.Pixel(scale)
+    # Render a high-resolution stamp of this source
     stamp = createStamp(src,psf,smallPix,bigBbox)
+    # Calculate the adaptive moments
+    shape = stamp.FindAdaptiveMom()
+    print 'AdaptiveShape:',shape.observed_shape,shape.moments_sigma
     # Calculate this stamp's moments
-    (x1,x2,y1,y2) = (bigBbox.getXMin(),bigBbox.getXMax(),bigBbox.getYMin(),bigBbox.getYMax())
-    print (x1,x2,y1,y2)
-    xproj = numpy.sum(stamp.array,axis=0)
-    yproj = numpy.sum(stamp.array,axis=1)
-    xcoords = numpy.arange(x1,x2+1)
-    ycoords = numpy.arange(y1,y2+1)
-    x = numpy.sum(xproj*xcoords)/numpy.sum(xproj)
-    y = numpy.sum(yproj*ycoords)/numpy.sum(yproj)
-    print (x,y)
-    #shape = stamp.FindAdaptiveMom()
-    #print (shape.moments_centroid.x,shape.moments_centroid.y)
+    pixels = stamp.array
+    xproj = numpy.sum(pixels,axis=0)
+    yproj = numpy.sum(pixels,axis=1)
+    total = numpy.sum(pixels)
+    # Calculate the mean in pixels relative to the stamp center
+    xcoords = numpy.arange(x1,x2+1) - xmid
+    ycoords = numpy.arange(y1,y2+1) - ymid
+    x = numpy.sum(xproj*xcoords)/total
+    y = numpy.sum(yproj*ycoords)/total
+    print 'centroid:',(x*scale,y*scale)
+    # Calculate the second-moments matrix
+    xcoords -= x
+    ycoords -= y
+    xycoords = numpy.outer(ycoords,xcoords)
+    xx = numpy.sum(xproj*xcoords**2)/total
+    yy = numpy.sum(yproj*ycoords**2)/total
+    xy = numpy.sum(pixels*xycoords)/total
+    print 'Q:',(xx,xy,yy)
+    # Calculate the ellipticity and size
+    detQ = xx*yy - xy*xy
+    denom = xx + yy + 2*math.sqrt(detQ)
+    eps1 = (xx - yy)/denom
+    eps2 = 2*xy/denom
+    sigma = math.pow(detQ,0.25)*scale
+    print 'shape:',eps1,eps2
+    print 'size:',sigma,math.pow(detQ,0.25)
+    return (x*scale,y*scale,sigma,eps1,eps2)
 
 """
 Returns (dx,dy) for the bounding box of a surface brightness profile
@@ -758,7 +791,7 @@ def main():
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfSize))
             logger.info('    size: %.2f arcsec' % size)
-            logger.info('   shear: (g1,g2) = (%.6f,%.6f)' % (e1,e2))
+            logger.info('   shape: (e1,e2) = (%.6f,%.6f)' % (e1,e2))
         
         # Define the nominal source parameters for rendering this object within its stamp
         params = {
