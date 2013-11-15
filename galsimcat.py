@@ -807,8 +807,6 @@ def main():
         gal = createSource(**params)
         nominal = createStamp(gal,psf,pix,bbox)
 
-        getStampMoments(gal,psf,pix,bbox)
-
         # Create a mask for pixels above threshold
         mask = createMask(nominal,pixelCut,args)
         if mask.array.sum() == 0:
@@ -903,7 +901,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
+        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size/psfSize,e1,e2,
             bulgeFlux/(diskFlux+bulgeFlux),z,snr]
         outputCatalog.append(entry)
 
