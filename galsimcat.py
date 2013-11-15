@@ -413,13 +413,13 @@ def analyzeOverlaps(stamps):
 
 # Builds the Fisher matrix from the specified array of npar*(npar+1)/2 Fisher images and
 # calculates the corresponding shape-measurment error, if possible.
-def shapeError(npar,fisherImages,mask):
+def shapeError(npar,fisherImages,fisherDenominator,mask):
     # calculate the Fisher matrix elements by summing pixels of the specified Fisher matrix images
     fisherMatrix = numpy.zeros((npar,npar))
     index = 0
     for i in range(npar):
         for j in range(i,npar):
-            fisherMatrix[i,j] = numpy.sum(fisherImages[index]*mask)
+            fisherMatrix[i,j] = numpy.sum(fisherImages[index]/fisherDenominator*mask)
             if i != j:
                 fisherMatrix[j,i] = fisherMatrix[i,j]
             index += 1
@@ -440,18 +440,23 @@ def shapeError(npar,fisherImages,mask):
 # corresponding errors, in a list, and an integer-valued image that identifies the purity
 # regions by assigning each pixel the value of the largest index such that
 # nominal > purity[index]*field (or zero if this criteria is not met for any purity).
-def shapeErrorsAnalysis(npar,nominal,fisherImages,field,purities):
+def shapeErrorsAnalysis(npar,nominal,fisherImages,noiseVariance,field,purities,isolated=True):
     # find the overlap of this object in the full field
     overlap = nominal.bounds & field.bounds
+    # get the pixel values for this object and all objects in the overlap
     subNominal = nominal[overlap].array
     subField = field[overlap].array
+    # calculate the denominator array for our Fisher matrix elements, including
+    # all objects unless we are pretending that this object is isolated
+    fisherDenominator = (subNominal if isolated else subField) + noiseVariance
+    # initialize our integer regions image
     regions = galsim.ImageI(nominal.bounds)
     regionsArray = regions.array
     errors = [ ]
     for (i,purity) in enumerate(purities):
         mask = (subNominal > purity*subField)
         regionsArray = numpy.maximum(regionsArray,i*mask)
-        sigeps = shapeError(npar,fisherImages,mask)
+        sigeps = shapeError(npar,fisherImages,fisherDenominator,mask)
         errors.append(sigeps)
     regions.array[:] = regionsArray[:]
     return (errors,regions)
@@ -845,8 +850,6 @@ def main():
         assert saveStamp(datacube,maskedNominal,args)
 
         if args.partials:
-            # Calculate the denominator array for our Fisher matrix elements
-            fisherDenominator = maskedNominal[fieldOverlap].array + args.exposure_time*skyRate
             # Specify the amount to vary each parameter for partial derivatives
             # (we don't use a dictionary here since we want to control the order)
             variations = [
@@ -883,7 +886,9 @@ def main():
                 assert saveStamp(datacube,maskedPartial,args)
                 # remember this partial's numpy image array
                 partialsArray.append(maskedPartial[fieldOverlap].array)
-            # calculate the Fisher matrix images for this object
+            # calculate the Fisher matrix images for this object (note that we haven't
+            # included the Fisher denominator here since that might include overlapping
+            # objects that we have not seen yet)
             nvar = len(partialsArray)
             nfisher = ((nvar+1)*nvar)/2
             (h,w) = partialsArray[0].shape
@@ -891,7 +896,7 @@ def main():
             index = 0
             for i in range(nvar):
                 for j in range(i,nvar):
-                    fisherImage[index] = partialsArray[i]*partialsArray[j]/fisherDenominator
+                    fisherImage[index] = partialsArray[i]*partialsArray[j]
                     index += 1
             fisherImagesList.append(fisherImage)
 
@@ -901,7 +906,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size/psfSize,e1,e2,
+        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,e1,e2,
             bulgeFlux/(diskFlux+bulgeFlux),z,snr]
         outputCatalog.append(entry)
 
@@ -922,7 +927,8 @@ def main():
     purities = (0,0.5,0.9)
     regionsList = [ ]
     for i in range(nkeep):
-        (errors,regions) = shapeErrorsAnalysis(nvar,stampList[i],fisherImagesList[i],field,purities)
+        (errors,regions) = shapeErrorsAnalysis(
+            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities)
         outputCatalog[i].extend(errors)
         regionsList.append(regions)
 
