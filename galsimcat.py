@@ -311,10 +311,10 @@ def initializeForPsf(psf,pix,size):
             index += 1
         return 2*size
     # Calculate the psf size from a high-resolution rendering
-    (xc,yc,size,e1,e2) = getStampMoments((psf,None),None,pix,bbox)
+    (xc,yc,psfSize,e1,e2) = getStampMoments((psf,None),None,pix,bbox)
     assert abs(xc) < 0.01*scale and abs(yc) < 0.01*scale
     assert abs(e1) < 1e-6 and abs(e2) < 1e-6
-    return (estimator,size)
+    return (estimator,psfSize)
 
 # Returns the combined size and ellipticity for the specified disk and bulge components,
 # assuming they have the same centroid.
