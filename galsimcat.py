@@ -927,10 +927,15 @@ def main():
     purities = (0,0.5,0.9)
     regionsList = [ ]
     for i in range(nkeep):
+        # first analysis is assuming isolated objects (for Fisher denominator)
         (errors,regions) = shapeErrorsAnalysis(
-            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities)
+            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities,isolated=True)
         outputCatalog[i].extend(errors)
         regionsList.append(regions)
+        # second analysis uses all objects in Fisher denominator
+        (errors,regions) = shapeErrorsAnalysis(
+            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities,isolated=False)
+        outputCatalog[i].extend(errors)        
 
     # Save the regions for each object
     outname = args.output + '_regions.fits'
