@@ -362,6 +362,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     Q22 = (1-f_b)*Qd22 + f_b*Qb22
     detQ = Q11*Q22 - Q12*Q12
     size = math.pow(detQ,0.25)
+    sizeSec = math.sqrt(Q11+Q22)
     #semiMajorAxis = math.sqrt(0.5*(Q11+Q22+math.sqrt((Q11-Q22)**2+4*Q12**2)))
 
     # calculate the corresponding combined ellipticity
@@ -380,7 +381,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     print 'emag:',emag-emag2
     """
 
-    return (size,e1,e2)
+    return (size,sizeSec,e1,e2)
 
 def signalToNoiseRatio(stamp,pixelNoise):
     flat = stamp.array.reshape(-1)
@@ -729,7 +730,7 @@ def main():
             (hlr_b,q_b,pa_b) = (hlr_d,q_d,pa_d)
 
         # Combine the bulge and disk ellipticities
-        (size,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
+        (size,sizeSec,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
 
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
@@ -915,7 +916,7 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size/psfSize,e1,e2,
+        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,sizeSec,e1,e2,
             bulgeFlux/(diskFlux+bulgeFlux),z,snr]
         outputCatalog.append(entry)
 
