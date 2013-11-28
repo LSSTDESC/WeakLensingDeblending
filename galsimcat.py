@@ -115,6 +115,14 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     smallPix = galsim.Pixel(scale)
     # Render a high-resolution stamp of this source
     stamp = createStamp(src,psf,smallPix,bigBbox)
+
+    try:
+        shape = stamp.FindAdaptiveMom()
+        print 'HSM size = ',shape.moments_sigma*scale
+    except RuntimeError,e:
+        print 'adaptive moment analysis failed: %s' % (str(e).strip())
+    #galsim.fits.write(stamp,'moments.fits')
+
     # Calculate this stamp's moments
     pixels = stamp.array
     xproj = numpy.sum(pixels,axis=0)
@@ -138,6 +146,7 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     eps1 = (xx - yy)/denom
     eps2 = 2*xy/denom
     sigma = math.pow(detQ,0.25)*scale
+    print 'size: ',sigma,math.sqrt(xx+yy)*scale
     return (x*scale,y*scale,sigma,eps1,eps2)
 
 """
