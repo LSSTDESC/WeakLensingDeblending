@@ -736,10 +736,10 @@ def main():
         height = max(h_d,h_b)
 
         # Estimate the (round) bounding box for the psf in arscecs given our total flux
-        psfSize = psfBounds(flux,pixelCut)*args.pixel_scale if psf else 0
+        psfBoxSize = psfBounds(flux,pixelCut)*args.pixel_scale if psf else 0
         # Add the psf size in quadrature
-        width = math.sqrt(width*width + psfSize*psfSize)
-        height = math.sqrt(height*height + psfSize*psfSize)
+        width = math.sqrt(width*width + psfBoxSize*psfBoxSize)
+        height = math.sqrt(height*height + psfBoxSize*psfBoxSize)
 
         # Truncate the bounding box, if necessary
         if width > args.max_size or height > args.max_size:
@@ -803,7 +803,7 @@ def main():
                 (bulgeFlux/flux,hlr_b,q_b,pa_b))
             logger.info('     agn: frac = %f' % (agnFluxNorm/flux))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
-                (w_d,h_d,w_b,h_b,psfSize))
+                (w_d,h_d,w_b,h_b,psfBoxSize))
             logger.info('    size: %.2f arcsec' % size)
             logger.info('   shape: (e1,e2) = (%.6f,%.6f)' % (e1,e2))
         
