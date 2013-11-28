@@ -934,15 +934,10 @@ def main():
         entry.append(groupID[i])
 
     # Do shape measurement error analysis for each galaxy
-    purities = (0,0.5,0.9)
+    purities = (0,0.5,0.9,0.99)
     regionsList = [ ]
     for i in range(nkeep):
-        # first analysis is assuming isolated objects (for Fisher denominator)
-        (errors,regions) = shapeErrorsAnalysis(
-            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities,isolated=True)
-        outputCatalog[i].extend(errors)
-        regionsList.append(regions)
-        # second analysis uses all objects in Fisher denominator
+        # use all objects in Fisher denominator (isolated = False)
         (errors,regions) = shapeErrorsAnalysis(
             nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities,isolated=False)
         outputCatalog[i].extend(errors)        
