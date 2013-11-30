@@ -115,15 +115,20 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     smallPix = galsim.Pixel(scale)
     # Render a high-resolution stamp of this source
     stamp = createStamp(src,psf,smallPix,bigBbox)
-
+    # Try to calculate this stamp's adaptive moments
     try:
         shape = stamp.FindAdaptiveMom()
-        print 'HSM size = ',shape.moments_sigma*scale
+        sig_minus = shape.moments_sigma*scale # in arcsecs
+        (e1,e2) = (shape.observed_shape.getG1(),shape.observed_shape.getG2())
+        emagsq = e1*e1 + e2*e2
+        ratio = (1+emagsq)/(1-emagsq)
+        sig_plus = sig_minus*math.sqrt(ratio)
+        return (sig_minus,sig_plus,e1,e2)
     except RuntimeError,e:
         print 'adaptive moment analysis failed: %s' % (str(e).strip())
-    #galsim.fits.write(stamp,'moments.fits')
-
-    # Calculate this stamp's moments
+        return (-1.,-1.,0.,0.)
+    """
+    # Calculate this stamp's unweighted moments
     pixels = stamp.array
     xproj = numpy.sum(pixels,axis=0)
     yproj = numpy.sum(pixels,axis=1)
@@ -140,14 +145,16 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     xx = numpy.sum(xproj*xcoords**2)/total
     yy = numpy.sum(yproj*ycoords**2)/total
     xy = numpy.sum(pixels*xycoords)/total
+    print 'Q',(xx,xy,yy)
     # Calculate the ellipticity and size
     detQ = xx*yy - xy*xy
     denom = xx + yy + 2*math.sqrt(detQ)
     eps1 = (xx - yy)/denom
     eps2 = 2*xy/denom
-    sigma = math.pow(detQ,0.25)*scale
+    sigma = math.pow(4*detQ,0.25)*scale
     print 'size: ',sigma,math.sqrt(xx+yy)*scale
     return (x*scale,y*scale,sigma,eps1,eps2)
+    """
 
 """
 Returns (dx,dy) for the bounding box of a surface brightness profile
@@ -320,10 +327,9 @@ def initializeForPsf(psf,pix,size):
             index += 1
         return 2*size
     # Calculate the psf size from a high-resolution rendering
-    (xc,yc,psfSize,e1,e2) = getStampMoments((psf,None),None,pix,bbox)
-    assert abs(xc) < 0.01*scale and abs(yc) < 0.01*scale
+    (psfSizeMinus,psfSizePlus,e1,e2) = getStampMoments((psf,None),None,pix,bbox)
     assert abs(e1) < 1e-6 and abs(e2) < 1e-6
-    return (estimator,psfSize)
+    return (estimator,psfSizeMinus,psfSizePlus)
 
 # Returns the combined size and ellipticity for the specified disk and bulge components,
 # assuming they have the same centroid.
@@ -361,8 +367,8 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     Q12 = (1-f_b)*Qd12 + f_b*Qb12
     Q22 = (1-f_b)*Qd22 + f_b*Qb22
     detQ = Q11*Q22 - Q12*Q12
-    size = math.pow(detQ,0.25)
-    sizeSec = math.sqrt(Q11+Q22)
+    sizeMinus = math.pow(detQ,0.25)
+    sizePlus = math.sqrt(0.5*(Q11+Q22))
     #semiMajorAxis = math.sqrt(0.5*(Q11+Q22+math.sqrt((Q11-Q22)**2+4*Q12**2)))
 
     # calculate the corresponding combined ellipticity
@@ -381,7 +387,7 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
     print 'emag:',emag-emag2
     """
 
-    return (size,sizeSec,e1,e2)
+    return (sizeMinus,sizePlus,e1,e2)
 
 def signalToNoiseRatio(stamp,pixelNoise):
     flat = stamp.array.reshape(-1)
@@ -559,8 +565,8 @@ def main():
             psf = galsim.Moffat(beta = args.psf_beta, fwhm = fwhm)
         else:
             psf = galsim.Kolmogorov(fwhm = fwhm)
-        (psfBounds,psfSize) = initializeForPsf(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
-        logger.info('PSF size = %.5f arcsec' % psfSize)
+        (psfBounds,psfSizeMinus,psfSizePlus) = initializeForPsf(psf,pix,int(math.ceil(0.5*args.max_size/args.pixel_scale)))
+        logger.info('PSF sig(-) = %.6f arcsec, sig(+) = %.6f arcsec' % (psfSizeMinus,psfSizePlus))
     else:
         psf = None
 
@@ -730,7 +736,7 @@ def main():
             (hlr_b,q_b,pa_b) = (hlr_d,q_d,pa_d)
 
         # Combine the bulge and disk ellipticities
-        (size,sizeSec,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
+        (sizeMinus,sizePlus,e1,e2) = combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,bulgeFlux/(bulgeFlux+diskFlux))
 
         # Combine the bulge and disk bounding boxes
         width = max(w_d,w_b)
@@ -805,7 +811,7 @@ def main():
             logger.info('     agn: frac = %f' % (agnFluxNorm/flux))
             logger.info('    bbox: disk (%.1f,%.1f) bulge (%.1f,%.1f) psf %.1f arcsec' %
                 (w_d,h_d,w_b,h_b,psfBoxSize))
-            logger.info('    size: %.2f arcsec' % size)
+            logger.info('    size: %.2f (-) %.2f (+) arcsec' % (sizeMinus,sizePlus))
             logger.info('   shape: (e1,e2) = (%.6f,%.6f)' % (e1,e2))
         
         # Define the nominal source parameters for rendering this object within its stamp
@@ -821,6 +827,12 @@ def main():
         # Render the nominal stamps for this galaxy
         gal = createSource(**params)
         nominal = createStamp(gal,psf,pix,bbox)
+
+        # Calculate the adaptive moments shape of this galaxy
+        (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = getStampMoments(gal,psf,pix,bbox)
+        if args.verbose:
+            logger.info('HSM size: %.2f (-) %.2f (+) arcsec' % (sizeMinusHSM,sizePlusHSM))
+            logger.info('HSMshape: (e1,e2) = (%.6f,%.6f)' % (e1HSM,e2HSM))
 
         # Create a mask for pixels above threshold
         mask = createMask(nominal,pixelCut,args)
@@ -916,7 +928,8 @@ def main():
         galsim.fits.writeCube(datacube, hdu_list = hduList)
 
         # Add a catalog entry for this galaxy
-        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,size,sizeSec,e1,e2,
+        entry = [entryID,xoffset,yoffset,abMag,flux/args.exposure_time,
+            sizeMinus,sizePlus,e1,e2,sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM,
             bulgeFlux/(diskFlux+bulgeFlux),z,snr]
         outputCatalog.append(entry)
 
