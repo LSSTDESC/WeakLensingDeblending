@@ -73,7 +73,7 @@ def renderStamp(src,psf,pix,bbox):
     stamp.setScale(pix.getXWidth())
     if src:
         models = [src,pix] if psf is None else [src,psf,pix]
-        gsp = galsim.GSParams(maximum_fft_size=16384)
+        gsp = galsim.GSParams(maximum_fft_size=32768)
         obj = galsim.Convolve(models,gsparams=gsp)
         obj.draw(image = stamp)
     return stamp
@@ -96,7 +96,7 @@ stamp is larger by a factor of zoom (in each direction). The centroid and
 size are returned in arcsecs. The centroid is relative to the center of
 the input bounding box.
 """
-def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
+def getStampMoments(src,psf,pix,bbox,oversampling=5,zoom=1):
     # Create a high-resolution pixel grid that covers the same area, and
     # preserves the even/oddness and mean (min+max)/2. of each dimension.
     (x1,x2,y1,y2) = (bbox.getXMin(),bbox.getXMax(),bbox.getYMin(),bbox.getYMax())
@@ -113,10 +113,11 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
     bigBbox = galsim.BoundsI(x1,x2,y1,y2)
     scale = pix.getXWidth()/oversampling
     smallPix = galsim.Pixel(scale)
-    # Render a high-resolution stamp of this source
-    stamp = createStamp(src,psf,smallPix,bigBbox)
-    # Try to calculate this stamp's adaptive moments
     try:
+        # Render a high-resolution stamp of this source (might fail
+        # with an SB error, e.g., if a bigger FFT is required)
+        stamp = createStamp(src,psf,smallPix,bigBbox)
+        # Try to calculate this stamp's adaptive moments
         shape = stamp.FindAdaptiveMom()
         sig_minus = shape.moments_sigma*scale # in arcsecs
         (e1,e2) = (shape.observed_shape.getG1(),shape.observed_shape.getG2())
@@ -125,36 +126,8 @@ def getStampMoments(src,psf,pix,bbox,oversampling=10,zoom=1):
         sig_plus = sig_minus*math.sqrt(ratio)
         return (sig_minus,sig_plus,e1,e2)
     except RuntimeError,e:
-        print 'adaptive moment analysis failed: %s' % (str(e).strip())
+        print 'getStampMoments: %s' % (str(e).strip())
         return (-1.,-1.,0.,0.)
-    """
-    # Calculate this stamp's unweighted moments
-    pixels = stamp.array
-    xproj = numpy.sum(pixels,axis=0)
-    yproj = numpy.sum(pixels,axis=1)
-    total = numpy.sum(pixels)
-    # Calculate the mean in pixels relative to the stamp center
-    xcoords = numpy.arange(x1,x2+1) - xmid
-    ycoords = numpy.arange(y1,y2+1) - ymid
-    x = numpy.sum(xproj*xcoords)/total
-    y = numpy.sum(yproj*ycoords)/total
-    # Calculate the second-moments matrix
-    xcoords -= x
-    ycoords -= y
-    xycoords = numpy.outer(ycoords,xcoords)
-    xx = numpy.sum(xproj*xcoords**2)/total
-    yy = numpy.sum(yproj*ycoords**2)/total
-    xy = numpy.sum(pixels*xycoords)/total
-    print 'Q',(xx,xy,yy)
-    # Calculate the ellipticity and size
-    detQ = xx*yy - xy*xy
-    denom = xx + yy + 2*math.sqrt(detQ)
-    eps1 = (xx - yy)/denom
-    eps2 = 2*xy/denom
-    sigma = math.pow(4*detQ,0.25)*scale
-    print 'size: ',sigma,math.sqrt(xx+yy)*scale
-    return (x*scale,y*scale,sigma,eps1,eps2)
-    """
 
 """
 Returns (dx,dy) for the bounding box of a surface brightness profile
