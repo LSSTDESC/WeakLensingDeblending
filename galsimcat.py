@@ -828,8 +828,8 @@ def main():
         gal = createSource(**params)
         nominal = createStamp(gal,psf,pix,bbox)
 
-        # Calculate the adaptive moments shape of this galaxy
-        (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = getStampMoments(gal,psf,pix,bbox)
+        # Calculate the adaptive moments shape of this galaxy w/o psf
+        (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = getStampMoments(gal,None,pix,bbox)
         if args.verbose:
             logger.info('HSM size: %.2f (-) %.2f (+) arcsec' % (sizeMinusHSM,sizePlusHSM))
             logger.info('HSMshape: (e1,e2) = (%.6f,%.6f)' % (e1HSM,e2HSM))
