@@ -397,12 +397,35 @@ def overlapping(s1,s2):
     return False if overlapFluxProduct == 0 else True
 
 # Assigns a group ID to each stamp in stamps based on its overlaps with other stamps.
-def analyzeOverlaps(stamps):
+def analyzeOverlaps(stamps,catalog,zindex,dzcut):
     groupID = range(len(stamps))
     groupSize = [1]*len(stamps)
+    photoz = [ ]
     for (i1,s1) in enumerate(stamps):
+        # lookup the redshift of i1
+        z1 = catalog[i1][zindex]
+        # calculate the flux of s1 weighted by s1
+        flux1w1 = weightedSignal(s1,s1)
+        # initialize the photoz info for i1
+        photoz.append([z1,flux1w1])
         for (i2,s2) in enumerate(stamps[:i1]):
             if overlapping(s1,s2):
+                # lookup the redshift of i1
+                z2 = catalog[i2][zindex]
+                # get the overlap of s1 and s2
+                overlap = s1.bounds & s2.bounds
+                # create a stamp with the bounds of i1 and the flux of i2
+                s2in1 = galsim.ImageF(s1.bounds)
+                s2in1[overlap] = s2[overlap]
+                # create a stamp with the bounds of i2 and the flux of i1
+                s1in2 = galsim.ImageF(s2.bounds)
+                s1in2[overlap] = s1[overlap]
+                # calculate the flux of s2 weighted by s1 and vice versa
+                flux2w1 = weightedSignal(s1,s2in1)
+                flux1w2 = weightedSignal(s2,s1in2)
+                # update the photoz info for i1 and i2
+                photoz[i1].extend([z2,flux2w1])
+                photoz[i2].extend([z1,flux1w2])
                 # get the current group IDs of these overlapping stamps
                 gid1 = groupID[i1]
                 gid2 = groupID[i2]
@@ -417,7 +440,25 @@ def analyzeOverlaps(stamps):
                         groupID[i] = gnew
                         groupSize[gnew] += 1
                         groupSize[gold] -= 1
-    return (groupID,groupSize)
+    # convert the photoz info into a contamination fraction for each object
+    contamination = [ ]
+    for i in range(len(stamps)):
+        pz = photoz[i]
+        # skip objects with no overlaps
+        if len(pz) == 2:
+            contamination.append(0.)
+            continue
+        # sum the weighted flux of objects overlapping this object
+        z0 = pz[0]
+        fsum = sum(pz[1::2])
+        # sum the weighted flux of objects that contaminate this object
+        fcont = 0.
+        for (z,f) in zip(pz[2::2],pz[3::2]):
+            if abs(z-z0) > dzcut:
+                fcont += f
+        contamination.append(fcont/fsum)
+        #print i,z0,fsum,fcont/fsum,repr(photoz[i])
+    return (groupID,groupSize,contamination)
 
 # Builds the Fisher matrix from the specified array of npar*(npar+1)/2 Fisher images and
 # calculates the corresponding shape-measurment error, if possible.
@@ -517,6 +558,8 @@ def main():
         help = "constant shear component g1 to apply")
     parser.add_argument("--g2", type = float, default = 0.,
         help = "constant shear component g2 to apply")
+    parser.add_argument("--dz-max", type = float, default = 0.1,
+        help = "maximum allowed redshift difference before photo-z is contaminated")
     parser.add_argument("--save-field", action = "store_true",
         help = "save full field image without noise")
     parser.add_argument("--save-noise", action = "store_true",
@@ -948,12 +991,12 @@ def main():
         entry.append(snrPlus)
 
     # Loop over all saved objects to test for overlaps and build overlap groups
-    (groupID,groupSize) = analyzeOverlaps(stampList)
+    (groupID,groupSize,contamination) = analyzeOverlaps(stampList,outputCatalog,14,args.dz_max)
 
     # Add group id and size to output catalog
     for (i,entry) in enumerate(outputCatalog):
         gid = groupID[i]
-        entry.extend([gid,groupSize[gid]])
+        entry.extend([gid,groupSize[gid],contamination[i]])
 
     # Do shape measurement error analysis for each galaxy
     if args.partials:
