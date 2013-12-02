@@ -529,8 +529,8 @@ def main():
         help = "do not include any galactic disk (Sersic n=1) components")
     parser.add_argument("--no-bulge", action = "store_true",
         help = "do not include any galactic bulge (Sersic n=4) components")
-    parser.add_argument("--shape", action = "store_true",
-        help = "run HSM adaptive moments calculation on no-psf stamp")
+    parser.add_argument("--hsm", action = "store_true",
+        help = "run adaptive moments calculation on each stamp for sizes and ellipticities")
     parser.add_argument("--partials", action = "store_true",
         help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
@@ -826,8 +826,11 @@ def main():
         gal = createSource(**params)
         nominal = createStamp(gal,psf,pix,bbox)
 
-        # Calculate the adaptive moments shape of this galaxy w/o psf
-        (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = getStampMoments(gal,None,pix,bbox)
+        # Calculate the adaptive moments shape of this galaxy w/o psf (slow and optional)
+        if args.hsm:
+            (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = getStampMoments(gal,None,pix,bbox)
+        else:
+            (sizeMinusHSM,sizePlusHSM,e1HSM,e2HSM) = (0,0,0,0)
         if args.verbose:
             logger.info('HSM size: %.2f (-) %.2f (+) arcsec' % (sizeMinusHSM,sizePlusHSM))
             logger.info('HSMshape: (e1,e2) = (%.6f,%.6f)' % (e1HSM,e2HSM))
