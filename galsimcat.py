@@ -947,9 +947,10 @@ def main():
     # Loop over all saved objects to test for overlaps and build overlap groups
     (groupID,groupSize) = analyzeOverlaps(stampList)
 
-    # Add group id to output catalog
+    # Add group id and size to output catalog
     for (i,entry) in enumerate(outputCatalog):
-        entry.append(groupID[i])
+        gid = groupID[i]
+        entry.extend([gid,groupSize[gid]])
 
     # Do shape measurement error analysis for each galaxy
     if args.partials:
