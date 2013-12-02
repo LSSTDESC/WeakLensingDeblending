@@ -397,7 +397,7 @@ def overlapping(s1,s2):
     return False if overlapFluxProduct == 0 else True
 
 # Assigns a group ID to each stamp in stamps based on its overlaps with other stamps.
-def analyzeOverlaps(stamps,catalog,zindex,dzcut):
+def analyzeOverlaps(stamps,catalog,zindex,dzcut,filename):
     groupID = range(len(stamps))
     groupSize = [1]*len(stamps)
     photoz = [ ]
@@ -442,6 +442,8 @@ def analyzeOverlaps(stamps,catalog,zindex,dzcut):
                         groupSize[gold] -= 1
     # convert the photoz info into a contamination fraction for each object
     contamination = [ ]
+    out01 = open(filename + '01.dat','w')
+    out10 = open(filename + '10.dat','w')
     for i in range(len(stamps)):
         pz = photoz[i]
         # skip objects with no overlaps
@@ -454,10 +456,20 @@ def analyzeOverlaps(stamps,catalog,zindex,dzcut):
         # sum the weighted flux of objects that contaminate this object
         fcont = 0.
         for (z,f) in zip(pz[2::2],pz[3::2]):
+            # save points for photo-z contamination scatter plots
+            if f > 0.01*fsum:
+                # this object contributes at least 1% to fsum
+                print >>out01, z0,z
+                if f > 0.10*fsum:
+                    # this object contributes at least 10% to fsum
+                    print >>out10, z0,z
+            # this object's redshift is too different for a photo-z analysis
             if abs(z-z0) > dzcut:
                 fcont += f
         contamination.append(fcont/fsum)
         #print i,z0,fsum,fcont/fsum,repr(photoz[i])
+    out01.close()
+    out10.close()
     return (groupID,groupSize,contamination)
 
 # Builds the Fisher matrix from the specified array of npar*(npar+1)/2 Fisher images and
@@ -991,7 +1003,8 @@ def main():
         entry.append(snrPlus)
 
     # Loop over all saved objects to test for overlaps and build overlap groups
-    (groupID,groupSize,contamination) = analyzeOverlaps(stampList,outputCatalog,14,args.dz_max)
+    (groupID,groupSize,contamination) = analyzeOverlaps(
+        stampList,outputCatalog,14,args.dz_max,args.output + '_photoz')
 
     # Add group id and size to output catalog
     for (i,entry) in enumerate(outputCatalog):
