@@ -362,10 +362,29 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
 
     return (sizeMinus,sizePlus,e1,e2)
 
-def signalToNoiseRatio(stamp,pixelNoise):
+def signalToNoiseRatio(stamp,skyLevel):
     flat = stamp.array.reshape(-1)
-    snr = math.sqrt(numpy.dot(flat,flat)/pixelNoise)
+    snr = math.sqrt(numpy.dot(flat,flat)/skyLevel)
     return snr
+
+def weightedSignal(weights,signal):
+    wflat = weights.array.reshape(-1)
+    sflat = signal.array.reshape(-1)
+    return numpy.dot(wflat,sflat)/numpy.sum(wflat)
+
+def weightedNoiseVariance(weights,skyLevel,totalSignal = None):
+    wflat = weights.array.reshape(-1)
+    if totalSignal is not None:
+        sflat = totalSignal.array.reshape(-1)
+        pixwgtvar = wflat**2*(sflat + skyLevel)
+    else:
+        pixwgtvar = wflat**2*skyLevel
+    return numpy.sum(pixwgtvar)/numpy.sum(wflat)**2
+
+def weightedSignalToNoiseRatio(weights,signal,skyLevel,totalSignal = None):
+    signal = weightedSignal(weights,signal)
+    noise = math.sqrt(weightedNoiseVariance(weights,skyLevel,totalSignal))
+    return signal/noise
 
 # Returns True if the stamps s1 and s2 have overlapping pixels with non-zero flux.
 def overlapping(s1,s2):
@@ -568,8 +587,10 @@ def main():
     # Calculate the sky background rate in elec/sec/pixel
     skyRate = args.zero_point*math.pow(10,-0.4*(args.sky_brightness-24))*args.pixel_scale**2
 
-    # Calculate the mean sky noise level for the full exposure time in elec/pixel
-    skyNoise = math.sqrt(args.exposure_time*skyRate)
+    # Calculate the mean sky level and the corresponding noise level for the full
+    # exposure time in elec/pixel
+    skyLevel = args.exposure_time*skyRate
+    skyNoise = math.sqrt(skyLevel)
     
     # Calculate the pixel threshold cut to use in detected electrons during the full exposure
     pixelCut = args.sn_cut*skyNoise
@@ -838,7 +859,7 @@ def main():
         # Calculate this object's nominal flux S/N ratio at full depth using only masked pixels.
         # Note that this value cannot be reproduced from the saved stamp when a stamp is clipped
         # to the field boundary (use --no-clip to disable this).
-        snr = signalToNoiseRatio(maskedNominal,args.exposure_time*skyRate)
+        snr = signalToNoiseRatio(maskedNominal,skyLevel)
         if args.verbose:
             logger.info('     S/N: %.6f' % snr)
 
@@ -916,6 +937,13 @@ def main():
     # Close the input catalog
     cat.close()
 
+    # Calculate S/N ratio including effects of overlaps in background variance
+    for (i,entry) in enumerate(outputCatalog):
+        signal = stampList[i]
+        totalSignal = field[signal.bounds]
+        snrPlus = weightedSignalToNoiseRatio(signal,signal,skyLevel,totalSignal)
+        entry.append(snrPlus)
+
     # Loop over all saved objects to test for overlaps and build overlap groups
     (groupID,groupSize) = analyzeOverlaps(stampList)
 
@@ -924,18 +952,18 @@ def main():
         entry.append(groupID[i])
 
     # Do shape measurement error analysis for each galaxy
-    purities = (0,0.5,0.9,0.99)
-    regionsList = [ ]
-    for i in range(nkeep):
-        # use all objects in Fisher denominator (isolated = False)
-        (errors,regions) = shapeErrorsAnalysis(
-            nvar,stampList[i],fisherImagesList[i],args.exposure_time*skyRate,field,purities,isolated=False)
-        outputCatalog[i].extend(errors)        
-
-    # Save the regions for each object
-    outname = args.output + '_regions.fits'
-    logger.info('Saving regions to %r' % outname)
-    galsim.fits.writeMulti(regionsList,outname)
+    if args.partials:
+        purities = (0,0.5,0.9,0.99)
+        regionsList = [ ]
+        for i in range(nkeep):
+            # use all objects in Fisher denominator (isolated = False)
+            (errors,regions) = shapeErrorsAnalysis(
+                nvar,stampList[i],fisherImagesList[i],skyLevel,field,purities,isolated=False)
+            outputCatalog[i].extend(errors)
+        # Save the regions for each object
+        outname = args.output + '_regions.fits'
+        logger.info('Saving regions to %r' % outname)
+        galsim.fits.writeMulti(regionsList,outname)
 
     # Save group sizes to a file
     outname = args.output + '_groups.dat'
@@ -958,7 +986,7 @@ def main():
     # Write the full field image with random noise added
     if args.save_noise:
         rng = galsim.BaseDeviate(123)
-        noise = galsim.PoissonNoise(rng,sky_level = args.exposure_time*skyRate)
+        noise = galsim.PoissonNoise(rng,sky_level = skyLevel)
         field.addNoise(noise)
         outname = args.output + '_noise.fits'
         logger.info('Saving full field with noise added to %r' % outname)
