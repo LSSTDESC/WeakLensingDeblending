@@ -516,8 +516,10 @@ def main():
         help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
     parser.add_argument("--partials-order", type = int, default = 1,
         help = "order of finite difference equation to use for evaluating partials")
-    parser.add_argument("--only-line", type = int, default = 0,
-        help = "only use the specified line number from the input catalog (when non-zero)")
+    parser.add_argument("--only-line", type = int, action = "append",
+        help = "only use the specified line number from the input catalog (can be repeated)")
+    parser.add_argument("--skip-line", type = int, action = "append",
+        help = "skip the specified line number from the input catalog (can be repeated)")
     args = parser.parse_args()
 
     # Configure the GalSim logger
@@ -619,7 +621,9 @@ def main():
     for line in cat:
         lineno += 1
 
-        if args.only_line > 0 and lineno != args.only_line:
+        if args.only_line and lineno not in args.only_line:
+            continue
+        if args.skip_line and lineno in args.skip_line:
             continue
 
         # prepare to read this catalog entry
