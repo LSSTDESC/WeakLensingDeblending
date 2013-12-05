@@ -36,19 +36,28 @@ def main():
         groupSize = int(fields[1])
         if groupSize > 1:
             overlapGroups.append(groupID)
+    print 'Found %d overlap groups' % len(overlapGroups)
 
     # Get info on the members of each overlap group
     overlaps = { }
+    ncatalog = 0
     for line in open(args.input + '_catalog.dat','r'):
+        ncatalog += 1
         fields = line.split()
         flux = float(fields[4])
-        z = float(fields[9])
-        groupID = int(fields[11])
+        z = float(fields[14])
+        groupID = int(fields[16])
         if groupID in overlapGroups:
             overlap = overlaps.get(groupID,[ ])
             overlap.append((flux,z))
             overlaps[groupID] = overlap
-    print 'Found %d overlap groups' % len(overlaps)
+    print 'Found %d overlap groups from %d galaxies' % (len(overlaps),ncatalog)
+
+    # Load the full field image and individual stamps
+    field = galsim.fits.read(args.input + '_field.fits')
+    for i in range(ncatalog):
+        stamps = galsim.fits.readCube(args.input + '_stamps.fits',hdu=i+1)
+        print i,len(stamps),stamps[0].array.shape
 
     # Loop over overlap groups
     dzmax = 4.05
