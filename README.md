@@ -1,4 +1,4 @@
-Utilities for Deblending Studies
-================================
+Software for Weak Lensing Deblending Studies
+============================================
 
-Details are on the Dark Energy Science Collaboration deblending [wiki page](https://confluence.slac.stanford.edu/display/LSSTDESC/CWG+H-4 wiki).
+More information about this project are available on the Dark Energy Science Collaboration deblending [wiki page](https://confluence.slac.stanford.edu/display/LSSTDESC/CWG+H-4 wiki).
