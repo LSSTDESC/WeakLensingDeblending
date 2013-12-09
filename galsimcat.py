@@ -4,6 +4,14 @@
 #######################################################################################
 
 """
+TODO:
+ - define criteria for unresolvable blends
+ - calculate 'intrinsic' ellipticity distribution of unresolvable blends
+ - estimate shape measurement bias for simultaneous fitting of resolvable blends
+ - use more realistic optical psf (Airy should be fast) instead of inflating Kolmogorov fwhm
+ """
+
+"""
 ./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o lsst_i --pixel-scale 0.200 --width 4096 --height 4096 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5
 ./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o des_i  --pixel-scale 0.263 --width 3115 --height 3115 --exposure-time 1000 --sky-brightness 20.1 --zenith-fwhm 0.79 --zero-point 12.5
 ./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o cfht_i --pixel-scale 0.185 --width 4428 --height 4428 --exposure-time 4300 --sky-brightness 20.3 --zenith-fwhm 0.64 --zero-point 10.0
