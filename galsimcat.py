@@ -537,75 +537,91 @@ def shapeErrorsAnalysis(npar,nominal,fisherImages,noiseVariance,field,purities,i
 def main():
 
     # Parse command-line args
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-v", "--verbose", action = "store_true",
         help = "provide more verbose output")
-    parser.add_argument("-i", "--input", default = 'gcat.dat',
-        help = "name of input catalog to read")
-    parser.add_argument("-o","--output", default = 'catout',
-        help = "base name of output files to write")
-    parser.add_argument("-x","--x-center", type = float, default = 0.5,
-        help = "central RA of image (degrees)")
-    parser.add_argument("-y","--y-center", type = float, default = 0.0,
-        help = "central DEC of image (degrees)")
-    parser.add_argument("--width", type = int, default = 512,
-        help = "image width (pixels)")
-    parser.add_argument("--height", type = int, default = 512,
-        help = "image height (pixels)")
-    parser.add_argument("--max-size", type = float, default = 20.,
-        help = "flux from any object is truncated beyond this size (arcsecs)")
-    parser.add_argument("--no-margin", action = "store_true",
-        help = "do not simulate the tails of objects just outside the field")
-    parser.add_argument("--pixel-scale", type = float, default = 0.2,
-        help = "pixel scale (arscecs/pixel)")
-    parser.add_argument("--airmass", type = float, default = 1.2,
-        help = "airmass value to use for atmospheric PSF and extinction")
-    parser.add_argument("--extinction", type = float, default = 0.07,
-        help = "atmospheric extinction coefficient")
-    parser.add_argument("--zenith-fwhm", type = float, default = 0.67,
-        help = "atmospheric psf full-width-half-max in arcsecs at zenith")
-    parser.add_argument("--instrumental-fwhm", type = float, default = 0.4,
-        help = "instrumental psf full-width-half-max in arcsecs")
-    parser.add_argument("--psf-beta", type = float, default = 0.0,
-        help = "psf Moffat parameter beta (uses Kolmogorov psf if beta <= 0)")
-    parser.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
+
+    input_group = parser.add_argument_group('Catalog input',
+        'Controls how the input catalog is used to specify the source models to simulate.')
+    input_group.add_argument("-i", "--input", default = 'gcat.dat', metavar = 'FILE',
+        help = "name of input catalog file to read")
+    input_group.add_argument("--band", choices = ['u','g','r','i','z','y'], default = 'i',
         help = "LSST imaging band to use for source fluxes")
-    parser.add_argument("--zero-point", type = float, default = 41.5,
-        help = "zero point for converting magnitude to detected signal in elec/sec")
-    parser.add_argument("--sky-brightness", type = float, default = 20.0,
-        help = "sky brightness in mag/sq.arcsec.")
-    parser.add_argument("--sn-cut", type = float, default = 0.5,
-        help = "keep all pixels above this signal-to-noise ratio cut")
-    parser.add_argument("--exposure-time", type = float, default = 6900.,
-        help = "full-depth exposure time in seconds")
-    parser.add_argument("--g1", type = float, default = 0.,
-        help = "constant shear component g1 to apply")
-    parser.add_argument("--g2", type = float, default = 0.,
-        help = "constant shear component g2 to apply")
-    parser.add_argument("--dz-max", type = float, default = 0.1,
-        help = "maximum allowed redshift difference before photo-z is contaminated")
-    parser.add_argument("--save-field", action = "store_true",
-        help = "save full field image without noise")
-    parser.add_argument("--save-noise", action = "store_true",
-        help = "save full field image with random noise added")
-    parser.add_argument("--stamps", action = "store_true",
-        help = "save postage stamps for each source (normalized to 1 exposure)")
-    parser.add_argument("--no-clip", action = "store_true",
-        help = "do not clip stamps to the image bounds")
-    parser.add_argument("--no-disk", action = "store_true",
-        help = "do not include any galactic disk (Sersic n=1) components")
-    parser.add_argument("--no-bulge", action = "store_true",
-        help = "do not include any galactic bulge (Sersic n=4) components")
-    parser.add_argument("--hsm", action = "store_true",
-        help = "run adaptive moments calculation on each stamp for sizes and ellipticities")
-    parser.add_argument("--partials", action = "store_true",
-        help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
-    parser.add_argument("--partials-order", type = int, default = 1,
-        help = "order of finite difference equation to use for evaluating partials")
-    parser.add_argument("--only-line", type = int, action = "append",
+    input_group.add_argument("-x","--x-center", type = float, default = 0.5, metavar = 'X',
+        help = "catalog RA of image center in degrees")
+    input_group.add_argument("-y","--y-center", type = float, default = 0.0, metavar = 'Y',
+        help = "catalog DEC of image center in degrees")
+    input_group.add_argument("--g1", type = float, default = 0.,
+        help = "constant shear component g1 to apply to all catalog sources")
+    input_group.add_argument("--g2", type = float, default = 0.,
+        help = "constant shear component g2 to apply to all catalog sources")
+    input_group.add_argument("--no-disk", action = "store_true",
+        help = "ignores any disk (Sersic n=1) component of catalog sources")
+    input_group.add_argument("--no-bulge", action = "store_true",
+        help = "ignores any bulge (Sersic n=4) component of catalog sources")
+    input_group.add_argument("--only-line", type = int, action = "append", metavar = 'N',
         help = "only use the specified line number from the input catalog (can be repeated)")
-    parser.add_argument("--skip-line", type = int, action = "append",
+    input_group.add_argument("--skip-line", type = int, action = "append", metavar = 'N',
         help = "skip the specified line number from the input catalog (can be repeated)")
+
+    observing_group = parser.add_argument_group('Observing conditions',
+        'Specifies the observing conditions to simulate.')
+    observing_group.add_argument("--sky-brightness", type = float, default = 20.0, metavar = 'B',
+        help = "sky brightness in mag/sq.arcsec.")
+    observing_group.add_argument("--zenith-fwhm", type = float, default = 0.67, metavar = 'FWHM',
+        help = "atmospheric PSF full-width-half-max in arcsecs at zenith")
+    observing_group.add_argument("--psf-beta", type = float, default = 0.0, metavar = 'BETA',
+        help = "atmospheric PSF Moffat parameter beta to use, or use Kolmogorov PSF if beta <= 0")
+    observing_group.add_argument("--airmass", type = float, default = 1.2, metavar = 'X',
+        help = "airmass value to use for atmospheric PSF and extinction")
+    observing_group.add_argument("--extinction", type = float, default = 0.07, metavar = 'k',
+        help = "atmospheric extinction coefficient")
+
+    instrument_group = parser.add_argument_group('Instrument definition',
+        'Specifies the parameters of the instrument to simulate.')
+    instrument_group.add_argument("--width", type = int, default = 512, metavar = 'W',
+        help = "image width in pixels")
+    instrument_group.add_argument("--height", type = int, default = 512, metavar = 'H',
+        help = "image height in pixels")
+    instrument_group.add_argument("--pixel-scale", type = float, default = 0.2, metavar = 'SCALE',
+        help = "pixel scale in arscecs/pixel")
+    instrument_group.add_argument("--exposure-time", type = float, default = 6900., metavar = 'T',
+        help = "full-depth exposure time in seconds")
+    instrument_group.add_argument("--zero-point", type = float, default = 41.5, metavar = 's0',
+        help = "zero point for converting magnitude to detected signal in elec/sec")
+    instrument_group.add_argument("--instrumental-fwhm", type = float, default = 0.4, metavar = 'FWHM',
+        help = "instrumental psf full-width-half-max in arcsecs")
+
+    simulation_group = parser.add_argument_group('Simulation options',
+        'Controls optional aspects of the image simulation and analysis.')
+    simulation_group.add_argument("--sn-cut", type = float, default = 0.5, metavar = 'SNR',
+        help = "keep all pixels above this signal-to-noise ratio cut")
+    simulation_group.add_argument("--max-size", type = float, default = 20., metavar = 'MAX',
+        help = "flux from any object is truncated beyond this size in arcsecs")
+    simulation_group.add_argument("--no-margin", action = "store_true",
+        help = "do not simulate the tails of objects just outside the field")
+    simulation_group.add_argument("--hsm", action = "store_true",
+        help = "run adaptive moments calculation on each stamp for sizes and ellipticities")
+    simulation_group.add_argument("--partials", action = "store_true",
+        help = "calculate and save partial derivatives wrt shape parameters (normalized to 1 exposure)")
+    simulation_group.add_argument("--partials-order", type = int, default = 1, metavar = 'ORDER',
+        help = "order of finite difference equation to use for evaluating partials")
+    simulation_group.add_argument("--dz-max", type = float, default = 0.1, metavar = 'MAX',
+        help = "maximum allowed redshift difference before photo-z is contaminated")
+
+    output_group = parser.add_argument_group('Output control',
+        'Determines the files that will be written by this job.')
+    output_group.add_argument("-o","--output", default = 'catout', metavar = 'FILE',
+        help = "base name of output files to write")
+    output_group.add_argument("--save-field", action = "store_true",
+        help = "save full field image without noise")
+    output_group.add_argument("--save-noise", action = "store_true",
+        help = "save full field image with random noise added")
+    output_group.add_argument("--stamps", action = "store_true",
+        help = "save postage stamps for each source (normalized to 1 exposure)")
+    output_group.add_argument("--no-clip", action = "store_true",
+        help = "do not clip stamps to the image bounds")
+
     args = parser.parse_args()
 
     # Configure the GalSim logger
