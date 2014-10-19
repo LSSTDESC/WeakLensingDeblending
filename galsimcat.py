@@ -29,7 +29,7 @@ import argparse
 
 import logging
 import galsim
-import numpy
+import numpy as np
 
 try:
     # Use astropy if it is available
@@ -292,7 +292,7 @@ def initializeForPsf(psf,pix,size):
     obj = galsim.Convolve([psf,pix])
     obj.draw(image=stamp)
     # Build the circularized psf profile
-    profile = numpy.zeros(size,dtype=float)
+    profile = np.zeros(size,dtype=float)
     for x in range(2*size):
         for y in range(2*size):
             dx = x - size + 0.5
@@ -376,13 +376,13 @@ def combineEllipticities(hlr_d,q_d,pa_d,hlr_b,q_b,pa_b,f_b):
 
 def signalToNoiseRatio(stamp,skyLevel):
     flat = stamp.array.reshape(-1)
-    snr = math.sqrt(numpy.dot(flat,flat)/skyLevel)
+    snr = math.sqrt(np.dot(flat,flat)/skyLevel)
     return snr
 
 def weightedSignal(weights,signal):
     wflat = weights.array.reshape(-1)
     sflat = signal.array.reshape(-1)
-    return numpy.dot(wflat,sflat)/numpy.sum(wflat)
+    return np.dot(wflat,sflat)/np.sum(wflat)
 
 def weightedNoiseVariance(weights,skyLevel,totalSignal = None):
     wflat = weights.array.reshape(-1)
@@ -391,7 +391,7 @@ def weightedNoiseVariance(weights,skyLevel,totalSignal = None):
         pixwgtvar = wflat**2*(sflat + skyLevel)
     else:
         pixwgtvar = wflat**2*skyLevel
-    return numpy.sum(pixwgtvar)/numpy.sum(wflat)**2
+    return np.sum(pixwgtvar)/np.sum(wflat)**2
 
 def weightedSignalToNoiseRatio(weights,signal,skyLevel,totalSignal = None):
     signal = weightedSignal(weights,signal)
@@ -405,7 +405,7 @@ def overlapping(s1,s2):
     if overlapBounds.area() == 0:
         return False
     # test for overlapping flux within the overlapping pixels
-    overlapFluxProduct = numpy.sum(s1[overlapBounds].array * s2[overlapBounds].array)
+    overlapFluxProduct = np.sum(s1[overlapBounds].array * s2[overlapBounds].array)
     return False if overlapFluxProduct == 0 else True
 
 # Assigns a group ID to each stamp in stamps based on its overlaps with other stamps.
@@ -488,23 +488,23 @@ def analyzeOverlaps(stamps,catalog,zindex,dzcut,filename):
 # calculates the corresponding shape-measurment error, if possible.
 def shapeError(npar,fisherImages,fisherDenominator,mask):
     # calculate the Fisher matrix elements by summing pixels of the specified Fisher matrix images
-    fisherMatrix = numpy.zeros((npar,npar))
+    fisherMatrix = np.zeros((npar,npar))
     index = 0
     for i in range(npar):
         for j in range(i,npar):
-            fisherMatrix[i,j] = numpy.sum(fisherImages[index]/fisherDenominator*mask)
+            fisherMatrix[i,j] = np.sum(fisherImages[index]/fisherDenominator*mask)
             if i != j:
                 fisherMatrix[j,i] = fisherMatrix[i,j]
             index += 1
     # try to calculate corresponding shape measurement error, which will fail unless
     # the Fisher matrix is invertible
     try:
-        fullCov = numpy.linalg.inv(fisherMatrix)
+        fullCov = np.linalg.inv(fisherMatrix)
         # this is where we assume that the last 2 variations are g1,g2
         varEps = 0.5*(fullCov[-2,-2]+fullCov[-1,-1])
         # variance might be negative if inverse has large numerical errors
         sigmaEps = 0 if varEps <= 0 else math.sqrt(varEps)
-    except numpy.linalg.LinAlgError:
+    except np.linalg.LinAlgError:
         # assign a shape-measurement error of zero if the Fisher matrix is not invertible.
         sigmaEps = 0.
     return sigmaEps
@@ -528,7 +528,7 @@ def shapeErrorsAnalysis(npar,nominal,fisherImages,noiseVariance,field,purities,i
     errors = [ ]
     for (i,purity) in enumerate(purities):
         mask = (subNominal > purity*subField)
-        regionsArray = numpy.maximum(regionsArray,i*mask)
+        regionsArray = np.maximum(regionsArray,i*mask)
         sigeps = shapeError(npar,fisherImages,fisherDenominator,mask)
         errors.append(sigeps)
     regions.array[:] = regionsArray[:]
@@ -980,7 +980,7 @@ def main():
             nvar = len(partialsArray)
             nfisher = ((nvar+1)*nvar)/2
             (h,w) = partialsArray[0].shape
-            fisherImage = numpy.zeros((nfisher,h,w))
+            fisherImage = np.zeros((nfisher,h,w))
             index = 0
             for i in range(nvar):
                 for j in range(i,nvar):
