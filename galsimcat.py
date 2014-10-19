@@ -84,8 +84,7 @@ If psf is None, only [src,pix] are convolved. If src is None, an empty
 stamp is returned (we use this below when either the bulge or disk is absent).
 """
 def renderStamp(src,psf,pix,bbox):
-    stamp = galsim.ImageD(bbox)
-    stamp.setScale(pix.getXWidth())
+    stamp = galsim.ImageD(bbox,scale=pix.getScale())
     if src:
         models = [src,pix] if psf is None else [src,psf,pix]
         gsp = galsim.GSParams(maximum_fft_size=32768)
@@ -126,7 +125,7 @@ def getStampMoments(src,psf,pix,bbox,oversampling=5,zoom=1):
     y2 = int(math.ceil(ymid + zoom*dy))
     assert (y1+y2)/2. == ymid
     bigBbox = galsim.BoundsI(x1,x2,y1,y2)
-    scale = pix.getXWidth()/oversampling
+    scale = pix.getScale()/oversampling
     smallPix = galsim.Pixel(scale)
     try:
         # Render a high-resolution stamp of this source (might fail
@@ -227,8 +226,7 @@ contain only the central pixel with image.array.sum() == 0.
 def createMask(image,threshold,args):
     # create an empty mask image with the same dimensions as the input image
     box = image.bounds
-    mask = galsim.ImageS(box)
-    mask.setScale(image.getScale())
+    mask = galsim.ImageS(box,scale=image.scale)
     borderMax = 0.
     lastRow = box.ymax - box.ymin
     lastPixel = box.xmax - box.xmin
@@ -289,9 +287,8 @@ Performs initializations for the psf we will be using.
 def initializeForPsf(psf,pix,size):
     # Render a centered psf image
     bbox = galsim.BoundsI(1,2*size,1,2*size)
-    stamp = galsim.ImageD(bbox)
-    scale = pix.getXWidth()
-    stamp.setScale(scale)
+    scale = pix.getScale()
+    stamp = galsim.ImageD(bbox,scale=scale)
     obj = galsim.Convolve([psf,pix])
     obj.draw(image=stamp)
     # Build the circularized psf profile
@@ -635,8 +632,7 @@ def main():
         psf = None
 
     # Create an empty image that represents the whole field
-    field = galsim.ImageD(args.width,args.height)
-    field.setScale(pix.getXWidth())
+    field = galsim.ImageD(args.width,args.height,scale=pix.getScale())
     
     # Calculate the relative scaling of RA and angles relative to the image center
     RAscale = math.cos(args.y_center*deg2rad)
@@ -959,8 +955,7 @@ def main():
             for (pname,delta) in variations:
                 # create stamps for each variation of this parameter
                 newparams = params.copy()
-                partial = galsim.ImageD(bbox)
-                partial.setScale(pix.getXWidth())
+                partial = galsim.ImageD(bbox,scale=pix.getScale())
                 # delta might be zero, e.g., for hlr_b when bulge fraction = 0
                 if delta > 0:
                     for step in range(args.partials_order):
