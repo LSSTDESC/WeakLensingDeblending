@@ -26,10 +26,10 @@ import sys
 import os
 import math
 import argparse
-
 import logging
-import galsim
+
 import numpy as np
+import galsim
 
 try:
     # Use astropy if it is available
