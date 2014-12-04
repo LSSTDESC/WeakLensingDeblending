@@ -9,3 +9,6 @@
 *.pdf
 *.root
 catalogAnalysis
+
+# Sphinx documentation
+docs/_build/
