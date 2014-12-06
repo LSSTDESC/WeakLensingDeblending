@@ -10,4 +10,5 @@ Documentation for the DESC Weak Lensing Deblending Package
    :maxdepth: 2
 
    install
+   catalog
    examples

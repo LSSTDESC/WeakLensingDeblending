@@ -1,5 +1,5 @@
-install
-=======
+Installation
+============
 
 Programs can be run directly from the top-level directory without needing to set `PYTHONPATH` as long as you have the required packages already installed, e.g.::
 

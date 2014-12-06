@@ -1,10 +1,12 @@
-examples
+Examples
 ========
 
 Quick Demo
 ----------
 
-...
+Run i-band calculation for LSST with a small field::
+
+	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o lsst_i --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900
 
 Calculate Blending Statistics for CFHT, DES, LSST
 -------------------------------------------------
