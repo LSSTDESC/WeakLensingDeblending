@@ -785,6 +785,7 @@ def main():
             pa_d = catalog('pa_disk') # position angle in degrees
             a_d = catalog('a_d') # major axis length in arcsecs
             b_d = catalog('b_d') # minor axis length in arcsecs
+            assert hlr_d == a_d, 'Disk HLR != a'
             # Calculate sheared ellipse aspect ratio
             q_d = b_d/a_d # between 0.2 and 1
             # Convert position angle from degrees to radians
@@ -800,6 +801,7 @@ def main():
             pa_b = catalog('pa_bulge') # position angle in degrees
             a_b = catalog('a_b') # major axis length in arcsecs
             b_b = catalog('b_b') # minor axis length in arcsecs
+            assert hlr_b == a_b, 'Bulge HLR != a'
             # Calculate sheared ellipse aspect ratio
             q_b = b_b/a_b # between 0.2 and 1
             # Convert position angle from degrees to radians
