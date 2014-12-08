@@ -12,3 +12,11 @@ Documentation for the DESC Weak Lensing Deblending Package
    install
    catalog
    examples
+
+Library Modules
+---------------
+
+.. toctree::
+   :maxdepth: 3
+
+   src/descwl

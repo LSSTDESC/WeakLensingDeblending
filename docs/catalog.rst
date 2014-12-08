@@ -1,5 +1,8 @@
-Input Catalog Format
-====================
+Source Catalogs
+===============
+
+Galaxy Catalog Format
+---------------------
 
 The input catalog is a text file consisting of an initial header line and followed by one line of numbers per catalog object, for example a catalog with two objects might look like this::
 
@@ -36,3 +39,30 @@ i_ab                 Apparent AB magnitude in the LSST i-band, including extinct
 z_ab                 Apparent AB magnitude in the LSST z-band, including extinction effects 
 y_ab                 Apparent AB magnitude in the LSST y-band, including extinction effects 
 ==================== ===========
+
+The catalog file is read using an `astropy basic reader <https://astropy.readthedocs.org/en/stable/api/astropy.io.ascii.Basic.html>`_ (created with the default options) so can be embellished with comments and blank lines for readability.
+
+Create Galaxy Catalog From LSST Database
+----------------------------------------
+
+This section documents the process for creating a galaxy catalog from the LSST Data Management database. This is not something you will normally need (or want) to do since suitable catalogs are already provided. However, if you want to know exactly how the provided catalogs were created or do need to create your own, read on.
+
+The `lsst2wl.py` program automates the process of connecting to the database, extracting the relevant data, and writing a catalog file.  The program uses the `pymsql <http://pymssql.org/en/stable/>`_ python interface to Microsoft SQL Server (which LSST DM uses), so you will need to install that and its dependencies (`FreeTDS <http://www.freetds.org>`_ and `Cython <http://cython.org>`_) in order to run `lsst2wl.py`.
+
+The `OneDegSq.dat` catalog file was created using::
+
+	lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
+
+Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block access to these ports from internal IP addresses, so if you are unable to connect, this is the most likely reason.
+
+You might find the following interactive python snippet useful for debugging connection problems::
+
+	import _mssql
+	conn = _mssql.connect(server='fatboy.npl.washington.edu', user='LSST-2', password='L$$TUser', database='LSST', port=1433)
+	print conn.tds_version
+	conn.execute_query("Select name from sysobjects where type like 'u'")
+	for row in conn: print row['name']
+	conn.execute_query("select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = 'galaxy'")
+	for row in conn: print row[0]
+	conn.execute_scalar("select count(*) from galaxy")
+	conn.close()

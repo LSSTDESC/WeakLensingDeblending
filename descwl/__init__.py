@@ -4,4 +4,4 @@ This code was primarily developed to study the effects of overlapping sources on
 photometric redshift algorithms, and deblending algorithms.
 """
 
-pass
+import catalog
