@@ -7,6 +7,7 @@ Submodules
 .. toctree::
 
    descwl.catalog
+   descwl.model
 
 Module contents
 ---------------
