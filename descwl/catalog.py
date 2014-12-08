@@ -41,10 +41,10 @@ class Reader(object):
         If only_id has any entries, then only the specified ids will be considered. Otherwise,
         all ids are considered. Any ids in skip_id will be silently ignored.
         """
-        for index,row in enumerate(self.table):
-            if self.only_id and index not in self.only_id:
+        for row in self.table:
+            if self.only_id and row['id'] not in self.only_id:
                 continue
-            if self.skip_id and index in self.skip_id:
+            if self.skip_id and row['id'] in self.skip_id:
                 continue
             yield row
 
