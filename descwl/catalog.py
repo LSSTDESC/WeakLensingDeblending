@@ -80,7 +80,7 @@ class Reader(object):
             args(args): A set of arguments convertible to a dictionary via the built-in vars() method.
 
         Returns:
-            Reader: A newly constructed Reader object.
+            :class:`Reader`: A newly constructed Reader object.
         """
         # Look up the named constructor parameters.
         pnames = (inspect.getargspec(cls.__init__)).args[1:]

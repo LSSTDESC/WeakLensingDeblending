@@ -31,11 +31,7 @@ def main():
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
             print 'Simulating %s %s-band survey with %r' % (args.survey,args.filter_band,survey.args)
-        entries = 0
         for entry in catalog:
-            #if entries < 3:
-            #    print entry
-            entries += 1
             source_model = descwl.model.Galaxy.from_catalog(entry,args)
 
     except RuntimeError,e:

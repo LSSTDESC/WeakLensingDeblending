@@ -142,7 +142,7 @@ class Survey(object):
                 the values 'u','g','r','i','z','y'. Not all (survey,filter) combinations are supported.
 
         Returns:
-            Survey: A newly constructed Survey object.
+            :class:`Survey`: A newly constructed Survey object.
 
         Raises:
             RuntimeError: defaults not available for the requested survey and filter band.
