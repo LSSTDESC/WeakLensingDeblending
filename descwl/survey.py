@@ -18,19 +18,9 @@ class Survey(object):
         airmass(float): Optical path length through the atmosphere relative to the zenith path length.
         extinction(float): Exponential exctinction coefficient for atmospheric absorption.
     """
-    def __init__(self,image_width,image_height,pixel_scale,exposure_time,zero_point,instrumental_psf_fwhm,
-        zenith_psf_fwhm,atmospheric_psf_beta,sky_brightness,airmass,extinction):
-        self.image_width = image_width
-        self.image_height = image_height
-        self.pixel_scale = pixel_scale
-        self.exposure_time = exposure_time
-        self.zero_point = zero_point
-        self.instrumental_psf_fwhm = instrumental_psf_fwhm
-        self.zenith_psf_fwhm = zenith_psf_fwhm
-        self.atmospheric_psf_beta = atmospheric_psf_beta
-        self.sky_brightness = sky_brightness
-        self.airmass = airmass
-        self.extinction = extinction
+    def __init__(self,**args):
+        self.args = args
+        self.__dict__.update(args)
 
     # Default constructor arg values for different (survey,filter_band) combinations.
     _defaults = {

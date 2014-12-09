@@ -25,6 +25,7 @@ def main():
     try:
         catalog = descwl.catalog.Reader.from_args(args)
         survey = descwl.survey.Survey.from_args(args)
+        print survey.args
         entries = 0
         for entry in catalog:
             #if entries < 3:
