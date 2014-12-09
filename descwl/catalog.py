@@ -31,6 +31,7 @@ class Reader(object):
     def __init__(self,catalog_name,ra_center,dec_center,only_id,skip_id):
         if not catalog_name:
             raise RuntimeError('Missing required catalog_name arg.')
+        self.catalog_name = catalog_name
         self.only_id = only_id
         self.skip_id = skip_id
         self.table = ascii.read(catalog_name, format='basic')

@@ -9,6 +9,8 @@ import descwl
 def main():
     # Initialize and parse command-line arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--verbose', action = 'store_true',
+        help = 'Provide verbose output.')
     parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
         help = 'LSST imaging band to simulate')
     catalog_group = parser.add_argument_group('Catalog input',
@@ -24,8 +26,11 @@ def main():
 
     try:
         catalog = descwl.catalog.Reader.from_args(args)
+        if args.verbose:
+            print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
         survey = descwl.survey.Survey.from_args(args)
-        print survey.args
+        if args.verbose:
+            print 'Simulating %s %s-band survey with %r' % (args.survey,args.filter_band,survey.args)
         entries = 0
         for entry in catalog:
             #if entries < 3:
