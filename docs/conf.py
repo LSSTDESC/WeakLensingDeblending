@@ -15,6 +15,31 @@
 import sys
 import os
 
+from mock import Mock as MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return Mock()
+    def __mul__(self, other):
+        return Mock()
+    def __rmul__(self, other):
+        return Mock()
+    def __pow__(self, other):
+        return Mock()
+    def __div__(self, other):
+        return Mock()
+
+MOCK_MODULES = [
+	'argparse',
+    'numpy', 
+    'astropy.io'
+]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
+# on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -31,7 +56,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # ones.
 extensions = [
    	'sphinx.ext.autodoc',
-   	'sphinxcontrib.napoleon'
+   	'sphinx.ext.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -97,22 +122,13 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
 
-# Mock external dependencies when building on ReadTheDocs.org
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-	from mock import Mock as MagicMock
-	class Mock(MagicMock):
-	    @classmethod
-	    def __getattr__(cls, name):
-	            return Mock()
-	MOCK_MODULES = ['argparse', 'numpy', 'astropy.io']
-	sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-html_theme = 'sphinxdoc'
+if not on_rtd:
+    html_theme = 'sphinxdoc'
+else:
+	# RTD has its own theme.
+    html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
