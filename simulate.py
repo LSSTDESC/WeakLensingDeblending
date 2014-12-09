@@ -14,6 +14,9 @@ def main():
     catalog_group = parser.add_argument_group('Catalog input',
         'Specify an input catalog of source parameters for simulation.')
     descwl.catalog.Reader.add_args(catalog_group)
+    survey_group = parser.add_argument_group('Survey parameters',
+        'Specify survey camera and observing parameters.')
+    descwl.survey.Survey.add_args(survey_group)
     model_group = parser.add_argument_group('Source model options',
         'Specify options for building source models from catalog parameters.')
     descwl.model.add_galaxy_args(model_group)
@@ -21,10 +24,11 @@ def main():
 
     try:
         catalog = descwl.catalog.Reader.from_args(args)
+        survey = descwl.survey.Survey.from_args(args)
         entries = 0
         for entry in catalog:
-            if entries < 3:
-                print entry
+            #if entries < 3:
+            #    print entry
             entries += 1
             source_model = descwl.model.Galaxy.from_catalog(entry,args)
 

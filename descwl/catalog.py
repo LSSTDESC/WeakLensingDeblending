@@ -50,11 +50,11 @@ class Reader(object):
 
     @staticmethod
     def add_args(parser):
-        """Add command-line arguments for constructing a new CatalogReader.
+        """Add command-line arguments for constructing a new Reader.
 
-        The added arguments are our constructor parameters. Note that constructor parameter defaults
-        are specified here rather than in the constructor, so that they are included in command-line
-        help.
+        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+        Note that constructor parameter defaults are specified here rather than in the constructor,
+        so that they are included in command-line help.
 
         Args:
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
