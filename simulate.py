@@ -13,6 +13,8 @@ def main():
         help = 'Provide verbose output.')
     parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
         help = 'LSST imaging band to simulate')
+    parser.add_argument('--survey-defaults', action = 'store_true',
+        help = 'Print survey camera and observing parameter defaults and exit.')
     catalog_group = parser.add_argument_group('Catalog input',
         'Specify an input catalog of source parameters for simulation.')
     descwl.catalog.Reader.add_args(catalog_group)
@@ -23,6 +25,10 @@ def main():
         'Specify options for building source models from catalog parameters.')
     descwl.model.add_galaxy_args(model_group)
     args = parser.parse_args()
+
+    if args.survey_defaults:
+        descwl.survey.Survey.print_defaults()
+        return 0
 
     try:
         catalog = descwl.catalog.Reader.from_args(args)

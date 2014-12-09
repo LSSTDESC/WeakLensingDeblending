@@ -1,6 +1,13 @@
 Examples
 ========
 
+Survey Parameters
+-----------------
+
+Print default camera and observing condition parameters for each defined survey then exit::
+
+	./simulate.py --survey-defaults
+
 Quick Demo
 ----------
 

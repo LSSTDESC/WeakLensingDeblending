@@ -17,10 +17,22 @@ class Survey(object):
         sky_brightness(float): Sky brightness in mags/sq.arcsec during the observation.
         airmass(float): Optical path length through the atmosphere relative to the zenith path length.
         extinction(float): Exponential exctinction coefficient for atmospheric absorption.
+
+    Raises:
+        RuntimeError: Missing or extra arguments provided.
     """
     def __init__(self,**args):
+        if set(args.keys()) != set(Survey._parameter_names):
+            raise RuntimeError('Missing or extra arguments provided to Survey constructor.')
         self.args = args
         self.__dict__.update(args)
+
+    # Survey constructor parameter names. The order established here is used by print_defaults().
+    _parameter_names = (
+        'image_width','image_height','pixel_scale','exposure_time','zero_point',
+        'instrumental_psf_fwhm','zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
+        'airmass','extinction'
+        )
 
     # Default constructor arg values for different (survey,filter_band) combinations.
     _defaults = {
@@ -95,6 +107,19 @@ class Survey(object):
     }
 
     @staticmethod
+    def print_defaults():
+        """Print parameters for all available (survey,filter band) combinations.
+        """
+        for survey_name,survey_defaults in Survey._defaults.iteritems():
+            if survey_name == '*':
+                continue
+            for filter_band,combo_defaults in survey_defaults.iteritems():
+                if filter_band == '*':
+                    continue
+                defaults = Survey.get_defaults(survey_name,filter_band)
+                print '%s %s-band: %r' % (survey_name,filter_band,defaults)
+
+    @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new Survey.
 
@@ -131,6 +156,33 @@ class Survey(object):
         parser.add_argument('--extinction', type = float, metavar = 'k',
             help = 'Exponential exctinction coefficient for atmospheric absorption.')
 
+    @staticmethod
+    def get_defaults(survey_name,filter_band):
+        """Get survey camera and observing parameter default values.
+
+        Args:
+            survey_name(str): Use defaults for this survey. Case is significant.
+            filter_band(str): Use defaults for this filter band. Case is significant.
+
+        Returns:
+            dict: Dictionary of parameter (name,value) pairs.
+
+        Raises:
+            RuntimeError: Defaults not yet defined for requested combination.
+        """
+        # Do we have defaults for the requested survey name and filter band?
+        if survey_name not in Survey._defaults:
+            raise RuntimeError('Defaults not defined yet for %s.' % survey_name)
+        survey_defaults = Survey._defaults[survey_name]
+        if filter_band not in survey_defaults:
+            raise RuntimeError('Defaults not defined yet for %s %s-band.' % (survey_name,filter_band))
+        # Set defaults.
+        defaults = Survey._defaults['*']
+        if '*' in survey_defaults:
+            defaults.update(survey_defaults['*'])
+        defaults.update(survey_defaults[filter_band])
+        return defaults
+
     @classmethod
     def from_args(cls,args):
         """Create a new Survey object from a set of arguments.
@@ -145,24 +197,15 @@ class Survey(object):
             :class:`Survey`: A newly constructed Survey object.
 
         Raises:
-            RuntimeError: defaults not available for the requested survey and filter band.
+            RuntimeError: Defaults not yet defined for requested combination.
         """
         args_dict = vars(args)
-        survey = args_dict['survey']
+        survey_name = args_dict['survey']
         filter_band = args_dict['filter_band']
-        # Do we have defaults for the requested survey and filter band?
-        if survey not in Survey._defaults:
-            raise RuntimeError('Defaults not defined yet for %s.' % survey)
-        survey_defaults = Survey._defaults[survey]
-        if filter_band not in survey_defaults:
-            raise RuntimeError('Defaults not defined yet for %s %s-band.' % (survey,filter_band))
-        # Set defaults.
-        ctor_params = Survey._defaults['*']
-        if '*' in survey_defaults:
-            ctor_params.update(survey_defaults['*'])
-        ctor_params.update(survey_defaults[filter_band])
+        # Set defaults for this (survey,band) combination.
+        ctor_params = Survey.get_defaults(survey_name,filter_band)
         # Override defaults using the args provided.
-        for name in ctor_params:
-            if name in args_dict and args_dict[name] is not None:
-                ctor_params[name] = args_dict[name]
+        for parameter_name in ctor_params:
+            if parameter_name in args_dict and args_dict[parameter_name] is not None:
+                ctor_params[parameter_name] = args_dict[parameter_name]
         return Survey(**ctor_params)

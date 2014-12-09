@@ -40,7 +40,7 @@ z_ab                 Apparent AB magnitude in the LSST z-band, including extinct
 y_ab                 Apparent AB magnitude in the LSST y-band, including extinction effects 
 ==================== ===========
 
-The catalog file is read using an `astropy basic reader <https://astropy.readthedocs.org/en/stable/api/astropy.io.ascii.Basic.html>`_ (created with the default options) so can be embellished with comments and blank lines for readability.
+The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (created with default options) so can be embellished with comments and blank lines for readability, as supported by that class.
 
 Create Galaxy Catalog From LSST Database
 ----------------------------------------
