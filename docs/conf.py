@@ -15,6 +15,9 @@
 import sys
 import os
 
+# on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
 from mock import Mock as MagicMock
 
 class Mock(MagicMock):
@@ -31,14 +34,13 @@ class Mock(MagicMock):
         return Mock()
 
 MOCK_MODULES = [
-	'argparse',
-    'numpy', 
-    'astropy.io'
+    'argparse',
+    'numpy',
+    'astropy',
+    'astropy.io',
 ]
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-# on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -55,8 +57,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-   	'sphinx.ext.autodoc',
-   	'sphinxcontrib.napoleon'
+    'sphinx.ext.autodoc',
+    'sphinxcontrib.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -127,7 +129,7 @@ pygments_style = 'sphinx'
 if not on_rtd:
     html_theme = 'sphinxdoc'
 else:
-	# RTD has its own theme.
+    # RTD has its own theme.
     html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme

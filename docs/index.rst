@@ -14,8 +14,8 @@ Documentation for the DESC Weak Lensing Deblending Package
    examples
    developer
 
-Library Modules
----------------
+Modules API Reference
+---------------------
 
 .. toctree::
    :maxdepth: 3

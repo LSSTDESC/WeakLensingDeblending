@@ -1,4 +1,4 @@
-gphist package
+descwl package
 ==============
 
 Submodules
