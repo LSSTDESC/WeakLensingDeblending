@@ -354,6 +354,8 @@ def linkcode_resolve(domain, info):
     else:
         linespec = ""
 
+    fn = relpath(fn, start=dirname(descwl.__file__))
+
     # Could use version,release declared above here but for now we
     # just link to the latest code on the master branch.
     github = 'https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending'
