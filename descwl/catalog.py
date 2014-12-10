@@ -51,7 +51,7 @@ class Reader(object):
 
     @staticmethod
     def add_args(parser):
-        """Add command-line arguments for constructing a new Reader.
+        """Add command-line arguments for constructing a new :class:`Reader`.
 
         The added arguments are our constructor parameters with '_' replaced by '-' in the names.
         Note that constructor parameter defaults are specified here rather than in the constructor,
@@ -74,11 +74,12 @@ class Reader(object):
 
     @classmethod
     def from_args(cls,args):
-        """Create a new Reader object from a set of arguments.
+        """Create a new :class:`Reader` object from a set of arguments.
 
         Args:
             args(object): A set of arguments accessed as a :py:class:`dict` using the
-                built-in :py:func:`vars` function.
+                built-in :py:func:`vars` function. Any extra arguments beyond those defined
+                in :func:`add_args` will be silently ignored.
 
         Returns:
             :class:`Reader`: A newly constructed Reader object.

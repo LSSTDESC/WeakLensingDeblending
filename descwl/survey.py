@@ -30,6 +30,17 @@ class Survey(object):
         self.args = args
         self.__dict__.update(args)
 
+    def get_flux(self,ab_magnitude):
+        """Convert source magnitude to flux.
+
+        Args:
+            ab_magnitude(float): AB magnitude of source.
+
+        Returns:
+            float: Flux in detected electrons.
+        """
+        return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
+
     # Survey constructor parameter names. The order established here is used by print_defaults().
     _parameter_names = (
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
@@ -124,7 +135,7 @@ class Survey(object):
 
     @staticmethod
     def add_args(parser):
-        """Add command-line arguments for constructing a new Survey.
+        """Add command-line arguments for constructing a new :class:`Survey`.
 
         The added arguments are our constructor parameters with '_' replaced by '-' in the names.
         No default values are assigned to the added args since these are handled at run time
@@ -134,8 +145,6 @@ class Survey(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
-        parser.add_argument('--survey', choices = ['LSST','DES','CFHT'], default = 'LSST',
-            help = 'Use default camera and observing parameters appropriate for this survey.')
         parser.add_argument('--image-width', type = int, metavar = 'W',
             help = 'Simulated camera image width in pixels.')
         parser.add_argument('--image-height', type = int, metavar = 'H',
@@ -188,14 +197,15 @@ class Survey(object):
 
     @classmethod
     def from_args(cls,args):
-        """Create a new Survey object from a set of arguments.
+        """Create a new :class:`Survey` object from a set of arguments.
 
         Args:
             args(object): A set of arguments accessed as a :py:class:`dict` using the
                 built-in :py:func:`vars` function. The argument set must include those defined in
-                :func:`add_args`. A filter_band argument
-                specifying the LSST band to use for setting defaults is also required, taking one of
-                the values 'u','g','r','i','z','y'. Not all (survey,filter) combinations are supported.
+                :func:`add_args`. Two additional arguments are also required: survey_name and
+                filter_band. These establish the constructor parameter defaults via :func:get_defaults.
+                Any extra arguments beyond those defined in :func:`add_args`, survey_name, and
+                filter_band will be silently ignored.
 
         Returns:
             :class:`Survey`: A newly constructed Survey object.
@@ -204,7 +214,7 @@ class Survey(object):
             RuntimeError: Defaults not yet defined for requested combination.
         """
         args_dict = vars(args)
-        survey_name = args_dict['survey']
+        survey_name = args_dict['survey_name']
         filter_band = args_dict['filter_band']
         # Set defaults for this (survey,band) combination.
         ctor_params = Survey.get_defaults(survey_name,filter_band)

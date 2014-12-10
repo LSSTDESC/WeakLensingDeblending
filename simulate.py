@@ -11,6 +11,8 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
+    parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT'], default = 'LSST',
+        help = 'Use default camera and observing parameters appropriate for this survey.')
     parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
         help = 'LSST imaging band to simulate')
     parser.add_argument('--survey-defaults', action = 'store_true',
@@ -23,7 +25,7 @@ def main():
     descwl.survey.Survey.add_args(survey_group)
     model_group = parser.add_argument_group('Source model options',
         'Specify options for building source models from catalog parameters.')
-    descwl.model.add_galaxy_args(model_group)
+    descwl.model.GalaxyBuilder.add_args(model_group)
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -31,14 +33,19 @@ def main():
         return 0
 
     try:
+
         catalog = descwl.catalog.Reader.from_args(args)
         if args.verbose:
             print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
+
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
-            print 'Simulating %s %s-band survey with %r' % (args.survey,args.filter_band,survey.args)
+            print 'Simulating %s %s-band survey with %r' % (
+                args.survey_name,args.filter_band,survey.args)
+
+        galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
         for entry in catalog:
-            source_model = descwl.model.Galaxy.from_catalog(entry,args)
+            galaxy_model = galaxy_builder.from_catalog(entry,args.filter_band)
 
     except RuntimeError,e:
         print str(e)
