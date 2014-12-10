@@ -41,6 +41,14 @@ class Survey(object):
         """
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
+    def covers(self,entry):
+        """Tests if an object is visible.
+
+        Returns:
+            bool: True if object is visible, otherwise False.
+        """
+        return True
+
     # Survey constructor parameter names. The order established here is used by print_defaults().
     _parameter_names = (
         'image_width','image_height','pixel_scale','exposure_time','zero_point',

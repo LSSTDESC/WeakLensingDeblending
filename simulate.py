@@ -26,6 +26,9 @@ def main():
     model_group = parser.add_argument_group('Source model options',
         'Specify options for building source models from catalog parameters.')
     descwl.model.GalaxyBuilder.add_args(model_group)
+    render_group = parser.add_argument_group('Model rendering options',
+        'Specify options for rendering models as simulated survey observations.')
+    descwl.render.Options.add_args(render_group)
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -43,8 +46,11 @@ def main():
             print 'Simulating %s %s-band survey with %r' % (
                 args.survey_name,args.filter_band,survey.args)
 
+        render_options = descwl.render.Options.from_args(args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
         for entry in catalog:
+            if not survey.covers(entry):
+                continue
             galaxy_model = galaxy_builder.from_catalog(entry,args.filter_band)
             if galaxy_model is None:
                 continue

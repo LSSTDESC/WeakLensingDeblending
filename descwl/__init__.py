@@ -7,3 +7,4 @@ photometric redshift algorithms, and deblending algorithms.
 import catalog
 import survey
 import model
+import render

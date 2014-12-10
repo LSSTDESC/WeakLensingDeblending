@@ -9,6 +9,7 @@ Submodules
    descwl.catalog
    descwl.survey
    descwl.model
+   descwl.render
 
 Module contents
 ---------------
