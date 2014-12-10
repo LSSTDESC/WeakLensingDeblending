@@ -13,7 +13,7 @@ Required Packages
 The following python packages are required by this package:
 
 * numpy
-* astropy (or pyfits?)
+* astropy
 * `galsim <https://github.com/GalSim-developers/GalSim>`_
 
 Note that, except for galsim, these packages are all available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions.

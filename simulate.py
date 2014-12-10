@@ -46,6 +46,8 @@ def main():
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
         for entry in catalog:
             galaxy_model = galaxy_builder.from_catalog(entry,args.filter_band)
+            if galaxy_model is None:
+                continue
 
     except RuntimeError,e:
         print str(e)

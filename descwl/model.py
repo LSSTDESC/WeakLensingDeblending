@@ -7,10 +7,12 @@ class Galaxy(object):
     """Source model for a galaxy.
 
     Args:
-        total_flux(float): Total source flux in detected electrons.
+        disk_flux(float): Total flux in detected electrons of Sersic n=1 component.
+        bulge_flux(float): Total flux in detected electrons of Sersic n=4 component.
+        agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
-    def __init__(self,total_flux):
-        print 'Galaxy: total_flux =',total_flux,'elec'
+    def __init__(self,disk_flux,bulge_flux,agn_flux):
+        print 'Galaxy: fluxes =',(disk_flux,bulge_flux,agn_flux)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
@@ -36,17 +38,27 @@ class GalaxyBuilder(object):
             entry(astropy.table.Row): A single row from a galaxy :mod:`descwl.catalog`.
 
         Returns:
-            :class:`Galaxy`: A newly created galaxy source model.
+            :class:`Galaxy`: A newly created galaxy source model or None if this object
+                should not be simulated.
 
         Raises:
             RuntimeError: Catalog is missing AB flux value in requested filter band.
         """
+        # Calculate the object's total flux in detected electrons.
         try:
             ab_magnitude = entry[filter_band + '_ab']
         except KeyError:
             raise RuntimeError('Catalog entry is missing %s-band AB flux value.')
         total_flux = self.survey.get_flux(ab_magnitude)
-        return Galaxy(total_flux)
+        # Calculate the flux of each component in detected electrons.
+        total_fluxnorm = entry['fluxnorm_disk'] + entry['fluxnorm_bulge'] + entry['fluxnorm_agn']
+        disk_flux = 0. if self.no_disk else entry['fluxnorm_disk']/total_fluxnorm*total_flux
+        bulge_flux = 0. if self.no_bulge else entry['fluxnorm_bulge']/total_fluxnorm*total_flux
+        agn_flux = 0. if self.no_agn else entry['fluxnorm_agn']/total_fluxnorm*total_flux
+        # Is there any flux to simulate?
+        if disk_flux + bulge_flux + agn_flux == 0:
+            return None
+        return Galaxy(disk_flux,bulge_flux,agn_flux)
 
     @staticmethod
     def add_args(parser):
