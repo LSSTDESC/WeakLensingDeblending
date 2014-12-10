@@ -77,7 +77,8 @@ class Reader(object):
         """Create a new Reader object from a set of arguments.
 
         Args:
-            args(args): A set of arguments convertible to a dictionary via the built-in vars() method.
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function.
 
         Returns:
             :class:`Reader`: A newly constructed Reader object.

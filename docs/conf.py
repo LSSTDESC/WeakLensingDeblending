@@ -59,6 +59,7 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.linkcode',
     'sphinxcontrib.napoleon',
 ]
 
@@ -298,3 +299,62 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# -- Source code links to github ------------------------------------------
+
+# Adapted from the scipy implementation in
+# https://github.com/scipy/scipy/blob/v0.14.0/doc/source/conf.py
+# Also need to add 'sphinx.ext.linkcode' to extensions above.
+
+import inspect
+from os.path import relpath, dirname
+
+import descwl # for the relpath below
+
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except:
+        fn = None
+    if not fn:
+        try:
+            fn = inspect.getsourcefile(sys.modules[obj.__module__])
+        except:
+            fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.findsource(obj)
+    except:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d" % (lineno + 1)
+    else:
+        linespec = ""
+
+    # Could use version,release declared above here but for now we
+    # just link to the latest code on the master branch.
+    github = 'https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending'
+    return '%s/blob/master/descwl/%s%s' % (github,fn,linespec)

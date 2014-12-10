@@ -4,6 +4,9 @@
 class Survey(object):
     """Survey camera and observing parameters.
 
+        No default values are assigned to constructor args since these are handled at run time
+        based on a requested (survey_name,filter_band) combination using :func:`get_defaults`.
+
     Args:
         image_width(int): Simulated camera image width in pixels.
         image_height(int): Simulated camera image height in pixels.
@@ -124,8 +127,8 @@ class Survey(object):
         """Add command-line arguments for constructing a new Survey.
 
         The added arguments are our constructor parameters with '_' replaced by '-' in the names.
-        Note that constructor parameter defaults are specified here rather than in the constructor,
-        so that they are included in command-line help.
+        No default values are assigned to the added args since these are handled at run time
+        based on a requested (survey_name,filter_band) combination using :func:`get_defaults`.
 
         Args:
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
@@ -188,8 +191,9 @@ class Survey(object):
         """Create a new Survey object from a set of arguments.
 
         Args:
-            args(args): A set of arguments convertible to a dictionary via the built-in vars() method.
-                The argument set should include those defined in add_args(). A filter_band argument
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function. The argument set must include those defined in
+                :func:`add_args`. A filter_band argument
                 specifying the LSST band to use for setting defaults is also required, taking one of
                 the values 'u','g','r','i','z','y'. Not all (survey,filter) combinations are supported.
 
