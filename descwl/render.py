@@ -10,9 +10,13 @@ class Options(object):
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
             where the signal N is calculated for the full exposure time and the noise N is
             set by the expected fluctuations in the sky background during a full exposure.
+        truncate_size(float): Truncate sources to a square mask with this full size in arcseconds.
+        no_margin(bool): Do not simulate the tails of objects just outside the field.
     """
-    def __init__(self,min_snr):
-        pass
+    def __init__(self,min_snr,truncate_size,no_margin):
+        self.min_snr = min_snr
+        self.truncate_size = truncate_size
+        self.no_margin = no_margin
 
     @staticmethod
     def add_args(parser):
@@ -28,6 +32,10 @@ class Options(object):
         """
         parser.add_argument('--min-snr', type = float, default = 0.5, metavar = 'SNR',
             help = 'Simulate signals from individual sources down to this S/N threshold.')
+        parser.add_argument('--truncate-size', type = float, default = 20., metavar = 'SIZE',
+            help = 'Truncate sources to a square mask with this full size in arcseconds.')
+        parser.add_argument('--no-margin', action = 'store_true',
+            help = 'Do not simulate the tails of objects just outside the field.')
 
     @classmethod
     def from_args(cls,args):

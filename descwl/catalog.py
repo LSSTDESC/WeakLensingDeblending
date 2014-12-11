@@ -1,6 +1,7 @@
 """Load source parameters from catalog files.
 """
 
+import math
 import inspect
 
 from astropy.io import ascii
@@ -32,21 +33,46 @@ class Reader(object):
         if not catalog_name:
             raise RuntimeError('Missing required catalog_name arg.')
         self.catalog_name = catalog_name
+        self.ra_center = ra_center
+        self.dec_center = dec_center
         self.only_id = only_id
         self.skip_id = skip_id
         self.table = ascii.read(catalog_name, format='basic')
 
-    def __iter__(self):
-        """Iterate over catalog entries.
+    def visible_entries(self,survey,render_options):
+        """Iterate over visible catalog entries.
 
+        Visibility is determined by the combined survey parameters and rendering options.
         If only_id has any entries, then only the specified ids will be considered. Otherwise,
         all ids are considered. Any ids in skip_id will be silently ignored.
+
+        Args:
+            survey(:class:`descwl.survey.Survey`): Survey parameters used to determine which
+                entries are visible.
+            render_options(:class:`descwl.render.Options`): Rendering options used to determine
+                which entries are visible.
         """
+        # Calculate the margin size in arcsecs.
+        margin_size = 0. if render_options.no_margin else 0.5*render_options.truncate_size
+        # Calculate the RA,DEC limits of visible entries in degrees.
+        arcsec2deg = 1./3600.
+        ra_scale = math.cos(math.radians(self.ra_center))
+        ra_size = (0.5*survey.image_width*survey.pixel_scale + margin_size)*arcsec2deg/ra_scale
+        ra_min = self.ra_center - 0.5*ra_size
+        ra_max = self.ra_center + 0.5*ra_size
+        dec_size = (0.5*survey.image_height*survey.pixel_scale + margin_size)*arcsec2deg
+        dec_min = self.dec_center - 0.5*dec_size
+        dec_max = self.dec_center + 0.5*dec_size
+        # Iterate over all catalog entries.
         for row in self.table:
             if self.only_id and row['id'] not in self.only_id:
                 continue
             if self.skip_id and row['id'] in self.skip_id:
                 continue
+            ra,dec = row['ra'],row['dec']
+            if ra < ra_min or ra > ra_max or dec < dec_min or dec > dec_max:
+                continue
+            # If we get this far, the entry is visible.
             yield row
 
     @staticmethod
