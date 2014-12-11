@@ -49,9 +49,9 @@ def main():
         render_options = descwl.render.Options.from_args(args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
-        for entry in catalog.visible_entries(survey,render_options):
+        for entry,dx,dy in catalog.visible_entries(survey,render_options):
 
-            galaxy_model = galaxy_builder.from_catalog(entry,args.filter_band)
+            galaxy_model = galaxy_builder.from_catalog(entry,dx,dy,args.filter_band)
             if galaxy_model is None:
                 continue
 

@@ -1,18 +1,40 @@
 """Model astronomical sources.
 """
 
+import math
 import inspect
 
 class Galaxy(object):
     """Source model for a galaxy.
 
+    Galaxies are modeled using up to three components: a disk (Sersic n=1), a bulge
+    (Sersic n=4), and an AGN (PSF-like). Not all components are required.  All components
+    are assumed to have the same centroid and the extended (disk,bulge) components are
+    assumed to have the same position angle.
+
     Args:
+        dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
+            in arcseconds.
+        dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
+            in arcseconds.
+        beta_radians(float): Position angle beta of Sersic components in radians, measured
+            anti-clockwise from the positive x-axis. Ignored if disk_flux and bulge_flux are
+            both zero.
         disk_flux(float): Total flux in detected electrons of Sersic n=1 component.
+        disk_hlr_arcsecs(float): Half-light radius sqrt(a*b) of circularized 50% isophote
+            for Sersic n=1 component, in arcseconds. Ignored if disk_flux is zero.
+        disk_q(float): Ratio b/a of 50% isophote semi-minor (b) to semi-major (a) axis
+            lengths for Sersic n=1 component. Ignored if disk_flux is zero.
         bulge_flux(float): Total flux in detected electrons of Sersic n=4 component.
+        bulge_hlr_arcsecs(float): Half-light radius sqrt(a*b) of circularized 50% isophote
+            for Sersic n=4 component, in arcseconds. Ignored if bulge_flux is zero.
+        bulge_q(float): Ratio b/a of 50% isophote semi-minor (b) to semi-major (a) axis
+            lengths for Sersic n=4 component. Ignored if bulge_flux is zero.
         agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
-    def __init__(self,disk_flux,bulge_flux,agn_flux):
-        print 'Galaxy: fluxes =',(disk_flux,bulge_flux,agn_flux)
+    def __init__(self,dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
+            bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
+        print 'Galaxy:',(disk_flux,bulge_flux,agn_flux)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
@@ -31,18 +53,28 @@ class GalaxyBuilder(object):
         self.no_bulge = no_bulge
         self.no_agn = no_agn
 
-    def from_catalog(self,entry,filter_band):
+    def from_catalog(self,entry,dx_arcsecs,dy_arcsecs,filter_band):
         """Build a :class:Galaxy object from a catalog entry.
+
+        Fluxes are distributed between the three possible components (disk,bulge,AGN) assuming
+        that each component has the same spectral energy distribution, so that the resulting
+        proportions are independent of the filter band.
 
         Args:
             entry(astropy.table.Row): A single row from a galaxy :mod:`descwl.catalog`.
+            dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
+                in arcseconds.
+            dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
+                in arcseconds.
+            filter_band(str): The LSST filter band to use for calculating flux, which must
+                be one of 'u','g','r','i','z','y'.
 
         Returns:
             :class:`Galaxy`: A newly created galaxy source model or None if this object
                 should not be simulated.
 
         Raises:
-            RuntimeError: Catalog is missing AB flux value in requested filter band.
+            RuntimeError: Catalog entry is missing AB flux value in requested filter band.
         """
         # Calculate the object's total flux in detected electrons.
         try:
@@ -58,7 +90,33 @@ class GalaxyBuilder(object):
         # Is there any flux to simulate?
         if disk_flux + bulge_flux + agn_flux == 0:
             return None
-        return Galaxy(disk_flux,bulge_flux,agn_flux)
+        # Calculate the position of angle of the Sersic components, which are assumed to be the same.
+        if disk_flux > 0:
+            beta_radians = math.radians(entry['pa_disk'])
+            if bulge_flux > 0:
+                assert (entry['pa_disk'] == entry['pa_bulge'],
+                    'Disk, bulge components have different beta.')
+        elif bulge_flux > 0:
+            beta_radians = math.radians(entry['pa_bulge'])
+        else:
+            # This might happen if we only have an AGN component.
+            beta_radians = None
+        # Calculate shapes hlr = sqrt(a*b) and q = b/a of Sersic components.
+        if disk_flux > 0:
+            a_d,b_d = entry['a_d'],entry['b_d']
+            disk_hlr_arcsecs = math.sqrt(a_d*b_d)
+            disk_q = b_d/a_d
+        else:
+            disk_hlr_arcsecs,disk_q = None,None
+        if bulge_flux > 0:
+            a_b,b_b = entry['a_b'],entry['b_b']
+            bulge_hlr_arcsecs = math.sqrt(a_b*b_b)
+            bulge_q = b_b/a_b
+            bulge_beta = math.radians(entry['pa_bulge'])
+        else:
+            bulge_hlr_arcsecs,bulge_q = None,None
+        return Galaxy(dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
+            bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux)
 
     @staticmethod
     def add_args(parser):

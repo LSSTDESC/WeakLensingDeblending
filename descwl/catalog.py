@@ -10,14 +10,8 @@ class Reader(object):
     """Read source parameters from a catalog to simulate an image.
 
     The entire catalog is read when the object is constructed, independently of the
-    only_id and skip_id parameter values. The recommended method for iterating over
-    catalog entries is::
-
-        catalog = descwl.catalog.Reader(...)
-        for entry in catalog:
-            ...
-
-    Note that constructor parameter defaults are specified in the add_args() function.
+    only_id and skip_id parameter values. Note that constructor parameter defaults
+    are specified in the add_args() function.
 
     Args:
         catalog_name(str): Name of catalog file, which must exist and be readable.
@@ -51,11 +45,16 @@ class Reader(object):
                 entries are visible.
             render_options(:class:`descwl.render.Options`): Rendering options used to determine
                 which entries are visible.
+
+        Yields:
+            tuple: Tuple (entry,dx,dy) of the current catalog entry (astropy.table.Row) and the
+                x,y offsets of this entry's centroid from the image center in pixels.
         """
         # Calculate the margin size in arcsecs.
         margin_size = 0. if render_options.no_margin else 0.5*render_options.truncate_size
         # Calculate the RA,DEC limits of visible entries in degrees.
         arcsec2deg = 1./3600.
+        # Calculate scaling between RA and vertical angular separations in the image.
         ra_scale = math.cos(math.radians(self.ra_center))
         ra_size = (0.5*survey.image_width*survey.pixel_scale + margin_size)*arcsec2deg/ra_scale
         ra_min = self.ra_center - 0.5*ra_size
@@ -64,16 +63,18 @@ class Reader(object):
         dec_min = self.dec_center - 0.5*dec_size
         dec_max = self.dec_center + 0.5*dec_size
         # Iterate over all catalog entries.
-        for row in self.table:
-            if self.only_id and row['id'] not in self.only_id:
+        for entry in self.table:
+            if self.only_id and entry['id'] not in self.only_id:
                 continue
-            if self.skip_id and row['id'] in self.skip_id:
+            if self.skip_id and entry['id'] in self.skip_id:
                 continue
-            ra,dec = row['ra'],row['dec']
+            ra,dec = entry['ra'],entry['dec']
             if ra < ra_min or ra > ra_max or dec < dec_min or dec > dec_max:
                 continue
             # If we get this far, the entry is visible.
-            yield row
+            dx_arcsecs = (ra - self.ra_center)/arcsec2deg*ra_scale
+            dy_arcsecs = (dec - self.dec_center)/arcsec2deg
+            yield entry,dx_arcsecs,dy_arcsecs
 
     @staticmethod
     def add_args(parser):
