@@ -34,10 +34,10 @@ class Mock(MagicMock):
         return Mock()
 
 MOCK_MODULES = [
-    'argparse',
     'numpy',
     'astropy',
     'astropy.io',
+    'galsim',
 ]
 if on_rtd:
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -132,7 +132,7 @@ intersphinx_mapping = {
     'python': ('http://docs.python.org/2.7', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'astropy': ('http://docs.astropy.org/en/stable/', None)
+    'astropy': ('http://docs.astropy.org/en/stable/', None),
 }
 
 # -- Options for HTML output ----------------------------------------------
