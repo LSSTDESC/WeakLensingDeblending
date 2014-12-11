@@ -12,6 +12,7 @@ Documentation for the DESC Weak Lensing Deblending Package
    install
    catalog
    examples
+   todo
    developer
 
 Modules API Reference
