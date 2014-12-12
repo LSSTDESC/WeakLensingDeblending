@@ -11,10 +11,6 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
-    parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT'], default = 'LSST',
-        help = 'Use default camera and observing parameters appropriate for this survey.')
-    parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
-        help = 'LSST imaging band to simulate')
     parser.add_argument('--survey-defaults', action = 'store_true',
         help = 'Print survey camera and observing parameter defaults and exit.')
     catalog_group = parser.add_argument_group('Catalog input',
@@ -43,15 +39,14 @@ def main():
 
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
-            print 'Simulating %s %s-band survey with %r' % (
-                args.survey_name,args.filter_band,survey.args)
+            print survey.description()
 
         render_engine = descwl.render.Engine.from_args(args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
         for entry,dx,dy in catalog.visible_entries(survey,render_engine):
 
-            galaxy_model = galaxy_builder.from_catalog(entry,dx,dy,args.filter_band)
+            galaxy_model = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
             if galaxy_model is None:
                 continue
 

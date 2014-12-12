@@ -4,7 +4,6 @@
 import math
 import inspect
 
-
 class Engine(object):
     """Rendering engine to simulate survey observations.
 
@@ -32,7 +31,7 @@ class Engine(object):
                 nstamp postage-stamp images with the same dimensions (width,height) calculated
                 based on the rendering options provided.
         """
-        # Calculate pixel flux threshold in electrons per pixel that determines simulated footprints.
+        # Calculate pixel flux threshold in electrons per pixel that determines our bounding box.
         sky_noise = math.sqrt(survey.get_sky_level())
         pixel_cut = self.min_snr*sky_noise
         return None

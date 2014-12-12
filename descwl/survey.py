@@ -1,6 +1,8 @@
 """Manage the parameters that define a simulated survey's camera design and observing conditions.
 """
 
+import galsim
+
 class Survey(object):
     """Survey camera and observing parameters.
 
@@ -8,6 +10,8 @@ class Survey(object):
         based on a requested (survey_name,filter_band) combination using :func:`get_defaults`.
 
     Args:
+        survey_name(str): Use default camera and observing parameters appropriate for this survey.
+        filter_band(str): LSST imaging band to simulate. Must be one of 'u','g','r','i','z','y'.
         image_width(int): Simulated camera image width in pixels.
         image_height(int): Simulated camera image height in pixels.
         pixel_scale(float): Simulated camera pixel scale in arcseconds per pixel.
@@ -29,6 +33,24 @@ class Survey(object):
             raise RuntimeError('Missing or extra arguments provided to Survey constructor.')
         self.args = args
         self.__dict__.update(args)
+        # Build our atmospheric PSF model.
+        atmospheric_psf_fwhm = self.zenith_psf_fwhm*self.airmass**0.6
+        if self.atmospheric_psf_beta > 0:
+            atmospheric_psf_model = galsim.Moffat(
+                beta = self.atmospheric_psf_beta, fwhm = atmospheric_psf_fwhm)
+        else:
+            atmospheric_psf_model = galsim.Kolmogorov(fwhm = atmospheric_psf_fwhm)
+        # 
+        # Render our PSF centered on a small stamp.
+
+    def description(self):
+        """Describe the survey we simulate.
+
+        Returns:
+            str: Description of the camera design and observing conditions we simulate.
+        """
+        return 'Simulating %s %s-band survey with %r' % (
+            self.survey_name,self.filter_band,self.args)
 
     def get_flux(self,ab_magnitude):
         """Convert source magnitude to flux.
@@ -51,6 +73,7 @@ class Survey(object):
 
     # Survey constructor parameter names. The order established here is used by print_defaults().
     _parameter_names = (
+        'survey_name','filter_band',
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
         'instrumental_psf_fwhm','zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
         'airmass','extinction'
@@ -153,6 +176,10 @@ class Survey(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
+        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT'], default = 'LSST',
+            help = 'Use default camera and observing parameters appropriate for this survey.')
+        parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
+            help = 'LSST imaging band to simulate')
         parser.add_argument('--image-width', type = int, metavar = 'W',
             help = 'Simulated camera image width in pixels.')
         parser.add_argument('--image-height', type = int, metavar = 'H',
@@ -230,4 +257,4 @@ class Survey(object):
         for parameter_name in ctor_params:
             if parameter_name in args_dict and args_dict[parameter_name] is not None:
                 ctor_params[parameter_name] = args_dict[parameter_name]
-        return Survey(**ctor_params)
+        return Survey(survey_name=survey_name,filter_band=filter_band,**ctor_params)

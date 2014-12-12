@@ -3,6 +3,7 @@
 
 import math
 import inspect
+
 import galsim
 
 class Galaxy(object):
