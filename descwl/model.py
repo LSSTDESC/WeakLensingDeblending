@@ -3,6 +3,7 @@
 
 import math
 import inspect
+import galsim
 
 class Galaxy(object):
     """Source model for a galaxy.
@@ -34,7 +35,23 @@ class Galaxy(object):
     """
     def __init__(self,dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
-        print 'Galaxy:',(disk_flux,bulge_flux,agn_flux)
+        self.dx_arcsecs = dx_arcsecs
+        self.dy_arcsecs = dy_arcsecs
+        self.extended_components = [ ]
+        if disk_flux > 0:
+            disk = galsim.Exponential(
+                flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
+                q = disk_q, beta = beta_radians*galsim.radians)
+            self.extended_components.append(disk)
+        if bulge_flux > 0:
+            bulge = galsim.DeVaucouleurs(
+                flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
+                q = bulge_q, beta = beta_radians*galsim.radians)
+            self.extended_components.append(bulge)
+        # GalSim does not currently provide a "delta-function" component to model the AGN
+        # (but see https://github.com/GalSim-developers/GalSim/issues/472), so we need
+        # our own book-keeping here.
+        self.agn_flux = agn_flux
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
@@ -94,8 +111,7 @@ class GalaxyBuilder(object):
         if disk_flux > 0:
             beta_radians = math.radians(entry['pa_disk'])
             if bulge_flux > 0:
-                assert (entry['pa_disk'] == entry['pa_bulge'],
-                    'Disk, bulge components have different beta.')
+                assert entry['pa_disk'] == entry['pa_bulge'],'Sersic components have different beta.'
         elif bulge_flux > 0:
             beta_radians = math.radians(entry['pa_bulge'])
         else:

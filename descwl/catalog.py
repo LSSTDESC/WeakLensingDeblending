@@ -47,8 +47,9 @@ class Reader(object):
                 which entries are visible.
 
         Yields:
-            tuple: Tuple (entry,dx,dy) of the current catalog entry (astropy.table.Row) and the
-                x,y offsets of this entry's centroid from the image center in pixels.
+            tuple: Tuple (entry,dx,dy) of the current catalog entry (:class:`astropy.table.Row`)
+                and the x,y offsets (:class:`float`) of this entry's centroid from the image
+                center in pixels.
         """
         # Calculate the margin size in arcsecs.
         margin_size = 0. if render_options.no_margin else 0.5*render_options.truncate_size
