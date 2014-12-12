@@ -28,7 +28,7 @@ def main():
     descwl.model.GalaxyBuilder.add_args(model_group)
     render_group = parser.add_argument_group('Model rendering options',
         'Specify options for rendering models as simulated survey observations.')
-    descwl.render.Options.add_args(render_group)
+    descwl.render.Engine.add_args(render_group)
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -46,13 +46,17 @@ def main():
             print 'Simulating %s %s-band survey with %r' % (
                 args.survey_name,args.filter_band,survey.args)
 
-        render_options = descwl.render.Options.from_args(args)
+        render_engine = descwl.render.Engine.from_args(args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
-        for entry,dx,dy in catalog.visible_entries(survey,render_options):
+        for entry,dx,dy in catalog.visible_entries(survey,render_engine):
 
             galaxy_model = galaxy_builder.from_catalog(entry,dx,dy,args.filter_band)
             if galaxy_model is None:
+                continue
+
+            galaxy_stamps = render_engine.render_galaxy(galaxy_model,survey)
+            if galaxy_stamps is None:
                 continue
 
     except RuntimeError,e:

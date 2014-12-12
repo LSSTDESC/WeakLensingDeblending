@@ -1,10 +1,12 @@
 """Render source models as simulated survey observations.
 """
 
+import math
 import inspect
 
-class Options(object):
-    """Options to control rendering of sources as simulated survey observations.
+
+class Engine(object):
+    """Rendering engine to simulate survey observations.
 
     Args:
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
@@ -18,9 +20,26 @@ class Options(object):
         self.truncate_size = truncate_size
         self.no_margin = no_margin
 
+    def render_galaxy(self,model,survey):
+        """Render a galaxy model for a simulated survey.
+
+        Args:
+            model(descwl.model.Galaxy): Model of the galaxy to render.
+            survey(deswl.survey.Survey): Survey camera and observing parameters to simulate.
+
+        Returns:
+            :class:`numpy.ndarray`: Array of shape (nstamp,width,height) pixel values that represent
+                nstamp postage-stamp images with the same dimensions (width,height) calculated
+                based on the rendering options provided.
+        """
+        # Calculate pixel flux threshold in electrons per pixel that determines simulated footprints.
+        sky_noise = math.sqrt(survey.get_sky_level())
+        pixel_cut = self.min_snr*sky_noise
+        return None
+
     @staticmethod
     def add_args(parser):
-        """Add command-line arguments for constructing a new :class:`Options`.
+        """Add command-line arguments for constructing a new :class:`Engine`.
 
         The added arguments are our constructor parameters with '_' replaced by '-' in the names.
         Note that constructor parameter defaults are specified here rather than in the constructor,
@@ -39,7 +58,7 @@ class Options(object):
 
     @classmethod
     def from_args(cls,args):
-        """Create a new :class:`Options` object from a set of arguments.
+        """Create a new :class:`Engine` object from a set of arguments.
 
         Args:
             args(object): A set of arguments accessed as a :py:class:`dict` using the
@@ -47,7 +66,7 @@ class Options(object):
                 in :func:`add_args` will be silently ignored.
 
         Returns:
-            :class:`Options`: A newly constructed Options object.
+            :class:`Engine`: A newly constructed Engine object.
         """
         # Look up the named constructor parameters.
         pnames = (inspect.getargspec(cls.__init__)).args[1:]

@@ -37,21 +37,25 @@ class Galaxy(object):
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
-        self.extended_components = [ ]
+        components = [ ]
         if disk_flux > 0:
             disk = galsim.Exponential(
                 flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
                 q = disk_q, beta = beta_radians*galsim.radians)
-            self.extended_components.append(disk)
+            components.append(disk)
         if bulge_flux > 0:
             bulge = galsim.DeVaucouleurs(
                 flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
                 q = bulge_q, beta = beta_radians*galsim.radians)
-            self.extended_components.append(bulge)
+            components.append(bulge)
         # GalSim does not currently provide a "delta-function" component to model the AGN
-        # (but see https://github.com/GalSim-developers/GalSim/issues/472), so we need
-        # our own book-keeping here.
-        self.agn_flux = agn_flux
+        # so we use a very narrow Gaussian. See this GalSim issue for details:
+        # https://github.com/GalSim-developers/GalSim/issues/533
+        if agn_flux > 0:
+            agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
+            components.append(agn)
+        # Combine the components.
+        self.model = galsim.Add(components)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.

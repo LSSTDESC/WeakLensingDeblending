@@ -41,6 +41,14 @@ class Survey(object):
         """
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
+    def get_sky_level(self):
+        """Calculate the mean sky background level.
+
+        Returns:
+            float: Mean sky background flux in detected electrons per pixel.
+        """
+        return self.get_flux(self.sky_brightness)*self.pixel_scale**2
+
     # Survey constructor parameter names. The order established here is used by print_defaults().
     _parameter_names = (
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
