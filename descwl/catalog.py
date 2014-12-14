@@ -56,7 +56,7 @@ class Reader(object):
         # Calculate the RA,DEC limits of visible entries in degrees.
         arcsec2deg = 1./3600.
         # Calculate scaling between RA and vertical angular separations in the image.
-        ra_scale = math.cos(math.radians(self.ra_center))
+        ra_scale = math.cos(math.radians(self.dec_center))
         ra_size = (0.5*survey.image_width*survey.pixel_scale + margin_size)*arcsec2deg/ra_scale
         ra_min = self.ra_center - ra_size
         ra_max = self.ra_center + ra_size
