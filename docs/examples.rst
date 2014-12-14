@@ -22,7 +22,7 @@ Run i-band calculation for LSST with a small field::
 
 	./simulate.py --catalog-name OneDegSq.dat --ra-center 0.5 --dec-center 0.0 --image-width 512 --image-height 512 --survey-name LSST --filter-band i --output demo --verbose
 
-	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o demo --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900
+	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --airmass 1.2 --extinction 0.07 -o baseline --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5
 
 Calculate Blending Statistics for CFHT, DES, LSST
 -------------------------------------------------

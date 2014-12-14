@@ -14,6 +14,7 @@ Documentation for the DESC Weak Lensing Deblending Package
    examples
    todo
    developer
+   history
 
 Modules API Reference
 ---------------------
