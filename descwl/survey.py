@@ -17,7 +17,10 @@ class Survey(object):
         pixel_scale(float): Simulated camera pixel scale in arcseconds per pixel.
         exposure_time(float): Simulated camera total exposure time seconds.
         zero_point(float): Simulated camera zero point in electrons per second at 24th magnitude.
-        instrumental_psf_fwhm(float): FWHM of the simulated camera PSF in arcseconds.
+        mirror_diameter(float): Size of the primary mirror in meters to use for the optical PSF,
+            or zero if no optical PSF should be simulated.
+        obscuration_fraction(float): Linear obscuration fraction of the primary mirror to
+            use for the optical PSF. Ignored if mirror_diameter is zero.
         zenith_psf_fwhm(float): FWHM of the atmospheric PSF at zenith in arcseconds.
         atmospheric_psf_beta(float): Moffat beta parameter of the atmospheric PSF, or use a Kolmogorov
             PSF if beta <= 0.
@@ -40,8 +43,19 @@ class Survey(object):
                 beta = self.atmospheric_psf_beta, fwhm = atmospheric_psf_fwhm)
         else:
             atmospheric_psf_model = galsim.Kolmogorov(fwhm = atmospheric_psf_fwhm)
-        # 
-        # Render our PSF centered on a small stamp.
+        # Combine with our optical PSF model, if any.
+        if self.mirror_diameter > 0:
+            lambda_over_diameter = 3600*math.degrees(
+                1e-10*Survey._central_wavelength[self.filter_band]/self.mirror_diameter)
+            assert obscuration >= 0. and obscuration <= 1., 'Invalid obscuration_fraction'
+            optical_psf_model = galsim.Airy(lam_over_diam = lambda_over_diameter,
+                obscuration = self.obscuration_fraction)
+            self.psf_model = galsim.Add(atmospheric_psf_model,optical_psf_model)
+        else:
+            self.psf_model = atmospheric_psf_model
+        # Create an empty image using (0,0) to index the lower-left corner pixel.
+        self.image_bounds = galsim.BoundsI(0,self.image_width-1,0,self.image_height-1)
+        self.image = galsim.Image(bounds = self.image_bounds,scale=self.pixel_scale)
 
     def description(self):
         """Describe the survey we simulate.
@@ -71,18 +85,42 @@ class Survey(object):
         """
         return self.get_flux(self.sky_brightness)*self.pixel_scale**2
 
+    def get_image_coordinates(self,dx_arcsecs,dy_arcsecs):
+        """Convert a physical offset from the image center into image coordinates.
+
+        Args:
+            dx_arcsecs(float): Offset from the image center in arcseconds.
+            dy_arcsecs(float): Offset from the image center in arcseconds.
+
+        Returns:
+            tuple: Corresponding floating-point image coordinates (x_pixels,y_pixels)
+                whose :func:`math.floor` value gives pixel indices and whose...
+        """
+        x_pixels = 0.5*self.image_width + dx_arcsecs/self.pixel_scale
+        y_pixels = 0.5*self.image_height + dy_arcsecs/self.pixel_scale
+        return x_pixels,y_pixels
+
     # Survey constructor parameter names. The order established here is used by print_defaults().
     _parameter_names = (
         'survey_name','filter_band',
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
-        'instrumental_psf_fwhm','zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
+        'mirror_diameter','obscuration_fraction',
+        'zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
         'airmass','extinction'
         )
+
+    # Central wavelengths in Angstroms for each LSST filter band, calculated from the
+    # baseline total filter throughputs tabulated at
+    # http://dev.lsstcorp.org/cgit/LSST/sims/throughputs.git/snapshot/throughputs-1.2.tar.gz
+    _central_wavelength = {
+        'u':3592.13, 'g':4789.98, 'r':6199.52, 'i':7528.51, 'z':8689.83, 'y':9674.05
+        }
 
     # Default constructor arg values for different (survey,filter_band) combinations.
     _defaults = {
         '*': {
-            'instrumental_psf_fwhm': 0.4,
+            'mirror_diameter': 0.0,
+            'obscuration_fraction': 0.0,
             'atmospheric_psf_beta': 0.0,
             'airmass': 1.2,
         },
@@ -190,8 +228,10 @@ class Survey(object):
             help = 'Simulated camera total exposure time seconds.')
         parser.add_argument('--zero-point', type = float, metavar = 's0',
             help = 'Simulated camera zero point in electrons per second at 24th magnitude.')
-        parser.add_argument('--instrumental-psf-fwhm', type = float, metavar = 'FWHM',
-            help = 'FWHM of the simulated camera PSF in arcseconds.')
+        parser.add_argument('--mirror-diameter', type = float, metavar = 'D',
+            help = 'Size of the primary mirror in meters for the optical PSF (or zero for no PSF).')
+        parser.add_argument('--obscuration-fraction', type = float, metavar = 'F',
+            help = 'Linear obscuration fraction of the primary mirror for the optical PSF.')
         parser.add_argument('--zenith-psf-fwhm', type = float, metavar = 'FWHM',
             help = 'FWHM of the atmospheric PSF at zenith in arcseconds.')
         parser.add_argument('--atmospheric-psf-beta', type = float, metavar = 'BETA',
