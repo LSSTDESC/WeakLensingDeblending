@@ -4,6 +4,8 @@
 import math
 import inspect
 
+import numpy as np
+
 import galsim
 
 class Engine(object):
@@ -77,7 +79,7 @@ class Engine(object):
             ],gsparams=self.galsim_params)
 
         # Render the model in its own postage stamp.
-        stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale)
+        stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale, dtype = np.float64)
         model.drawImage(image = stamp, use_true_center = True)        
         self.survey.image[survey_overlap] += stamp[survey_overlap]
 
