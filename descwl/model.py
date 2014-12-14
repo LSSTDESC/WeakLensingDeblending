@@ -71,14 +71,16 @@ class GalaxyBuilder(object):
         no_disk(bool): Ignore any Sersic n=1 component in the model if it is present in the catalog.
         no_bulge(bool): Ignore any Sersic n=4 component in the model if it is present in the catalog.
         no_agn(bool): Ignore any PSF-like component in the model if it is present in the catalog.
+        verbose_build(bool): Provide verbose output from model building process.
     """
-    def __init__(self,survey,no_disk,no_bulge,no_agn):
+    def __init__(self,survey,no_disk,no_bulge,no_agn,verbose_build):
         if no_disk and no_bulge and no_agn:
             raise RuntimeError('Must build at least one galaxy component.')
         self.survey = survey
         self.no_disk = no_disk
         self.no_bulge = no_bulge
         self.no_agn = no_agn
+        self.verbose_build = verbose_build
 
     def from_catalog(self,entry,dx_arcsecs,dy_arcsecs,filter_band):
         """Build a :class:Galaxy object from a catalog entry.
@@ -141,7 +143,25 @@ class GalaxyBuilder(object):
             bulge_beta = math.radians(entry['pa_bulge'])
         else:
             bulge_hlr_arcsecs,bulge_q = None,None
-        return Galaxy(dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
+        # Look up extra catalog metadata.
+        identifier = entry['id']
+        redshift = entry['redshift']
+        if self.verbose_build:
+            print 'Building galaxy model for id=%d with z=%.3f' % (identifier,redshift)
+            print 'flux = %.3g detected electrons (%s-band AB = %.1f)' % (
+                total_flux,filter_band,ab_magnitude)
+            print 'centroid at (%.6f,%.6f) arcsec relative to image center, beta = %.6f rad' % (
+                dx_arcsecs,dy_arcsecs,beta_radians)
+            if disk_flux > 0:
+                print ' disk: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
+                    disk_flux/total_flux,disk_hlr_arcsecs,disk_q)
+            if bulge_flux > 0:
+                print 'bulge: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
+                    bulge_flux/total_flux,bulge_hlr_arcsecs,bulge_q)
+            if agn_flux > 0:
+                print '  AGN: frac = %.6f' % (agn_flux/total_flux)
+        return Galaxy(identifier,redshift,
+            dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux)
 
     @staticmethod
@@ -159,7 +179,9 @@ class GalaxyBuilder(object):
         parser.add_argument('--no-bulge', action = 'store_true',
             help = 'Ignore any Sersic n=4 component in the model if it is present in the catalog.')
         parser.add_argument('--no-agn', action = 'store_true',
-            help = 'Ignore any PSF-like component in the model if it is present in the catalog.')        
+            help = 'Ignore any PSF-like component in the model if it is present in the catalog.')
+        parser.add_argument('--verbose-build', action = 'store_true',
+            help = 'Provide verbose output from model building process.')
 
     @classmethod
     def from_args(cls,survey,args):
