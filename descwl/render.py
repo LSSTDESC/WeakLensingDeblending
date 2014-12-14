@@ -26,6 +26,8 @@ class Engine(object):
         # bounding box we simulate for each source.
         sky_noise = math.sqrt(survey.get_sky_level())
         self.pixel_cut = self.min_snr*sky_noise
+        # Initialize our GalSim parameters.
+        self.galsim_params = galsim.GSParams(maximum_fft_size=32768)
 
     def render_galaxy(self,galaxy):
         """Render a galaxy model for a simulated survey.
@@ -53,7 +55,7 @@ class Engine(object):
         bounding_box = galsim.BoundsI()
         stamp = galsim.Image(2*half_size,2*half_size)
 
-        model = galsim.Convolve([galaxy.model,self.survey.psf_model])
+        model = galsim.Convolve([galaxy.model,self.survey.psf_model],gsparams=self.galsim_params)
         model.drawImage(image = self.survey.image,add_to_image = True,use_true_center = True)
 
     @staticmethod
@@ -70,7 +72,7 @@ class Engine(object):
         """
         parser.add_argument('--min-snr', type = float, default = 0.5, metavar = 'SNR',
             help = 'Simulate signals from individual sources down to this S/N threshold.')
-        parser.add_argument('--truncate-size', type = float, default = 20., metavar = 'SIZE',
+        parser.add_argument('--truncate-size', type = float, default = 30., metavar = 'SIZE',
             help = 'Truncate sources to a square mask with this full size in arcseconds.')
         parser.add_argument('--no-margin', action = 'store_true',
             help = 'Do not simulate the tails of objects just outside the field.')

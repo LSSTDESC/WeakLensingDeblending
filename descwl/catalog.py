@@ -58,11 +58,11 @@ class Reader(object):
         # Calculate scaling between RA and vertical angular separations in the image.
         ra_scale = math.cos(math.radians(self.ra_center))
         ra_size = (0.5*survey.image_width*survey.pixel_scale + margin_size)*arcsec2deg/ra_scale
-        ra_min = self.ra_center - 0.5*ra_size
-        ra_max = self.ra_center + 0.5*ra_size
+        ra_min = self.ra_center - ra_size
+        ra_max = self.ra_center + ra_size
         dec_size = (0.5*survey.image_height*survey.pixel_scale + margin_size)*arcsec2deg
-        dec_min = self.dec_center - 0.5*dec_size
-        dec_max = self.dec_center + 0.5*dec_size
+        dec_min = self.dec_center - dec_size
+        dec_max = self.dec_center + dec_size
         # Iterate over all catalog entries.
         for entry in self.table:
             if self.only_id and entry['id'] not in self.only_id:
