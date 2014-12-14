@@ -69,12 +69,15 @@ class Survey(object):
     def get_flux(self,ab_magnitude):
         """Convert source magnitude to flux.
 
+        The calculation includes the effects of atmospheric extinction.
+
         Args:
             ab_magnitude(float): AB magnitude of source.
 
         Returns:
             float: Flux in detected electrons.
         """
+        ab_magnitude += self.extinction*(self.airmass - 1.)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
     def get_sky_level(self):
