@@ -4,37 +4,57 @@
 import math
 import inspect
 
+import galsim
+
 class Engine(object):
     """Rendering engine to simulate survey observations.
 
     Args:
+        survey(descwl.survey.Survey): Survey that rendered images will simulate.
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
             where the signal N is calculated for the full exposure time and the noise N is
             set by the expected fluctuations in the sky background during a full exposure.
         truncate_size(float): Truncate sources to a square mask with this full size in arcseconds.
         no_margin(bool): Do not simulate the tails of objects just outside the field.
     """
-    def __init__(self,min_snr,truncate_size,no_margin):
+    def __init__(self,survey,min_snr,truncate_size,no_margin):
+        self.survey = survey
         self.min_snr = min_snr
         self.truncate_size = truncate_size
         self.no_margin = no_margin
+        # Calculate pixel flux threshold in electrons per pixel that determines how big a
+        # bounding box we simulate for each source.
+        sky_noise = math.sqrt(survey.get_sky_level())
+        self.pixel_cut = self.min_snr*sky_noise
 
-    def render_galaxy(self,model,survey):
+    def render_galaxy(self,galaxy):
         """Render a galaxy model for a simulated survey.
 
         Args:
-            model(descwl.model.Galaxy): Model of the galaxy to render.
-            survey(deswl.survey.Survey): Survey camera and observing parameters to simulate.
+            galaxy(descwl.model.Galaxy): Model of the galaxy to render.
 
         Returns:
             :class:`numpy.ndarray`: Array of shape (nstamp,width,height) pixel values that represent
                 nstamp postage-stamp images with the same dimensions (width,height) calculated
                 based on the rendering options provided.
         """
-        # Calculate pixel flux threshold in electrons per pixel that determines our bounding box.
-        sky_noise = math.sqrt(survey.get_sky_level())
-        pixel_cut = self.min_snr*sky_noise
-        return None
+        # Calculate the offset of the source center from the bottom-left corner of the
+        # simulated image in floating-point pixel units.
+        centroid = galaxy.model.centroid()
+        x_center_pixels,y_center_pixels = self.survey.get_image_coordinates(centroid.x,centroid.y)
+
+        # Calculate the bounding box extents to use in floating-point pixel units.
+        # Use the maximum-sized stamp for now.
+        half_width_pixels = 0.5*self.truncate_size
+        half_height_pixels = 0.5*self.truncate_size
+
+        # Render the galaxy using the maximum sized stamp for now.
+        half_size = math.ceil(0.5*self.truncate_size/self.survey.pixel_scale)
+        bounding_box = galsim.BoundsI()
+        stamp = galsim.Image(2*half_size,2*half_size)
+
+        model = galsim.Convolve([galaxy.model,self.survey.psf_model])
+        model.drawImage(image = self.survey.image,add_to_image = True,use_true_center = True)
 
     @staticmethod
     def add_args(parser):
@@ -56,10 +76,11 @@ class Engine(object):
             help = 'Do not simulate the tails of objects just outside the field.')
 
     @classmethod
-    def from_args(cls,args):
+    def from_args(cls,survey,args):
         """Create a new :class:`Engine` object from a set of arguments.
 
         Args:
+            survey(descwl.survey.Survey): Survey that rendered images will simulate.
             args(object): A set of arguments accessed as a :py:class:`dict` using the
                 built-in :py:func:`vars` function. Any extra arguments beyond those defined
                 in :func:`add_args` will be silently ignored.
@@ -73,4 +94,4 @@ class Engine(object):
         args_dict = vars(args)
         # Filter the dictionary to only include constructor parameters.
         filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
-        return cls(**filtered_dict)
+        return cls(survey,**filtered_dict)

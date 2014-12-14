@@ -55,8 +55,8 @@ class Galaxy(object):
         if agn_flux > 0:
             agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
             components.append(agn)
-        # Combine the components.
-        self.model = galsim.Add(components)
+        # Combine the components and position relative to the image center.
+        self.model = galsim.Add(components).shift(dx=dx_arcsecs,dy=dy_arcsecs)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
@@ -161,6 +161,7 @@ class GalaxyBuilder(object):
         """Create a new :class:`GalaxyBuilder` object from a set of arguments.
 
         Args:
+            survey(descwl.survey.Survey): Survey to build source models for.
             args(object): A set of arguments accessed as a :py:class:`dict` using the
                 built-in :py:func:`vars` function. Any extra arguments beyond those defined
                 in :func:`add_args` will be silently ignored.

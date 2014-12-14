@@ -4,6 +4,8 @@
 
 import argparse
 
+import galsim
+
 import descwl
 
 def main():
@@ -25,6 +27,10 @@ def main():
     render_group = parser.add_argument_group('Model rendering options',
         'Specify options for rendering models as simulated survey observations.')
     descwl.render.Engine.add_args(render_group)
+    output_group = parser.add_argument_group('Output control',
+        'Specify options to control simulation output.')
+    output_group.add_argument('--output', default = None, metavar = 'FILE',
+        help = 'Base name of output files to write.')
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -41,18 +47,21 @@ def main():
         if args.verbose:
             print survey.description()
 
-        render_engine = descwl.render.Engine.from_args(args)
+        render_engine = descwl.render.Engine.from_args(survey,args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
         for entry,dx,dy in catalog.visible_entries(survey,render_engine):
 
-            galaxy_model = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-            if galaxy_model is None:
+            galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
+            if galaxy is None:
                 continue
 
-            galaxy_stamps = render_engine.render_galaxy(galaxy_model,survey)
+            galaxy_stamps = render_engine.render_galaxy(galaxy)
             if galaxy_stamps is None:
                 continue
+
+        if args.output is not None:
+            galsim.fits.write(survey.image,args.output+'_image.fits')
 
     except RuntimeError,e:
         print str(e)
