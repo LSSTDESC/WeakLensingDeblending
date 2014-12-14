@@ -15,6 +15,8 @@ class Galaxy(object):
     assumed to have the same position angle.
 
     Args:
+        identifier(int): Unique integer identifier for this galaxy in the source catalog.
+        redshift(double): Catalog redshift of this galaxy.
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
@@ -34,8 +36,11 @@ class Galaxy(object):
             lengths for Sersic n=4 component. Ignored if bulge_flux is zero.
         agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
-    def __init__(self,dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
-            bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
+    def __init__(self,identifier,redshift,
+        dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
+        bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
+        self.identifier = identifier
+        self.redshift = redshift
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
         components = [ ]
