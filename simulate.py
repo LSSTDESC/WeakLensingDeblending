@@ -54,6 +54,7 @@ def main():
         render_engine = descwl.render.Engine.from_args(survey,args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
+        hdu_list = None
         if args.output_name:
             name,extension = os.path.splitext(args.output_name)
             if not extension:
@@ -78,8 +79,11 @@ def main():
             galaxy_stamps = render_engine.render_galaxy(galaxy)
             if galaxy_stamps is None:
                 continue
+            if hdu_list:
+                data_cube = astropy.io.fits.ImageHDU(data = galaxy_stamps)
+                hdu_list.append(data_cube)
 
-        if args.output_name is not None:
+        if hdu_list:
             hdu_list.writeto(args.output_name,clobber = not args.output_no_clobber)
 
     except RuntimeError,e:

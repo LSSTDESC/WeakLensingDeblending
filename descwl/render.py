@@ -95,6 +95,8 @@ class Engine(object):
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
+        return stamp.array[np.newaxis,:,:]
+
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Engine`.
