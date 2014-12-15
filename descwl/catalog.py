@@ -1,10 +1,14 @@
 """Load source parameters from catalog files.
+
+There is a separate :doc:`catalog page </catalog>` with details on the expected catalog
+contents and formatting.
 """
 
 import math
 import inspect
+import os.path
 
-from astropy.io import ascii
+import astropy.table
 
 class Reader(object):
     """Read source parameters from a catalog to simulate an image.
@@ -13,8 +17,13 @@ class Reader(object):
     only_id and skip_id parameter values. Note that constructor parameter defaults
     are specified in the add_args() function.
 
+    Details on the catalog contents and format are documented on the
+    :doc:`catalog page </catalog>`.
+
     Args:
-        catalog_name(str): Name of catalog file, which must exist and be readable.
+        catalog_name(str): Name of catalog file, which must exist and be readable. The
+            catalog will be read as a FITS table if catalog_name ends with '.fits'.
+            Otherwise, it will be read as an ASCII file.
         ra_center(float): Right ascension of image center in degrees.
         dec_center(float): Declination of image center in degrees.
         only_id(array): Only read ids in this array of integer ids.
@@ -31,7 +40,11 @@ class Reader(object):
         self.dec_center = dec_center
         self.only_id = only_id
         self.skip_id = skip_id
-        self.table = ascii.read(catalog_name, format='basic')
+        name,ext = os.path.splitext(catalog_name)
+        if ext == '.fits':
+            self.table = astropy.table.Table.read(catalog_name, format = 'fits')
+        else:
+            self.table = astropy.table.Table.read(catalog_name, format='ascii.basic')
 
     def visible_entries(self,survey,render_options):
         """Iterate over visible catalog entries.

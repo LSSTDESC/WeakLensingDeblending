@@ -42,6 +42,17 @@ y_ab                 Apparent AB magnitude in the LSST y-band, including extinct
 
 The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (created with default options) so can be embellished with comments and blank lines for readability, as supported by that class.
 
+Convert ASCII Catalog to FITS Table
+-----------------------------------
+
+The catalog file can also be read as a FITS file containing a single table. A catalog in text format can be converted to a FITS file using, for example::
+
+	import astropy.table
+	catalog = astropy.table.Table.read('OneDegSq.dat',format='ascii.basic')
+	catalog.write('OneDegSq.fits')
+
+The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the `simulate.py` program to read, but may be less convenient for other programs to read.
+
 Create Galaxy Catalog From LSST Database
 ----------------------------------------
 

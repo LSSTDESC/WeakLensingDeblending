@@ -36,7 +36,7 @@ class Mock(MagicMock):
 MOCK_MODULES = [
     'numpy',
     'astropy',
-    'astropy.io',
+    'astropy.table',
     'galsim',
 ]
 if on_rtd:
