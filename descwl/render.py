@@ -73,6 +73,7 @@ class Engine(object):
         dy_stamp_arcsec = 0.5*(y_min + y_max+1 - self.survey.image_height)*self.survey.pixel_scale
 
         # Shift the model to the bounding box center and convolve with the survey PSF.
+        # We do not convolve by the pixel response since drawImage takes care of this.
         model = galsim.Convolve([
             galaxy.model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
             self.survey.psf_model
