@@ -18,15 +18,15 @@ You can update your local copy of the package at any time using::
 	cd WeakLensingDeblending
 	git update
 
-Run Programs
-------------
+Getting Started
+---------------
 
 Programs can be run directly from the top-level directory without needing to set `PYTHONPATH` as long as you have the required packages already installed, e.g.::
 
 	cd WeakLensingDeblending
 	./simulate.py --help
 
-More examples of running the programs contained in this package are described :doc:`here </examples>`.
+For an introduction to the available programs, see :doc:`here </programs>` and for examples of running these programs see :doc:`here </examples>`.
 
 Required Packages
 -----------------

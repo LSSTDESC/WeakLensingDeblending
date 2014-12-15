@@ -1,0 +1,26 @@
+Programs
+========
+
+All available programs are contained in the top-level directory where this package is installed. Programs are written in python and use the '.py' file extension.
+
+All programs are configured by passing command-line options. Pass the `--help` option to view documentation for these options, e.g.::
+
+	./simulate.py --help
+
+This document provides an introduction to each of the available programs. Examples of running the programs are :doc:`documented elsewhere </examples>`.
+
+.. _prog-simulate:
+
+simulate
+--------
+
+The `simulate` program simulates a weak-lensing survey by performing fast image rendering with `galsim <https://github.com/GalSim-developers/GalSim>`_.
+
+The program reads a :doc:`catalog of astronomical sources </catalog>` and produces a set of :doc:`output data products </outputs>`.
+
+.. _prog-lsst2wl:
+
+lsst2wl
+-------
+
+Program to query the official LSST simulation galaxy catalog and write a text :doc:`catalog file </catalog>` in the format expected by the `simulate` program.  You do not normally need to run this program since suitable catalog files are already provided.

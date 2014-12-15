@@ -12,6 +12,8 @@ Documentation for the DESC Weak Lensing Deblending Package
    install
    catalog
    examples
+   programs
+   outputs
    todo
    developer
    history
