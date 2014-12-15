@@ -3,6 +3,8 @@
 """
 
 import argparse
+import os
+import os.path
 
 import astropy.io.fits
 
@@ -29,8 +31,10 @@ def main():
     descwl.render.Engine.add_args(render_group)
     output_group = parser.add_argument_group('Output control',
         'Specify options to control simulation output.')
-    output_group.add_argument('--output', default = None, metavar = 'FILE',
-        help = 'Base name of output files to write.')
+    output_group.add_argument('--output-name', default = None, metavar = 'FILE',
+        help = 'Base name of FITS output files to write. The ".fits" extension can be omitted.')
+    output_group.add_argument('--output-no-clobber', action = 'store_true',
+        help = 'Do not overwrite any existing output file with the same name.')
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -50,7 +54,18 @@ def main():
         render_engine = descwl.render.Engine.from_args(survey,args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
-        if args.output:
+        if args.output_name:
+            name,extension = os.path.splitext(args.output_name)
+            if not extension:
+                args.output_name += '.fits'
+            elif extension.lower() != '.fits':
+                print 'Got unexpected output-name extension "%s".' % extension
+                return -1
+            if not os.access(args.output_name,os.W_OK):
+                print 'Requested output file is not writeable: %s' % args.output_name
+                return -1
+            if args.verbose:
+                print 'Simulation output will be saved to %s' % args.output_name
             primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
             hdu_list = astropy.io.fits.HDUList([primary_hdu])
 
@@ -64,11 +79,8 @@ def main():
             if galaxy_stamps is None:
                 continue
 
-        if args.output is not None:
-            output_name = args.output+'.fits'
-            if args.verbose:
-                print 'Writing simulation results to %s' % output_name 
-            hdu_list.writeto(output_name)
+        if args.output_name is not None:
+            hdu_list.writeto(args.output_name,clobber = not args.output_no_clobber)
 
     except RuntimeError,e:
         print str(e)
