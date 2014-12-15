@@ -65,7 +65,7 @@ class Reader(object):
                 center in pixels.
         """
         # Calculate the margin size in arcsecs.
-        margin_size = 0. if render_options.no_margin else 0.5*render_options.truncate_size
+        margin_size = 0. if render_options.no_margin else render_options.truncate_radius
         # Calculate the RA,DEC limits of visible entries in degrees.
         arcsec2deg = 1./3600.
         # Calculate scaling between RA and vertical angular separations in the image.

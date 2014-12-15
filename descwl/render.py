@@ -16,14 +16,14 @@ class Engine(object):
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
             where the signal N is calculated for the full exposure time and the noise N is
             set by the expected fluctuations in the sky background during a full exposure.
-        truncate_size(float): Truncate sources to a square mask with this full size in arcseconds.
+        truncate_radius(float): All extended sources are truncated at this radius in arcseconds.
         no_margin(bool): Do not simulate the tails of objects just outside the field.
         verbose_render(bool): Provide verbose output on rendering process.
     """
-    def __init__(self,survey,min_snr,truncate_size,no_margin,verbose_render):
+    def __init__(self,survey,min_snr,truncate_radius,no_margin,verbose_render):
         self.survey = survey
         self.min_snr = min_snr
-        self.truncate_size = truncate_size
+        self.truncate_radius = truncate_radius
         self.no_margin = no_margin
         self.verbose_render = verbose_render
         # Calculate pixel flux threshold in electrons per pixel that determines how big a
@@ -52,8 +52,8 @@ class Engine(object):
 
         # Calculate the bounding box extents to use in floating-point pixel units.
         # Use the maximum-sized stamp for now.
-        half_width_pixels = 0.5*self.truncate_size/self.survey.pixel_scale
-        half_height_pixels = 0.5*self.truncate_size/self.survey.pixel_scale
+        half_width_pixels = self.truncate_radius/self.survey.pixel_scale
+        half_height_pixels = self.truncate_radius/self.survey.pixel_scale
 
         # Calculate the bounding box to use for simulating this galaxy.
         x_min = int(math.floor(x_center_pixels - half_width_pixels))
@@ -109,8 +109,8 @@ class Engine(object):
         """
         parser.add_argument('--min-snr', type = float, default = 0.5, metavar = 'SNR',
             help = 'Simulate signals from individual sources down to this S/N threshold.')
-        parser.add_argument('--truncate-size', type = float, default = 30., metavar = 'SIZE',
-            help = 'Truncate sources to a square mask with this full size in arcseconds.')
+        parser.add_argument('--truncate-radius', type = float, default = 30., metavar = 'SIZE',
+            help = 'All extended sources are truncated at this radius in arcseconds.')
         parser.add_argument('--no-margin', action = 'store_true',
             help = 'Do not simulate the tails of objects just outside the field.')
         parser.add_argument('--verbose-render', action = 'store_true',
