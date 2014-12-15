@@ -4,7 +4,7 @@
 
 import argparse
 
-import galsim
+import astropy.io.fits
 
 import descwl
 
@@ -50,6 +50,10 @@ def main():
         render_engine = descwl.render.Engine.from_args(survey,args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
 
+        if args.output:
+            primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
+            hdu_list = astropy.io.fits.HDUList([primary_hdu])
+
         for entry,dx,dy in catalog.visible_entries(survey,render_engine):
 
             galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
@@ -61,7 +65,10 @@ def main():
                 continue
 
         if args.output is not None:
-            galsim.fits.write(survey.image,args.output+'_image.fits')
+            output_name = args.output+'.fits'
+            if args.verbose:
+                print 'Writing simulation results to %s' % output_name 
+            hdu_list.writeto(output_name)
 
     except RuntimeError,e:
         print str(e)
