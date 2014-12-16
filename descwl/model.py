@@ -71,16 +71,16 @@ class GalaxyBuilder(object):
         no_disk(bool): Ignore any Sersic n=1 component in the model if it is present in the catalog.
         no_bulge(bool): Ignore any Sersic n=4 component in the model if it is present in the catalog.
         no_agn(bool): Ignore any PSF-like component in the model if it is present in the catalog.
-        verbose_build(bool): Provide verbose output from model building process.
+        verbose_model(bool): Provide verbose output from model building process.
     """
-    def __init__(self,survey,no_disk,no_bulge,no_agn,verbose_build):
+    def __init__(self,survey,no_disk,no_bulge,no_agn,verbose_model):
         if no_disk and no_bulge and no_agn:
             raise RuntimeError('Must build at least one galaxy component.')
         self.survey = survey
         self.no_disk = no_disk
         self.no_bulge = no_bulge
         self.no_agn = no_agn
-        self.verbose_build = verbose_build
+        self.verbose_model = verbose_model
 
     def from_catalog(self,entry,dx_arcsecs,dy_arcsecs,filter_band):
         """Build a :class:Galaxy object from a catalog entry.
@@ -146,7 +146,7 @@ class GalaxyBuilder(object):
         # Look up extra catalog metadata.
         identifier = entry['id']
         redshift = entry['redshift']
-        if self.verbose_build:
+        if self.verbose_model:
             print 'Building galaxy model for id=%d with z=%.3f' % (identifier,redshift)
             print 'flux = %.3g detected electrons (%s-band AB = %.1f)' % (
                 total_flux,filter_band,ab_magnitude)
@@ -180,7 +180,7 @@ class GalaxyBuilder(object):
             help = 'Ignore any Sersic n=4 component in the model if it is present in the catalog.')
         parser.add_argument('--no-agn', action = 'store_true',
             help = 'Ignore any PSF-like component in the model if it is present in the catalog.')
-        parser.add_argument('--verbose-build', action = 'store_true',
+        parser.add_argument('--verbose-model', action = 'store_true',
             help = 'Provide verbose output from model building process.')
 
     @classmethod
