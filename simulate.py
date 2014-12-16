@@ -51,8 +51,10 @@ def main():
         if args.verbose:
             print survey.description()
 
-        render_engine = descwl.render.Engine.from_args(survey,args)
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
+        render_engine = descwl.render.Engine.from_args(survey,args)
+        if args.verbose:
+            print render_engine.description()
 
         hdu_list = None
         if args.output_name:

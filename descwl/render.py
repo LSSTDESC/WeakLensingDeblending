@@ -32,6 +32,23 @@ class Engine(object):
         self.pixel_cut = self.min_snr*sky_noise
         # Initialize our GalSim parameters.
         self.galsim_params = galsim.GSParams(maximum_fft_size=32768)
+        # Evaluate the PSF dilution factor as the maximum fraction of a source's total flux
+        # that can end up in a single pixel after convolution with the PSF.
+        psf_stamp = galsim.ImageD(1,1,scale=self.survey.pixel_scale)
+        self.survey.psf_model.drawImage(image = psf_stamp)
+        self.psf_dilution = psf_stamp.array[0]
+
+    def description(self):
+        """Describe our rendering configuration.
+
+        Returns:
+            str: Description of the rendering configuration that we be used to simulate
+                the survey.
+        """
+        return '\n'.join([
+            ('Will render all pixels with at least %.1f detected electrons.' % self.pixel_cut),
+            ('PSF dilution factor is %.6f.' % self.psf_dilution)
+            ])
 
     def render_galaxy(self,galaxy):
         """Render a galaxy model for a simulated survey.
@@ -45,6 +62,10 @@ class Engine(object):
                 based on the rendering options provided. Returns None if this galaxy has no
                 pixels above threshold that are visible in the simulated survey image.
         """
+        # Skip sources that are too faint to possibly be above our cut after PSF convolution.
+        if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
+            return None
+
         # Calculate the offset of the source center from the bottom-left corner of the
         # simulated image in floating-point pixel units.
         centroid = galaxy.model.centroid()
