@@ -37,6 +37,8 @@ class Engine(object):
         psf_stamp = galsim.ImageD(1,1,scale=self.survey.pixel_scale)
         self.survey.psf_model.drawImage(image = psf_stamp)
         self.psf_dilution = psf_stamp.array[0]
+        # We will render each source into a square stamp with width = height = 2*padding + 1.
+        self.padding = int(math.ceil(self.truncate_radius/self.survey.pixel_scale - 0.5))
 
     def description(self):
         """Describe our rendering configuration.
@@ -71,22 +73,22 @@ class Engine(object):
         centroid = galaxy.model.centroid()
         x_center_pixels,y_center_pixels = self.survey.get_image_coordinates(centroid.x,centroid.y)
 
-        # Calculate the bounding box extents to use in floating-point pixel units.
-        # Use the maximum-sized stamp for now.
-        half_width_pixels = self.truncate_radius/self.survey.pixel_scale
-        half_height_pixels = self.truncate_radius/self.survey.pixel_scale
+        # Calculate the corresponding central pixel indices in the full image, where (0,0) is the
+        # bottom-left corner.
+        x_center_index = int(math.floor(x_center_pixels))
+        y_center_index = int(math.floor(y_center_pixels))
 
         # Calculate the bounding box to use for simulating this galaxy.
-        x_min = int(math.floor(x_center_pixels - half_width_pixels))
-        y_min = int(math.floor(y_center_pixels - half_height_pixels))
-        # Use floor instead of ceil here since upper bounds are inclusive.
-        x_max = int(math.floor(x_center_pixels + half_width_pixels))
-        y_max = int(math.floor(y_center_pixels + half_height_pixels))
+        x_min = x_center_index - self.padding
+        x_max = x_center_index + self.padding
+        y_min = y_center_index - self.padding
+        y_max = y_center_index + self.padding
         bounds = galsim.BoundsI(x_min,x_max,y_min,y_max)
 
         # Is there any overlap with the simulated image?
         survey_overlap = bounds & self.survey.image.bounds
         if survey_overlap.area() == 0:
+            print 'no overlap!'
             return None
 
         # Calculate the offset of the bounding box center from the image center in arcsecs.
