@@ -11,6 +11,10 @@ import galsim
 class Engine(object):
     """Rendering engine to simulate survey observations.
 
+    Any pixels outside of the truncation radius or below the minimum S/N cut will have their
+    flux set to zero in the rendered image. As a result the total rendered flux may be below
+    the total model flux.
+
     Args:
         survey(descwl.survey.Survey): Survey that rendered images will simulate.
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
@@ -39,6 +43,11 @@ class Engine(object):
         self.psf_dilution = psf_stamp.array[0]
         # We will render each source into a square stamp with width = height = 2*padding + 1.
         self.padding = int(math.ceil(self.truncate_radius/self.survey.pixel_scale - 0.5))
+        # Prepare a truncation mask.
+        pixel_grid = np.arange(-self.padding,self.padding+1)*self.survey.pixel_scale
+        pixel_x,pixel_y = np.meshgrid(pixel_grid,pixel_grid)
+        pixel_radius = np.sqrt(pixel_x**2 + pixel_y**2)
+        self.truncation_mask = (pixel_radius <= self.truncate_radius)
 
     def description(self):
         """Describe our rendering configuration.
@@ -85,12 +94,6 @@ class Engine(object):
         y_max = y_center_index + self.padding
         bounds = galsim.BoundsI(x_min,x_max,y_min,y_max)
 
-        # Is there any overlap with the simulated image?
-        survey_overlap = bounds & self.survey.image.bounds
-        if survey_overlap.area() == 0:
-            print 'no overlap!'
-            return None
-
         # Calculate the offset of the bounding box center from the image center in arcsecs.
         dx_stamp_arcsec = 0.5*(x_min + x_max+1 - self.survey.image_width)*self.survey.pixel_scale
         dy_stamp_arcsec = 0.5*(y_min + y_max+1 - self.survey.image_height)*self.survey.pixel_scale
@@ -104,21 +107,45 @@ class Engine(object):
 
         # Render the model in its own postage stamp.
         stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale, dtype = np.float64)
-        model.drawImage(image = stamp, use_true_center = True)        
-        self.survey.image[survey_overlap] += stamp[survey_overlap]
+        model.drawImage(image = stamp, use_true_center = True)
+
+        # Identify pixels with flux above our cut and within our truncation radius
+        # and zero all other pixel fluxes.
+        keep_mask = (stamp.array*self.truncation_mask > self.pixel_cut)
+        if np.sum(keep_mask) == 0:
+            return None
+        stamp.array[np.logical_not(keep_mask)] = 0.
+
+        # Crop the bounding box.
+        x_projection = (np.sum(keep_mask,axis=0) > 0)
+        y_projection = (np.sum(keep_mask,axis=1) > 0)
+        x_min_inset = np.argmax(x_projection)
+        x_max_inset = np.argmax(x_projection[::-1])
+        y_min_inset = np.argmax(y_projection)
+        y_max_inset = np.argmax(y_projection[::-1])
+        cropped_bounds = galsim.BoundsI(
+            x_min+x_min_inset,x_max-x_max_inset,
+            y_min+y_min_inset,y_max-y_max_inset)
+        cropped_stamp = stamp[cropped_bounds]
+
+        # Add the rendered model to the survey image.
+        survey_overlap = cropped_bounds & self.survey.image.bounds
+        if survey_overlap.area() == 0:
+            return None
+        self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
         # Draw directly into the survey image, with no truncation.
         #model.drawImage(image = self.survey.image,add_to_image = True,use_true_center = True)
 
         if self.verbose_render:
-            print 'Rendering galaxy model for id = %d with z = %.3f' % (
+            print 'Rendered galaxy model for id = %d with z = %.3f' % (
                 galaxy.identifier,galaxy.redshift)
             print 'bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
-        return stamp.array[np.newaxis,:,:]
+        return cropped_stamp.array[np.newaxis,:,:]
 
     @staticmethod
     def add_args(parser):
