@@ -8,6 +8,11 @@ import numpy as np
 
 import galsim
 
+class SourceNotVisible(Exception):
+    """Custom exception to indicate that a source has no visible pixels above threshold.
+    """
+    pass
+
 class Engine(object):
     """Rendering engine to simulate survey observations.
 
@@ -68,19 +73,22 @@ class Engine(object):
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
 
         Returns:
-            tuple: `(stamps,x_min,x_max)` or None if this galaxy has no pixels above threshold
-                that are visible in the simulated survey image. The returned `stamps` is a
+            tuple: `(stamps,x_min,y_min)` where `stamps` is a
                 :class:`numpy.ndarray` of shape (nstamp,width,height) pixel values that represents
                 nstamp postage-stamp images with the same dimensions (width,height) calculated
                 based on the rendering options provided. The returned `(x_min,y_min)` give
-                the pixel coordinates of the lower-left corner of the stamps in the full survey
-                image, where (0,0) is the lower-left corner of the image.  Note that the returned
-                stamps might extend beyond the survey image, but will always have some overlap
-                where the source is above threshold.
+                the :class:`int` pixel coordinates of the lower-left corner of the stamps in the
+                full survey image, where (0,0) is the lower-left corner of the image.  Note that
+                the returned stamps might extend beyond the survey image, but will always have some
+                overlap where the source is above threshold.
+
+        Raises:
+            SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
+                simulated survey.
         """
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
-            return None
+            raise SourceNotVisible
 
         # Calculate the offset of the source center from the bottom-left corner of the
         # simulated image in floating-point pixel units.
@@ -118,7 +126,7 @@ class Engine(object):
         # and zero all other pixel fluxes.
         keep_mask = (stamp.array*self.truncation_mask > self.pixel_cut)
         if np.sum(keep_mask) == 0:
-            return None
+            raise SourceNotVisible
         stamp.array[np.logical_not(keep_mask)] = 0.
 
         # Crop the bounding box.
@@ -136,7 +144,7 @@ class Engine(object):
         # Add the rendered model to the survey image.
         survey_overlap = cropped_bounds & self.survey.image.bounds
         if survey_overlap.area() == 0:
-            return None
+            raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
         # Draw directly into the survey image, with no truncation.

@@ -6,6 +6,11 @@ import inspect
 
 import galsim
 
+class SourceNotVisible(Exception):
+    """Custom exception to indicate that a source has no visible model components.
+    """
+    pass
+
 class Galaxy(object):
     """Source model for a galaxy.
 
@@ -99,10 +104,10 @@ class GalaxyBuilder(object):
                 be one of 'u','g','r','i','z','y'.
 
         Returns:
-            :class:`Galaxy`: A newly created galaxy source model or None if this object
-                should not be simulated.
+            :class:`Galaxy`: A newly created galaxy source model.
 
         Raises:
+            SourceNotVisible: All of the galaxy's components are being ignored.
             RuntimeError: Catalog entry is missing AB flux value in requested filter band.
         """
         # Calculate the object's total flux in detected electrons.
@@ -118,7 +123,7 @@ class GalaxyBuilder(object):
         agn_flux = 0. if self.no_agn else entry['fluxnorm_agn']/total_fluxnorm*total_flux
         # Is there any flux to simulate?
         if disk_flux + bulge_flux + agn_flux == 0:
-            return None
+            return SourceNotVisible
         # Calculate the position of angle of the Sersic components, which are assumed to be the same.
         if disk_flux > 0:
             beta_radians = math.radians(entry['pa_disk'])

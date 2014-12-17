@@ -46,10 +46,12 @@ class Reader(object):
         else:
             self.table = astropy.table.Table.read(catalog_name, format='ascii.basic')
 
-    def visible_entries(self,survey,render_options):
-        """Iterate over visible catalog entries.
+    def potentially_visible_entries(self,survey,render_options):
+        """Iterate over potentially visible catalog entries.
 
-        Visibility is determined by the combined survey parameters and rendering options.
+        Potential visibility is determined by the combined survey parameters and rendering
+        options and implemented so that all actually visible entries are included. Returned
+        entries might not be actually visible, for example, if they are too faint.
         If only_id has any entries, then only the specified ids will be considered. Otherwise,
         all ids are considered. Any ids in skip_id will be silently ignored.
 

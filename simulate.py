@@ -74,22 +74,22 @@ def main():
                 primary_hdu.header.set(key[:8],value)
             hdu_list = astropy.io.fits.HDUList([primary_hdu])
 
-        for entry,dx,dy in catalog.visible_entries(survey,render_engine):
+        for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
-            galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-            if galaxy is None:
-                continue
+            try:
 
-            rendered = render_engine.render_galaxy(galaxy)
-            if rendered is None:
-                continue
-            stamps,x_min,y_min = rendered
+                galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
 
-            if hdu_list:
-                data_cube = astropy.io.fits.ImageHDU(data = stamps)
-                data_cube.header['X_MIN'] = x_min
-                data_cube.header['Y_MIN'] = y_min
-                hdu_list.append(data_cube)
+                stamps,x_min,y_min = render_engine.render_galaxy(galaxy)
+
+                if hdu_list:
+                    data_cube = astropy.io.fits.ImageHDU(data = stamps)
+                    data_cube.header['X_MIN'] = x_min
+                    data_cube.header['Y_MIN'] = y_min
+                    hdu_list.append(data_cube)
+
+            except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
+                pass
 
         if hdu_list:
             hdu_list.writeto(args.output_name,clobber = not args.output_no_clobber)
