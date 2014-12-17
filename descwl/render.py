@@ -68,10 +68,15 @@ class Engine(object):
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
 
         Returns:
-            :class:`numpy.ndarray`: Array of shape (nstamp,width,height) pixel values that represent
+            tuple: `(stamps,x_min,x_max)` or None if this galaxy has no pixels above threshold
+                that are visible in the simulated survey image. The returned `stamps` is a
+                :class:`numpy.ndarray` of shape (nstamp,width,height) pixel values that represents
                 nstamp postage-stamp images with the same dimensions (width,height) calculated
-                based on the rendering options provided. Returns None if this galaxy has no
-                pixels above threshold that are visible in the simulated survey image.
+                based on the rendering options provided. The returned `(x_min,y_min)` give
+                the pixel coordinates of the lower-left corner of the stamps in the full survey
+                image, where (0,0) is the lower-left corner of the image.  Note that the returned
+                stamps might extend beyond the survey image, but will always have some overlap
+                where the source is above threshold.
         """
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
@@ -145,7 +150,7 @@ class Engine(object):
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
-        return cropped_stamp.array[np.newaxis,:,:]
+        return cropped_stamp.array[np.newaxis,:,:],cropped_bounds.xmin,cropped_bounds.ymin
 
     @staticmethod
     def add_args(parser):

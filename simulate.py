@@ -70,6 +70,8 @@ def main():
             if args.verbose:
                 print 'Simulation output will be saved to %s' % args.output_name
             primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
+            for key,value in survey.args.iteritems():
+                primary_hdu.header.set(key[:8],value)
             hdu_list = astropy.io.fits.HDUList([primary_hdu])
 
         for entry,dx,dy in catalog.visible_entries(survey,render_engine):
@@ -78,11 +80,15 @@ def main():
             if galaxy is None:
                 continue
 
-            galaxy_stamps = render_engine.render_galaxy(galaxy)
-            if galaxy_stamps is None:
+            rendered = render_engine.render_galaxy(galaxy)
+            if rendered is None:
                 continue
+            stamps,x_min,y_min = rendered
+
             if hdu_list:
-                data_cube = astropy.io.fits.ImageHDU(data = galaxy_stamps)
+                data_cube = astropy.io.fits.ImageHDU(data = stamps)
+                data_cube.header['X_MIN'] = x_min
+                data_cube.header['Y_MIN'] = y_min
                 hdu_list.append(data_cube)
 
         if hdu_list:
