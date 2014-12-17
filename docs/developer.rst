@@ -1,5 +1,5 @@
-Developer Instructions
-======================
+Information for Developers
+==========================
 
 Build the documentation
 -----------------------

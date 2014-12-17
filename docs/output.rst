@@ -1,5 +1,5 @@
-Simulation Outputs
-==================
+Simulation Output
+=================
 
 This document describes the content and format of the output file produced by the :ref:`prog-simulate` program.
 

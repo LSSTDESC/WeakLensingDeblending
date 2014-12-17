@@ -13,7 +13,7 @@ Documentation for the DESC Weak Lensing Deblending Package
    catalog
    examples
    programs
-   outputs
+   output
    todo
    developer
    history
