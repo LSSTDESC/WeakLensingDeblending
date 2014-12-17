@@ -4,4 +4,106 @@ There is a separate :doc:`output page </output>` with details on what goes into 
 output and how it is formatted.
 """
 
-pass
+import os
+import os.path
+import inspect
+
+import astropy.io.fits
+
+class Writer(object):
+    """Simulation output writer.
+
+    See the :doc:`output page </output>` for details on the output contents and formatting.
+
+    Args:
+        survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
+        output_name(str): Base name of FITS output files to write. The ".fits" extension
+            can be omitted.
+        output_no_clobber(bool): Do not overwrite any existing output file with the same name.
+
+    Raises:
+        RuntimeError: Unable to initialize FITS output file.
+    """
+    def __init__(self,survey,output_name,output_no_clobber):
+        self.output_name = output_name
+        self.output_no_clobber = output_no_clobber
+        self.hdu_list = None
+        if self.output_name:
+            name,extension = os.path.splitext(self.output_name)
+            if not extension:
+                self.output_name += '.fits'
+            elif extension.lower() != '.fits':
+                raise RuntimeError('Got uneselfxpected output-name extension "%s".' % extension)
+            if not os.access(self.output_name,os.W_OK):
+                raise RuntimeError('Requested output file is not writeable: %s' % self.output_name)
+            primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
+            for key,value in survey.args.iteritems():
+                primary_hdu.header.set(key[:8],value)
+            self.hdu_list = astropy.io.fits.HDUList([primary_hdu])
+
+    def description(self):
+        """Describe our output configuration.
+
+        Returns:
+            str: Description of the the rendering configuration.
+        """
+        return 'Simulation output will be saved to %s' % self.output_name
+
+    def save_stamps(self,stamps,x_min_pixels,y_min_pixels):
+        """Save a datacube of postage stamp images for a single source.
+
+        Args:
+            stamps(:class:`numpy.ndarray`): Array of shape (nstamp,width,height) containing
+                pixel values for nstamp stamps of dimensions (width,height).
+            x_min_pixels(int): Left edge of stamps in pixels relative to the left edge
+                of the simulated survey image.
+            y_min_pixels(int): Bottom edge of stamps in pixels relative to the bottom edge
+                of the simulated survey image.
+        """
+        if self.hdu_list:
+            data_cube = astropy.io.fits.ImageHDU(data = stamps)
+            data_cube.header['X_MIN'] = x_min_pixels
+            data_cube.header['Y_MIN'] = y_min_pixels
+            self.hdu_list.append(data_cube)
+
+    def close(self):
+        """Close the output file, if any.
+        """
+        if self.hdu_list:
+            self.hdu_list.writeto(self.output_name,clobber = not self.output_no_clobber)
+
+    @staticmethod
+    def add_args(parser):
+        """Add command-line arguments for constructing a new :class:`Writer`.
+
+        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+
+        Args:
+            parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
+                add_argument method.
+        """
+        parser.add_argument('--output-name', default = None, metavar = 'FILE',
+            help = 'Base name of FITS output files to write. The ".fits" extension can be omitted.')
+        parser.add_argument('--output-no-clobber', action = 'store_true',
+            help = 'Do not overwrite any existing output file with the same name.')
+
+    @classmethod
+    def from_args(cls,survey,args):
+        """Create a new :class:`Writer` object from a set of arguments.
+
+        Args:
+            survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function. Any extra arguments beyond those defined
+                in :func:`add_args` will be silently ignored.
+
+        Returns:
+            :class:`Writer`: A newly constructed Reader object.
+        """
+        # Look up the named constructor parameters.
+        pnames = (inspect.getargspec(cls.__init__)).args[1:]
+        # Get a dictionary of the arguments provided.
+        args_dict = vars(args)
+        # Filter the dictionary to only include constructor parameters.
+        filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
+        return cls(survey,**filtered_dict)

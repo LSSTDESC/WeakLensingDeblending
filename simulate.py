@@ -3,10 +3,6 @@
 """
 
 import argparse
-import os
-import os.path
-
-import astropy.io.fits
 
 import descwl
 
@@ -31,10 +27,7 @@ def main():
     descwl.render.Engine.add_args(render_group)
     output_group = parser.add_argument_group('Output control',
         'Specify options to control simulation output.')
-    output_group.add_argument('--output-name', default = None, metavar = 'FILE',
-        help = 'Base name of FITS output files to write. The ".fits" extension can be omitted.')
-    output_group.add_argument('--output-no-clobber', action = 'store_true',
-        help = 'Do not overwrite any existing output file with the same name.')
+    descwl.output.Writer.add_args(output_group)
     args = parser.parse_args()
 
     if args.survey_defaults:
@@ -52,27 +45,14 @@ def main():
             print survey.description()
 
         galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
+
         render_engine = descwl.render.Engine.from_args(survey,args)
         if args.verbose:
             print render_engine.description()
 
-        hdu_list = None
-        if args.output_name:
-            name,extension = os.path.splitext(args.output_name)
-            if not extension:
-                args.output_name += '.fits'
-            elif extension.lower() != '.fits':
-                print 'Got unexpected output-name extension "%s".' % extension
-                return -1
-            if not os.access(args.output_name,os.W_OK):
-                print 'Requested output file is not writeable: %s' % args.output_name
-                return -1
-            if args.verbose:
-                print 'Simulation output will be saved to %s' % args.output_name
-            primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
-            for key,value in survey.args.iteritems():
-                primary_hdu.header.set(key[:8],value)
-            hdu_list = astropy.io.fits.HDUList([primary_hdu])
+        output = descwl.output.Writer.from_args(survey,args)
+        if args.verbose:
+            print output.description()
 
         for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
@@ -82,17 +62,12 @@ def main():
 
                 stamps,x_min,y_min = render_engine.render_galaxy(galaxy)
 
-                if hdu_list:
-                    data_cube = astropy.io.fits.ImageHDU(data = stamps)
-                    data_cube.header['X_MIN'] = x_min
-                    data_cube.header['Y_MIN'] = y_min
-                    hdu_list.append(data_cube)
+                output.save_stamps(stamps,x_min,y_min)
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
 
-        if hdu_list:
-            hdu_list.writeto(args.output_name,clobber = not args.output_no_clobber)
+        output.close()
 
     except RuntimeError,e:
         print str(e)
