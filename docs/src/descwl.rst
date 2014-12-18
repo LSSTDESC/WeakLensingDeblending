@@ -10,6 +10,7 @@ Submodules
    descwl.survey
    descwl.model
    descwl.render
+   descwl.analysis
    descwl.output
 
 Module contents
