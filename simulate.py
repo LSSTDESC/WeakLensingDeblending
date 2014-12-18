@@ -62,10 +62,10 @@ def main():
 
                 galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
 
-                stamps,x_min,y_min = render_engine.render_galaxy(galaxy)
+                stamps,bounds = render_engine.render_galaxy(galaxy)
 
-                analyzer.add_galaxy(stamps,x_min,y_min)
-                output.save_stamps(stamps,x_min,y_min)
+                analyzer.add_galaxy(stamps,bounds)
+                output.save_stamps(stamps,bounds)
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass

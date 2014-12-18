@@ -49,21 +49,18 @@ class Writer(object):
         """
         return 'Simulation output will be saved to %s' % self.output_name
 
-    def save_stamps(self,stamps,x_min_pixels,y_min_pixels):
+    def save_stamps(self,stamps,bounds):
         """Save a datacube of postage stamp images for a single source.
 
         Args:
             stamps(:class:`numpy.ndarray`): Array of shape (nstamp,width,height) containing
                 pixel values for nstamp stamps of dimensions (width,height).
-            x_min_pixels(int): Left edge of stamps in pixels relative to the left edge
-                of the simulated survey image.
-            y_min_pixels(int): Bottom edge of stamps in pixels relative to the bottom edge
-                of the simulated survey image.
+            bounds(galsim.BoundsI): Bounds of the stamps in the full simulated survey image.
         """
         if self.hdu_list:
             data_cube = astropy.io.fits.ImageHDU(data = stamps)
-            data_cube.header['X_MIN'] = x_min_pixels
-            data_cube.header['Y_MIN'] = y_min_pixels
+            data_cube.header['X_MIN'] = bounds.xmin
+            data_cube.header['Y_MIN'] = bounds.ymin
             self.hdu_list.append(data_cube)
 
     def finalize(self,results):

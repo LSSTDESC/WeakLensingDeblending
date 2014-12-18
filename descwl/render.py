@@ -73,14 +73,13 @@ class Engine(object):
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
 
         Returns:
-            tuple: `(stamps,x_min,y_min)` where `stamps` is a
-                :class:`numpy.ndarray` of shape (nstamp,width,height) pixel values that represents
-                nstamp postage-stamp images with the same dimensions (width,height) calculated
-                based on the rendering options provided. The returned `(x_min,y_min)` give the
-                offset of the stamp lower-left corner from the simulated survey image lower-left
-                corner as :class:`int` values in pixels. Note that the returned stamps might extend
-                beyond the survey image, but will always have some overlap where the source is
-                above threshold.
+            tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
+                (nstamp,width,height) pixel values that represents nstamp postage-stamp images
+                with the same dimensions (width,height) determined by the rendering options
+                provided. The returned `bounds` give the position of these stamps within the
+                full simulated survey image as a `galsim.BoundsI` object. Note that these bounds
+                might extend beyond the survey image, but will always have some overlap where
+                the source is above threshold.
 
         Raises:
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
@@ -158,7 +157,7 @@ class Engine(object):
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
-        return cropped_stamp.array[np.newaxis,:,:],cropped_bounds.xmin,cropped_bounds.ymin
+        return cropped_stamp.array[np.newaxis,:,:],cropped_bounds
 
     @staticmethod
     def add_args(parser):
