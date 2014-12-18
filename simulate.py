@@ -64,7 +64,7 @@ def main():
 
                 stamps,bounds = render_engine.render_galaxy(galaxy)
 
-                analyzer.add_galaxy(stamps,bounds)
+                analyzer.add_galaxy(galaxy,stamps,bounds)
                 output.save_stamps(stamps,bounds)
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):

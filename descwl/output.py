@@ -8,6 +8,8 @@ import os
 import os.path
 import inspect
 
+import numpy as np
+
 import astropy.io.fits
 
 class Writer(object):
@@ -70,6 +72,8 @@ class Writer(object):
             :class:`astropy.table.Table`: Table of analysis results with one row per galaxy.
         """
         if self.hdu_list:
+            table = astropy.io.fits.BinTableHDU.from_columns(np.array(results))
+            self.hdu_list.insert(1,table)
             self.hdu_list.writeto(self.output_name,clobber = not self.output_no_clobber)
 
     @staticmethod

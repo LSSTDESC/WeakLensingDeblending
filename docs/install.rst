@@ -33,8 +33,18 @@ Required Packages
 
 The following python packages are required by this package:
 
-* numpy
-* astropy
-* `galsim <https://github.com/GalSim-developers/GalSim>`_
+* numpy (version >= 1.9)
+* astropy (version >= 0.4)
+* `galsim <https://github.com/GalSim-developers/GalSim>`_ (version >= 1.2)
 
-Note that, except for galsim, these packages are all available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions.
+Note that, except for GalSim, these packages are all available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. Installing GalSim is a more involved process, but well worth the effort.
+
+You can check your astropy version using::
+
+	import astropy.version
+	print astropy.version.version
+
+A version of at least 0.4 is required due to recent changes in tables and FITS I/O. If you have a pre-0.4 version of astropy via anaconda, you can update using::
+
+	sudo conda update conda
+	sudo conda update anaconda
