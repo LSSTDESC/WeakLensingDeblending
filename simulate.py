@@ -50,6 +50,8 @@ def main():
         if args.verbose:
             print render_engine.description()
 
+        analyzer = descwl.analysis.OverlapAnalyzer(survey)
+
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
             print output.description()
@@ -62,12 +64,14 @@ def main():
 
                 stamps,x_min,y_min = render_engine.render_galaxy(galaxy)
 
+                analyzer.add_galaxy(stamps,x_min,y_min)
                 output.save_stamps(stamps,x_min,y_min)
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
 
-        output.close()
+        results = analyzer.finalize()
+        output.finalize(results)
 
     except RuntimeError,e:
         print str(e)

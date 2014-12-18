@@ -66,8 +66,11 @@ class Writer(object):
             data_cube.header['Y_MIN'] = y_min_pixels
             self.hdu_list.append(data_cube)
 
-    def close(self):
-        """Close the output file, if any.
+    def finalize(self,results):
+        """Save analysis results and close the output file, if any.
+
+        Args:
+            :class:`astropy.table.Table`: Table of analysis results with one row per galaxy.
         """
         if self.hdu_list:
             self.hdu_list.writeto(self.output_name,clobber = not self.output_no_clobber)
