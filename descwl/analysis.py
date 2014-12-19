@@ -40,9 +40,11 @@ class OverlapAnalyzer(object):
             ('grp_size',np.int16),
             ('visible',np.bool8),
             ('z',np.float32),
-            ('snr_sky',np.float32)
+            ('snr_sky',np.float32),
+            ('snr_iso',np.float32),
             ])
 
+        # Calculate isolated galaxy quantities and identify overlapping groups.
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(self.galaxies):
             data['db_id'][index] = model.identifier
@@ -51,9 +53,12 @@ class OverlapAnalyzer(object):
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
             # Calculate the SNR this galaxy would have without any overlaps in the
             # sky-dominated limit.
-            flat_fiducial = stamps[0].flat
-            data['snr_sky'][index] = np.sqrt(
-                np.dot(flat_fiducial,flat_fiducial)/self.survey.mean_sky_level)
+            sky = self.survey.mean_sky_level
+            fiducial = stamps[0].flatten()
+            data['snr_sky'][index] = np.sqrt(np.sum(fiducial**2)/sky)
+            # Include the signal in the noise variance.
+            mu0 = fiducial + sky
+            data['snr_iso'][index] = np.sqrt(np.sum(fiducial**2*(mu0**-1 + 0.5*mu0**-2)))
             # Loop over earlier galaxies to build overlapping groups.
             for pre_index,(pre_model,pre_stamps,pre_bounds) in enumerate(self.galaxies[:index]):
                 # Do bounding boxes overlap?
@@ -77,6 +82,10 @@ class OverlapAnalyzer(object):
                 data['grp_id'][data['grp_id'] == grp_id_old] = grp_id_new
 
         # Analyze overlapping groups.
-        data['grp_size'] = 0
+        num_groups = np.max(data['grp_id']) + 1
+        for grp_id in range(num_groups):
+            grp_members = (data['grp_id'] == grp_id)
+            grp_size = np.count_nonzero(grp_members)
+            data['grp_size'][grp_members] = grp_size
 
         return astropy.table.Table(data,copy = False)
