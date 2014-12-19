@@ -55,6 +55,8 @@ class Survey(object):
             self.psf_model = galsim.Add(atmospheric_psf_model,optical_psf_model)
         else:
             self.psf_model = atmospheric_psf_model
+        # Calculate the mean sky background level in detected electrons per pixel.
+        self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
         self.image_bounds = galsim.BoundsI(0,self.image_width-1,0,self.image_height-1)
         self.image = galsim.Image(bounds = self.image_bounds,scale=self.pixel_scale,
@@ -82,14 +84,6 @@ class Survey(object):
         """
         ab_magnitude += self.extinction*(self.airmass - 1.)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
-
-    def get_sky_level(self):
-        """Calculate the mean sky background level.
-
-        Returns:
-            float: Mean sky background flux in detected electrons per pixel.
-        """
-        return self.get_flux(self.sky_brightness)*self.pixel_scale**2
 
     def get_image_coordinates(self,dx_arcsecs,dy_arcsecs):
         """Convert a physical offset from the image center into image coordinates.

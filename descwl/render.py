@@ -37,7 +37,7 @@ class Engine(object):
         self.verbose_render = verbose_render
         # Calculate pixel flux threshold in electrons per pixel that determines how big a
         # bounding box we simulate for each source.
-        sky_noise = math.sqrt(survey.get_sky_level())
+        sky_noise = math.sqrt(survey.mean_sky_level)
         self.pixel_cut = self.min_snr*sky_noise
         # Initialize our GalSim parameters.
         self.galsim_params = galsim.GSParams(maximum_fft_size=32768)

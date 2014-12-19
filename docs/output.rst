@@ -23,7 +23,20 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 Analysis Results
 ----------------
 
-HDU[1] contains a binary table where each row represents one simulated source.
+HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below.
+
+======== ======= ====================================================================================
+Name     Type    Description
+======== ======= ====================================================================================
+db_id    int64   Unique identifier for this source in the LSST DM catalog database
+grp_id   int16   Indentifier for the group that this source belongs to
+grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
+visible  bool8   Is this source's centroid within the simulated image bounds?
+z        float32 Simulated source redshift
+snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
+snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
+snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
+======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::
 
