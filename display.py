@@ -19,6 +19,14 @@ def main():
         help = 'Name of the FITS analysis results file to read.')
     parser.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
+    parser.add_argument('--magnification', type = float, default = 1,
+        help = 'Magnification factor to use for display.')
+    parser.add_argument('--colormap', type = str, default = 'hot',
+        help = 'Matplotlib colormap name to use.')
+    parser.add_argument('--clip-lo-percentile', type = float, default = 10.0,
+        help = 'Clip pixels with values below this percentile for the image.')
+    parser.add_argument('--clip-hi-percentile', type = float, default = 90.0,
+        help = 'Clip pixels with values above this percentile for the image.')
     parser.add_argument('-o','--output-name',type = str, default = None,
         help = 'Name of the output file to write.')
     args = parser.parse_args()
@@ -37,17 +45,24 @@ def main():
     image_data = hdu_list[0].data
     height,width = image_data.shape
 
-    fig_height,fig_width = height/args.dpi,width/args.dpi
-    print repr((fig_width,fig_height))
-    print repr((fig_width*args.dpi-width,fig_height*args.dpi-height))
-
-    figure = plt.figure(figsize = (fig_width,fig_height),frameon = False)
-
+    fig_height = args.magnification*(height/args.dpi)
+    fig_width = args.magnification*(width/args.dpi)
+    figure = plt.figure(figsize = (fig_width,fig_height),frameon = False,dpi=args.dpi)
     axes = plt.Axes(figure, [0., 0., 1., 1.])
     axes.set_axis_off()
     figure.add_axes(axes)
-    axes.imshow(image_data,
-        #extent = (0,width,0,height),aspect = 'equal',
+
+    non_zero_pixels = (image_data > 0)
+    vmin,vmax = np.percentile(image_data[non_zero_pixels],
+        q = (args.clip_lo_percentile,args.clip_hi_percentile))
+    z_normalized = (np.clip(image_data,vmin,vmax) - vmin)/(vmax-vmin)
+    # See http://ds9.si.edu/ref/how.html#Scales
+    ##a = 1e3
+    ##z_scaled = np.log(a*z_normalized + 1)/np.log(a)
+    z_scaled = np.sqrt(z_normalized)
+
+    axes.imshow(z_scaled,cmap = args.colormap,
+        extent = (0,width,0,height),aspect = 'equal',
         origin = 'lower',interpolation = 'nearest')
 
     if args.output_name:
