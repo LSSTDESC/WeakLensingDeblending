@@ -3,6 +3,12 @@
 """
 
 import argparse
+import os.path
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+import astropy.io.fits
 
 import descwl
 
@@ -11,11 +17,43 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i','--input-name',type = str, default = None,
         help = 'Name of the FITS analysis results file to read.')
+    parser.add_argument('--dpi', type = float, default = 64.,
+        help = 'Number of pixels per inch to use for display.')
+    parser.add_argument('-o','--output-name',type = str, default = None,
+        help = 'Name of the output file to write.')
     args = parser.parse_args()
 
     if not args.input_name:
         print 'Missing input name parameter.'
         return -1
+
+    name,extension = os.path.splitext(args.input_name)
+    if extension == '':
+        args.input_name += '.fits'
+    elif extension.lower() != '.fits':
+        print 'Unexpected extension "%s" for input file.' % extension
+
+    hdu_list = astropy.io.fits.open(args.input_name)
+    image_data = hdu_list[0].data
+    height,width = image_data.shape
+
+    fig_height,fig_width = height/args.dpi,width/args.dpi
+    print repr((fig_width,fig_height))
+    print repr((fig_width*args.dpi-width,fig_height*args.dpi-height))
+
+    figure = plt.figure(figsize = (fig_width,fig_height),frameon = False)
+
+    axes = plt.Axes(figure, [0., 0., 1., 1.])
+    axes.set_axis_off()
+    figure.add_axes(axes)
+    axes.imshow(image_data,
+        #extent = (0,width,0,height),aspect = 'equal',
+        origin = 'lower',interpolation = 'nearest')
+
+    if args.output_name:
+        figure.savefig(args.output_name,dpi = args.dpi)
+
+    plt.show()
 
 if __name__ == '__main__':
     main()
