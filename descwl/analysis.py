@@ -40,6 +40,7 @@ class OverlapAnalyzer(object):
             ('grp_size',np.int16),
             ('visible',np.bool8),
             ('z',np.float32),
+            ('ab_mag',np.float32),
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
             ])
@@ -49,6 +50,7 @@ class OverlapAnalyzer(object):
         for index,(model,stamps,bounds) in enumerate(self.galaxies):
             data['db_id'][index] = model.identifier
             data['z'][index] = model.redshift
+            data['ab_mag'][index] = model.ab_magnitude
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
             # Calculate the SNR this galaxy would have without any overlaps in the

@@ -22,6 +22,8 @@ class Galaxy(object):
     Args:
         identifier(int): Unique integer identifier for this galaxy in the source catalog.
         redshift(double): Catalog redshift of this galaxy.
+        ab_magnitude(double): Catalog AB magnitude of this galaxy in the filter band being
+            simulated.
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
@@ -41,11 +43,12 @@ class Galaxy(object):
             lengths for Sersic n=4 component. Ignored if bulge_flux is zero.
         agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
-    def __init__(self,identifier,redshift,
+    def __init__(self,identifier,redshift,ab_magnitude,
         dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
         bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
         self.identifier = identifier
         self.redshift = redshift
+        self.ab_magnitude = ab_magnitude
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
         components = [ ]
@@ -165,7 +168,7 @@ class GalaxyBuilder(object):
                     bulge_flux/total_flux,bulge_hlr_arcsecs,bulge_q)
             if agn_flux > 0:
                 print '  AGN: frac = %.6f' % (agn_flux/total_flux)
-        return Galaxy(identifier,redshift,
+        return Galaxy(identifier,redshift,ab_magnitude,
             dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux)
 
