@@ -12,6 +12,59 @@ import numpy as np
 
 import astropy.io.fits
 
+class Reader(object):
+    """Simulation output reader.
+
+    Args:
+        input_name(str): Base name of FITS output files to write. The ".fits" extension
+            can be omitted.
+
+    Raises:
+        RuntimeError: Unable to initialize FITS input file.
+    """
+    def __init__(self,input_name):
+        self.input_name = input_name
+        name,extension = os.path.splitext(self.input_name)
+        if not extension:
+            self.input_name += '.fits'
+        elif extension.lower() != '.fits':
+            raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
+        self.hdu_list = astropy.io.fits.open(self.input_name)
+
+    @staticmethod
+    def add_args(parser):
+        """Add command-line arguments for constructing a new :class:`Reader`.
+
+        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+
+        Args:
+            parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
+                add_argument method.
+        """
+        parser.add_argument('-i','--input-name', default = None, metavar = 'FILE',
+            help = 'Base name of FITS output files to read. The ".fits" extension can be omitted.')
+
+    @classmethod
+    def from_args(cls,args):
+        """Create a new :class:`Reader` object from a set of arguments.
+
+        Args:
+            survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function. Any extra arguments beyond those defined
+                in :func:`add_args` will be silently ignored.
+
+        Returns:
+            :class:`Reader`: A newly constructed Reader object.
+        """
+        # Look up the named constructor parameters.
+        pnames = (inspect.getargspec(cls.__init__)).args[1:]
+        # Get a dictionary of the arguments provided.
+        args_dict = vars(args)
+        # Filter the dictionary to only include constructor parameters.
+        filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
+        return cls(**filtered_dict)
+
 class Writer(object):
     """Simulation output writer.
 
@@ -35,7 +88,7 @@ class Writer(object):
             if not extension:
                 self.output_name += '.fits'
             elif extension.lower() != '.fits':
-                raise RuntimeError('Got uneselfxpected output-name extension "%s".' % extension)
+                raise RuntimeError('Got unexpected output-name extension "%s".' % extension)
             if not os.access(self.output_name,os.W_OK):
                 raise RuntimeError('Requested output file is not writeable: %s' % self.output_name)
             primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)

@@ -15,8 +15,7 @@ import descwl
 def main():
     # Initialize and parse command-line arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i','--input-name',type = str, default = None,
-        help = 'Name of the FITS analysis results file to read.')
+    descwl.output.Reader.add_args(parser)
     parser.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
     parser.add_argument('--magnification', type = float, default = 1,
@@ -31,18 +30,10 @@ def main():
         help = 'Name of the output file to write.')
     args = parser.parse_args()
 
-    if not args.input_name:
-        print 'Missing input name parameter.'
-        return -1
+    reader = descwl.output.Reader.from_args(args)
 
-    name,extension = os.path.splitext(args.input_name)
-    if extension == '':
-        args.input_name += '.fits'
-    elif extension.lower() != '.fits':
-        print 'Unexpected extension "%s" for input file.' % extension
-
-    hdu_list = astropy.io.fits.open(args.input_name)
-    image_data = hdu_list[0].data
+    reader.hdu_list = astropy.io.fits.open(args.input_name)
+    image_data = reader.hdu_list[0].data
     height,width = image_data.shape
 
     fig_height = args.magnification*(height/args.dpi)
