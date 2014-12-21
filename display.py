@@ -31,9 +31,9 @@ def main():
     args = parser.parse_args()
 
     reader = descwl.output.Reader.from_args(args)
+    print reader.survey.description()
 
-    reader.hdu_list = astropy.io.fits.open(args.input_name)
-    image_data = reader.hdu_list[0].data
+    image_data = reader.survey.image.array
     height,width = image_data.shape
 
     fig_height = args.magnification*(height/args.dpi)

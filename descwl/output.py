@@ -12,6 +12,8 @@ import numpy as np
 
 import astropy.io.fits
 
+import descwl.survey
+
 class Reader(object):
     """Simulation output reader.
 
@@ -30,6 +32,16 @@ class Reader(object):
         elif extension.lower() != '.fits':
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
         self.hdu_list = astropy.io.fits.open(self.input_name)
+        # Reconstruct the survey object for these results.
+        header = self.hdu_list[0].header
+        survey_args = { }
+        for parameter_name in descwl.survey.Survey._parameter_names:
+            # Fits header keyword names are truncated at length 8.
+            survey_args[parameter_name] = header[parameter_name[:8].upper()]
+        self.survey = descwl.survey.Survey(**survey_args)
+        # Load the simulated image into the survey object.
+        image_data = self.hdu_list[0].data
+        self.survey.image.array[:] = image_data
 
     @staticmethod
     def add_args(parser):
