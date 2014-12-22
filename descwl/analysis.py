@@ -5,6 +5,26 @@ import numpy as np
 
 import astropy.table
 
+class OverlapResults(object):
+    """Results of analyzing effects of overlapping sources on weak lensing.
+
+    Results are normally obtained by calling :meth:`OverlapAnalyzer.finalize` after
+    simulating an image or using :meth:`descwl.output.Reader` to load saved
+    simulation results.
+
+    Args:
+        survey(descwl.survey.Survey): Simulated survey that results are based on.
+        stamps(array): Array of :class:`numpy.ndarray` postage-stamp datacubes.
+        bounds(array): Array of galsim.BoundsI objects giving pixel coordinates of
+            each datacube in the full simulated image.
+        table(astropy.table.Table): Table of analysis results with one row per galaxy.
+    """
+    def __init__(self,survey,stamps,bounds,table):
+        self.survey = survey
+        self.stamps = stamps
+        self.bounds = bounds
+        self.table = table
+
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.
 

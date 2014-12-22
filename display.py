@@ -31,9 +31,9 @@ def main():
     args = parser.parse_args()
 
     reader = descwl.output.Reader.from_args(args)
-    print reader.survey.description()
+    print reader.results.survey.description()
 
-    image_data = reader.survey.image.array
+    image_data = reader.results.survey.image.array
     height,width = image_data.shape
 
     fig_height = args.magnification*(height/args.dpi)

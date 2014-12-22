@@ -13,9 +13,13 @@ import numpy as np
 import astropy.io.fits
 
 import descwl.survey
+import descwl.analysis
 
 class Reader(object):
     """Simulation output reader.
+
+    The reader loads the files contents into memory in the constructor and makes them
+    available via a `results` data member of type :class:`descwl.analysis.OverlapResults`.
 
     Args:
         input_name(str): Base name of FITS output files to write. The ".fits" extension
@@ -38,10 +42,12 @@ class Reader(object):
         for parameter_name in descwl.survey.Survey._parameter_names:
             # Fits header keyword names are truncated at length 8.
             survey_args[parameter_name] = header[parameter_name[:8].upper()]
-        self.survey = descwl.survey.Survey(**survey_args)
+        survey = descwl.survey.Survey(**survey_args)
         # Load the simulated image into the survey object.
         image_data = self.hdu_list[0].data
-        self.survey.image.array[:] = image_data
+        survey.image.array[:] = image_data
+        # Return a results object.
+        self.results = descwl.analysis.OverlapResults(survey,None,None,None)
 
     @staticmethod
     def add_args(parser):
