@@ -13,6 +13,8 @@ import numpy as np
 import astropy.io.fits
 import astropy.table
 
+import galsim
+
 import descwl.survey
 import descwl.analysis
 
@@ -36,7 +38,9 @@ class Reader(object):
             self.input_name += '.fits'
         elif extension.lower() != '.fits':
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
-        self.hdu_list = astropy.io.fits.open(self.input_name)
+        # Without memmap=False, reading all the postage stamp HDUs crashes with
+        # "OSError: [Errno 24] Too many open files". Is this the best way to avoid this?
+        self.hdu_list = astropy.io.fits.open(self.input_name,mode='readonly',memmap=False)
         # Reconstruct the survey object for these results.
         header = self.hdu_list[0].header
         survey_args = { }
@@ -49,8 +53,20 @@ class Reader(object):
         survey.image.array[:] = image_data
         # Passing an HDUList to Table.read does not seem to be documented but works as expected.
         table = astropy.table.Table.read(self.hdu_list,hdu=1)
-        # Return a results object.
-        self.results = descwl.analysis.OverlapResults(survey,table,None,None)
+        # Load individual stamps and reconstruct the corresponding bounds objects.
+        stamps,bounds = [ ],[ ]
+        num_galaxies = len(table)
+        for index in range(num_galaxies):
+            # Stamp HDUs start after the full image HDU[0] and the analysis table HDU[1].
+            hdu = self.hdu_list[index+2]
+            datacube = np.copy(hdu.data)
+            stamps.append(datacube)
+            nstamps,height,width = datacube.shape
+            x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
+            bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
+        # Save file contents as a results object.
+        self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds)
+        self.hdu_list.close()
 
     @staticmethod
     def add_args(parser):
@@ -149,6 +165,7 @@ class Writer(object):
             table = astropy.io.fits.BinTableHDU.from_columns(np.array(results))
             self.hdu_list.insert(1,table)
             self.hdu_list.writeto(self.output_name,clobber = not self.output_no_clobber)
+            self.hdu_list.close()
 
     @staticmethod
     def add_args(parser):
