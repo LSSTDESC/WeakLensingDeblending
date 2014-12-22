@@ -14,16 +14,16 @@ class OverlapResults(object):
 
     Args:
         survey(descwl.survey.Survey): Simulated survey that results are based on.
+        table(astropy.table.Table): Table of analysis results with one row per galaxy.
         stamps(array): Array of :class:`numpy.ndarray` postage-stamp datacubes.
         bounds(array): Array of galsim.BoundsI objects giving pixel coordinates of
             each datacube in the full simulated image.
-        table(astropy.table.Table): Table of analysis results with one row per galaxy.
     """
-    def __init__(self,survey,stamps,bounds,table):
+    def __init__(self,survey,table,stamps,bounds):
         self.survey = survey
+        self.table = table
         self.stamps = stamps
         self.bounds = bounds
-        self.table = table
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.

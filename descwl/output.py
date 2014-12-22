@@ -11,6 +11,7 @@ import inspect
 import numpy as np
 
 import astropy.io.fits
+import astropy.table
 
 import descwl.survey
 import descwl.analysis
@@ -46,8 +47,10 @@ class Reader(object):
         # Load the simulated image into the survey object.
         image_data = self.hdu_list[0].data
         survey.image.array[:] = image_data
+        # Passing an HDUList to Table.read does not seem to be documented but works as expected.
+        table = astropy.table.Table.read(self.hdu_list,hdu=1)
         # Return a results object.
-        self.results = descwl.analysis.OverlapResults(survey,None,None,None)
+        self.results = descwl.analysis.OverlapResults(survey,table,None,None)
 
     @staticmethod
     def add_args(parser):
