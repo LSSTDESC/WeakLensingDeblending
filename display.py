@@ -24,17 +24,23 @@ def main():
     select_group = parser.add_argument_group('Object selection options')
     select_group.add_argument('--galaxy', type = int, default = None, metavar = 'ID',
         help = 'Highlight the galaxy with this unique identifier.')
+    select_group.add_argument('--crop', action = 'store_true',
+        help = 'Crop the displayed pixels around the selected objects.')
 
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
     display_group.add_argument('--magnification', type = float, default = 1,
         help = 'Magnification factor to use for display.')
-    display_group.add_argument('--colormap', type = str, default = 'hot',
-        help = 'Matplotlib colormap name to use for pixel values.')
-    display_group.add_argument('--clip-lo-percentile', type = float, default = 10.0,
+    display_group.add_argument('--colormap', type = str, default = 'gray',
+        help = 'Matplotlib colormap name to use for background pixel values.')
+    display_group.add_argument('--highlight', type = str, default = 'hot',
+        help = 'Matplotlib colormap name to use for highlighted pixel values.')
+    display_group.add_argument('--clip-lo-percentile', type = float,
+        default = 0.0, metavar = 'PCT',
         help = 'Clip pixels with values below this percentile for the image.')
-    display_group.add_argument('--clip-hi-percentile', type = float, default = 90.0,
+    display_group.add_argument('--clip-hi-percentile', type = float,
+        default = 90.0, metavar = 'PCT',
         help = 'Clip pixels with values above this percentile for the image.')
 
     args = parser.parse_args()
@@ -45,36 +51,58 @@ def main():
     if args.verbose:
         print results.survey.description()
 
-    # Determine the pixel values and their bounding box that we will display.
+    # Build the image of selected objects.
+    selected_image = None
     if args.galaxy:
         index = results.find_galaxy(args.galaxy)
-        image = results.get_galaxy_image(index)
+        selected_image = results.get_galaxy_image(index)
+
+    # Use the selected pixels to determine the z scaling.
+    selected_pixels = selected_image.array
+    non_zero_pixels = (selected_pixels > 0)
+    vmin,vmax = np.percentile(selected_pixels[non_zero_pixels],
+        q = (args.clip_lo_percentile,args.clip_hi_percentile))
+
+    def znorm(pixels):
+        return (np.clip(pixels,vmin,vmax) - vmin)/(vmax-vmin)
+
+    # See http://ds9.si.edu/ref/how.html#Scales
+    def zscale(pixels):
+        return np.sqrt(znorm(pixels))
+
+    # Calculate our viewing bounds.
+    if args.crop and selected_image is not None:
+        view_bounds = selected_image.bounds
     else:
-        # Display the full simulated image.
-        image = results.survey.image
+        view_bounds = results.survey.image.bounds
 
-    pixels = image.array
-    height,width = pixels.shape
-
-    fig_height = args.magnification*(height/args.dpi)
-    fig_width = args.magnification*(width/args.dpi)
-    figure = plt.figure(figsize = (fig_width,fig_height),frameon = False,dpi=args.dpi)
+    # Initialize a matplotlib figure to display our view bounds.
+    view_width = view_bounds.xmax - view_bounds.xmin + 1
+    view_height = view_bounds.ymax - view_bounds.ymin + 1
+    fig_height = args.magnification*(view_height/args.dpi)
+    fig_width = args.magnification*(view_width/args.dpi)
+    figure = plt.figure(figsize = (fig_width,fig_height),frameon = False,dpi = args.dpi)
     axes = plt.Axes(figure, [0., 0., 1., 1.])
+    axes.axis(xmin=view_bounds.xmin,xmax=view_bounds.xmax+1,
+        ymin=view_bounds.ymin,ymax=view_bounds.ymax+1)
     axes.set_axis_off()
     figure.add_axes(axes)
 
-    non_zero_pixels = (pixels > 0)
-    vmin,vmax = np.percentile(pixels[non_zero_pixels],
-        q = (args.clip_lo_percentile,args.clip_hi_percentile))
-    z_normalized = (np.clip(pixels,vmin,vmax) - vmin)/(vmax-vmin)
-    # See http://ds9.si.edu/ref/how.html#Scales
-    ##a = 1e3
-    ##z_scaled = np.log(a*z_normalized + 1)/np.log(a)
-    z_scaled = np.sqrt(z_normalized)
+    def show_image(image,**kwargs):
+        overlap = image.bounds & view_bounds
+        z = zscale(image[overlap].array)
+        xlo = overlap.xmin
+        xhi = overlap.xmax + 1
+        ylo = overlap.ymin
+        yhi = overlap.ymax + 1
+        axes.imshow(z,extent = (xlo,xhi,ylo,yhi),
+            aspect = 'equal',origin = 'lower',interpolation = 'nearest',**kwargs)
 
-    axes.imshow(z_scaled,cmap = args.colormap,
-        extent = (0,width,0,height),aspect = 'equal',
-        origin = 'lower',interpolation = 'nearest')
+    # Plot the full simulated image using the background colormap.
+    show_image(results.survey.image,cmap = args.colormap)
+
+    # Overplot the selected objects with transparencey.
+    show_image(selected_image,cmap = args.highlight, alpha = 0.5)
 
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
