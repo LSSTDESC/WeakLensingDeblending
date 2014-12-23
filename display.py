@@ -15,26 +15,46 @@ import descwl
 def main():
     # Initialize and parse command-line arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--verbose', action = 'store_true',
+        help = 'Provide verbose output.')
     descwl.output.Reader.add_args(parser)
-    parser.add_argument('--dpi', type = float, default = 64.,
-        help = 'Number of pixels per inch to use for display.')
-    parser.add_argument('--magnification', type = float, default = 1,
-        help = 'Magnification factor to use for display.')
-    parser.add_argument('--colormap', type = str, default = 'hot',
-        help = 'Matplotlib colormap name to use.')
-    parser.add_argument('--clip-lo-percentile', type = float, default = 10.0,
-        help = 'Clip pixels with values below this percentile for the image.')
-    parser.add_argument('--clip-hi-percentile', type = float, default = 90.0,
-        help = 'Clip pixels with values above this percentile for the image.')
     parser.add_argument('-o','--output-name',type = str, default = None,
         help = 'Name of the output file to write.')
+
+    select_group = parser.add_argument_group('Object selection options')
+    select_group.add_argument('--galaxy', type = int, default = None, metavar = 'ID',
+        help = 'Highlight the galaxy with this unique identifier.')
+
+    display_group = parser.add_argument_group('Display options')
+    display_group.add_argument('--dpi', type = float, default = 64.,
+        help = 'Number of pixels per inch to use for display.')
+    display_group.add_argument('--magnification', type = float, default = 1,
+        help = 'Magnification factor to use for display.')
+    display_group.add_argument('--colormap', type = str, default = 'hot',
+        help = 'Matplotlib colormap name to use for pixel values.')
+    display_group.add_argument('--clip-lo-percentile', type = float, default = 10.0,
+        help = 'Clip pixels with values below this percentile for the image.')
+    display_group.add_argument('--clip-hi-percentile', type = float, default = 90.0,
+        help = 'Clip pixels with values above this percentile for the image.')
+
     args = parser.parse_args()
 
+    # Load the analysis results file we will display from.
     reader = descwl.output.Reader.from_args(args)
-    print reader.results.survey.description()
+    results = reader.results
+    if args.verbose:
+        print results.survey.description()
 
-    image_data = reader.results.survey.image.array
-    height,width = image_data.shape
+    # Determine the pixel values and their bounding box that we will display.
+    if args.galaxy:
+        index = results.find_galaxy(args.galaxy)
+        image = results.get_galaxy_image(index)
+    else:
+        # Display the full simulated image.
+        image = results.survey.image
+
+    pixels = image.array
+    height,width = pixels.shape
 
     fig_height = args.magnification*(height/args.dpi)
     fig_width = args.magnification*(width/args.dpi)
@@ -43,10 +63,10 @@ def main():
     axes.set_axis_off()
     figure.add_axes(axes)
 
-    non_zero_pixels = (image_data > 0)
-    vmin,vmax = np.percentile(image_data[non_zero_pixels],
+    non_zero_pixels = (pixels > 0)
+    vmin,vmax = np.percentile(pixels[non_zero_pixels],
         q = (args.clip_lo_percentile,args.clip_hi_percentile))
-    z_normalized = (np.clip(image_data,vmin,vmax) - vmin)/(vmax-vmin)
+    z_normalized = (np.clip(pixels,vmin,vmax) - vmin)/(vmax-vmin)
     # See http://ds9.si.edu/ref/how.html#Scales
     ##a = 1e3
     ##z_scaled = np.log(a*z_normalized + 1)/np.log(a)

@@ -5,6 +5,8 @@ import numpy as np
 
 import astropy.table
 
+import galsim
+
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
 
@@ -24,6 +26,46 @@ class OverlapResults(object):
         self.table = table
         self.stamps = stamps
         self.bounds = bounds
+
+    def find_galaxy(self,identifier):
+        """Find a galaxy in our results.
+
+        The returned `index` can be used to find analysis results via `table[index]` and
+        the corresponding simulated datacube using `stamps[index]` and `bounds[index]`.
+
+        Args:
+            identifier(int): Unique galaxy identifier to find.
+
+        Returns:
+            int: Index of the requested galaxy.
+
+        Raises:
+            RuntimeError: No such galaxy in the results.
+        """
+        finder = (self.table['db_id'] == identifier)
+        if np.count_nonzero(finder) != 1:
+            raise RuntimeError('No such galaxy with id=%d.' % identifier)
+        return np.argmax(finder)
+
+    def get_galaxy_image(self,index):
+        """Return the simulated postage stamp for a single galaxy.
+
+        Args:
+            index(int): Index of the requested galaxy in our results. Use
+                meth:`find_galaxy` to get the index for an identifier.
+
+        Returns:
+            galsim.ImageView: A GalSim image for the requested galaxy.
+
+        Raises:
+            RuntimeError: No such galaxy in the results.
+        """
+        if index < 0 or index >= len(self.stamps):
+            raise RuntimeError('No such galaxy with index=%d.' % index)
+        bounds = self.bounds[index]
+        image = galsim.Image(self.stamps[index][0],xmin = bounds.xmin,ymin = bounds.ymin,
+            scale = self.survey.pixel_scale,make_const = True)
+        return image
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.
