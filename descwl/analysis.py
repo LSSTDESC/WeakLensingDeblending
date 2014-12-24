@@ -101,6 +101,8 @@ class OverlapAnalyzer(object):
             ('grp_id',np.int16),
             ('grp_size',np.int16),
             ('visible',np.bool8),
+            ('dx',np.float32),
+            ('dy',np.float32),
             ('z',np.float32),
             ('ab_mag',np.float32),
             ('snr_sky',np.float32),
@@ -111,6 +113,8 @@ class OverlapAnalyzer(object):
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(self.galaxies):
             data['db_id'][index] = model.identifier
+            data['dx'][index] = model.dx_arcsecs
+            data['dy'][index] = model.dy_arcsecs
             data['z'][index] = model.redshift
             data['ab_mag'][index] = model.ab_magnitude
             # Is this galaxy's centroid visible in the survey image?

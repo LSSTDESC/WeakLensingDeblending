@@ -32,6 +32,8 @@ db_id    int64   Unique identifier for this source in the LSST DM catalog databa
 grp_id   int16   Indentifier for the group that this source belongs to
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
 visible  bool8   Is this source's centroid within the simulated image bounds?
+dx       float32 Source centroid in x relative to image center in arcseconds.
+dy       float32 Source centroid in y relative to image center in arcseconds.
 z        float32 Simulated source redshift
 ab_mag   float32 Simulated source AB magnitude in simulated filter band
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit

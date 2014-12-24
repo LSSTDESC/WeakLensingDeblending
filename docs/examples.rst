@@ -20,7 +20,7 @@ Quick Demo
 
 Run i-band calculation for LSST with a small field and verbose output::
 
-	./simulate.py --catalog-name OneDegSq.fits --ra-center 0.5 --dec-center 0.0 --image-width 512 --image-height 512 --survey-name LSST --filter-band i  --no-agn--output demo --verbose --verbose-build --verbose-render
+	./simulate.py --catalog-name OneDegSq.fits --ra-center 0.5 --dec-center 0.0 --image-width 512 --image-height 512 --survey-name LSST --filter-band i  --no-agn --output-name demo --verbose --verbose-build --verbose-render
 
 	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --airmass 1.2 --extinction 0.07 -o baseline --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5
 
