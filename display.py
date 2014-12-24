@@ -9,7 +9,6 @@ import numpy as np
 import numpy.ma
 
 import matplotlib.pyplot as plt
-import matplotlib.cm
 
 import astropy.io.fits
 
@@ -21,7 +20,7 @@ def main():
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
     descwl.output.Reader.add_args(parser)
-    parser.add_argument('-o','--output-name',type = str, default = None,
+    parser.add_argument('-o','--output-name',type = str, default = None, metavar = 'FILE',
         help = 'Name of the output file to write.')
 
     select_group = parser.add_argument_group('Object selection options')
@@ -33,11 +32,14 @@ def main():
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
-    display_group.add_argument('--magnification', type = float, default = 1,
+    display_group.add_argument('--magnification', type = float,
+        default = 1, metavar = 'MAG',
         help = 'Magnification factor to use for display.')
-    display_group.add_argument('--colormap', type = str, default = 'gray_r',
+    display_group.add_argument('--colormap', type = str,
+        default = 'gray_r', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for background pixel values.')
-    display_group.add_argument('--highlight', type = str, default = 'hot_r',
+    display_group.add_argument('--highlight', type = str,
+        default = 'hot_r', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for highlighted pixel values.')
     display_group.add_argument('--clip-lo-percentile', type = float,
         default = 0.0, metavar = 'PCT',
@@ -93,23 +95,25 @@ def main():
     axes.set_axis_off()
     figure.add_axes(axes)
 
-    def show_image(image,**kwargs):
+    def show_image(image,masked,**kwargs):
         overlap = image.bounds & view_bounds
-        z = numpy.ma.masked_where(image[overlap].array == 0,zscale(image[overlap].array))
         xlo = overlap.xmin
         xhi = overlap.xmax + 1
         ylo = overlap.ymin
         yhi = overlap.ymax + 1
+        overlap_pixels = image[overlap].array
+        z = zscale(overlap_pixels)
+        if masked:
+            # Only show non-zero pixels.
+            z = numpy.ma.masked_where(overlap_pixels == 0,z)
         axes.imshow(z,extent = (xlo,xhi,ylo,yhi),
             aspect = 'equal',origin = 'lower',interpolation = 'nearest',**kwargs)
 
     # Plot the full simulated image using the background colormap.
-    show_image(results.survey.image,cmap = args.colormap)
+    show_image(results.survey.image,masked = False,cmap = args.colormap)
 
-    # Overplot the selected objects.
-    highlight_colormap = matplotlib.cm.get_cmap(args.highlight)
-    #highlight_colormap.set_under(alpha = 0.)
-    show_image(selected_image,cmap = highlight_colormap, alpha = 1)
+    # Overplot the selected objects showing only non-zero pixels.
+    show_image(selected_image,masked = True,cmap = args.highlight)
 
     # Draw a crosshair at the centroid of selected objects.
     for index in selected_indices:
