@@ -28,6 +28,11 @@ def main():
         help = 'Highlight the galaxy with this unique identifier.')
     select_group.add_argument('--crop', action = 'store_true',
         help = 'Crop the displayed pixels around the selected objects.')
+    select_group.add_argument('--annotate', action = 'store_true',
+        help = 'Annotate selected objects with a brief description.')
+    select_group.add_argument('--annotate-format', type = str,
+        default = 'ID %(db_id)d\nz=%(z).1f AB=%(ab_mag).1f', metavar = 'FMT',
+        help = 'String interpolation format to generate annotation labels.')
 
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--dpi', type = float, default = 64.,
@@ -41,6 +46,9 @@ def main():
     display_group.add_argument('--highlight', type = str,
         default = 'hot_r', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for highlighted pixel values.')
+    display_group.add_argument('--annotate-color', type = str,
+        default = 'white', metavar = 'COL',
+        help = 'Matplotlib color name to use for annotation crosshairs and text.')
     display_group.add_argument('--clip-lo-percentile', type = float,
         default = 0.0, metavar = 'PCT',
         help = 'Clip pixels with values below this percentile for the image.')
@@ -115,14 +123,20 @@ def main():
     # Overplot the selected objects showing only non-zero pixels.
     show_image(selected_image,masked = True,cmap = args.highlight)
 
-    # Draw a crosshair at the centroid of selected objects.
     for index in selected_indices:
-        # Calculate the centroid position relative to the lower-left corner in pixel units.
-        x_pixels = (0.5*results.survey.image_width +
+        # Calculate the selected object's centroid position in user display coordinates.
+        x_center = (0.5*results.survey.image_width +
             results.table['dx'][index]/results.survey.pixel_scale)
-        y_pixels = (0.5*results.survey.image_height +
+        y_center = (0.5*results.survey.image_height +
             results.table['dy'][index]/results.survey.pixel_scale)
-        axes.plot(x_pixels,y_pixels,'w+',markeredgewidth = 2,markersize = 24)
+        # Draw a crosshair at the centroid of selected objects.
+        axes.plot(x_center,y_center,'+',color = args.annotate_color,
+            markeredgewidth = 2,markersize = 24)
+        if args.annotate:
+            info = results.table[index]
+            annotation = args.annotate_format % info
+            axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
+                textcoords = 'offset points',color = args.annotate_color)
 
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
