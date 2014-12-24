@@ -6,7 +6,10 @@ import argparse
 import os.path
 
 import numpy as np
+import numpy.ma
+
 import matplotlib.pyplot as plt
+import matplotlib.cm
 
 import astropy.io.fits
 
@@ -32,9 +35,9 @@ def main():
         help = 'Number of pixels per inch to use for display.')
     display_group.add_argument('--magnification', type = float, default = 1,
         help = 'Magnification factor to use for display.')
-    display_group.add_argument('--colormap', type = str, default = 'gray',
+    display_group.add_argument('--colormap', type = str, default = 'gray_r',
         help = 'Matplotlib colormap name to use for background pixel values.')
-    display_group.add_argument('--highlight', type = str, default = 'hot',
+    display_group.add_argument('--highlight', type = str, default = 'hot_r',
         help = 'Matplotlib colormap name to use for highlighted pixel values.')
     display_group.add_argument('--clip-lo-percentile', type = float,
         default = 0.0, metavar = 'PCT',
@@ -51,10 +54,12 @@ def main():
     if args.verbose:
         print results.survey.description()
 
-    # Build the image of selected objects.
+    # Perform object selection
     selected_image = None
+    selected_indices = [ ]
     if args.galaxy:
         index = results.find_galaxy(args.galaxy)
+        selected_indices.append(index)
         selected_image = results.get_galaxy_image(index)
 
     # Use the selected pixels to determine the z scaling.
@@ -90,7 +95,7 @@ def main():
 
     def show_image(image,**kwargs):
         overlap = image.bounds & view_bounds
-        z = zscale(image[overlap].array)
+        z = numpy.ma.masked_where(image[overlap].array == 0,zscale(image[overlap].array))
         xlo = overlap.xmin
         xhi = overlap.xmax + 1
         ylo = overlap.ymin
@@ -101,8 +106,19 @@ def main():
     # Plot the full simulated image using the background colormap.
     show_image(results.survey.image,cmap = args.colormap)
 
-    # Overplot the selected objects with transparencey.
-    show_image(selected_image,cmap = args.highlight, alpha = 0.5)
+    # Overplot the selected objects.
+    highlight_colormap = matplotlib.cm.get_cmap(args.highlight)
+    #highlight_colormap.set_under(alpha = 0.)
+    show_image(selected_image,cmap = highlight_colormap, alpha = 1)
+
+    # Draw a crosshair at the centroid of selected objects.
+    for index in selected_indices:
+        # Calculate the centroid position relative to the lower-left corner in pixel units.
+        x_pixels = (0.5*results.survey.image_width +
+            results.table['dx'][index]/results.survey.pixel_scale)
+        y_pixels = (0.5*results.survey.image_height +
+            results.table['dy'][index]/results.survey.pixel_scale)
+        axes.plot(x_pixels,y_pixels,'w+',markeredgewidth = 2,markersize = 24)
 
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
