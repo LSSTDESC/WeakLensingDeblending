@@ -24,6 +24,8 @@ def main():
         help = 'Name of the output file to write.')
 
     select_group = parser.add_argument_group('Object selection options')
+    select_group.add_argument('--select-all', action = 'store_true',
+        help = 'Select all galaxies with centroids within the simulated image.')
     select_group.add_argument('--galaxy', type = int, default = None, metavar = 'ID',
         help = 'Highlight the galaxy with this unique identifier.')
     select_group.add_argument('--crop', action = 'store_true',
@@ -66,11 +68,14 @@ def main():
 
     # Perform object selection
     selected_image = None
-    selected_indices = [ ]
-    if args.galaxy:
-        index = results.find_galaxy(args.galaxy)
-        selected_indices.append(index)
-        selected_image = results.get_galaxy_image(index)
+    selected_indices = set()
+    if args.select_all:
+        selected_indices.update(results.find_all_visible())
+    elif args.galaxy:
+        selected_indices.add(results.find_galaxy(args.galaxy))
+
+    # Build the image of selected objects.
+    selected_image = results.get_subimage(selected_indices)
 
     # Use the selected pixels to determine the z scaling.
     selected_pixels = selected_image.array

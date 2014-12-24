@@ -14,6 +14,10 @@ class OverlapResults(object):
     simulating an image or using :meth:`descwl.output.Reader` to load saved
     simulation results.
 
+    Indices returned by the `find` methods below can be used to lookup analysis
+    results via `table[index]` and the corresponding simulated datacube using
+    `stamps[index]` and `bounds[index]`.
+
     Args:
         survey(descwl.survey.Survey): Simulated survey that results are based on.
         table(astropy.table.Table): Table of analysis results with one row per galaxy.
@@ -27,11 +31,17 @@ class OverlapResults(object):
         self.stamps = stamps
         self.bounds = bounds
 
+    def find_all_visible(self):
+        """Find all galaxies with centroids within the simulated image.
+
+        Returns:
+            :class:`numpy.ndarray`: Integer array of indices for the found galaxies.
+        """
+        finder = (self.table['visible'] == True)
+        return np.arange(len(self.table))[finder]
+
     def find_galaxy(self,identifier):
         """Find a galaxy in our results.
-
-        The returned `index` can be used to find analysis results via `table[index]` and
-        the corresponding simulated datacube using `stamps[index]` and `bounds[index]`.
 
         Args:
             identifier(int): Unique galaxy identifier to find.
@@ -47,12 +57,13 @@ class OverlapResults(object):
             raise RuntimeError('No such galaxy with id=%d.' % identifier)
         return np.argmax(finder)
 
-    def get_galaxy_image(self,index):
+    def get_stamp(self,index,datacube_index=0):
         """Return the simulated postage stamp for a single galaxy.
 
         Args:
             index(int): Index of the requested galaxy in our results. Use
                 meth:`find_galaxy` to get the index for an identifier.
+            datacube_index(int): Which slice of the datacube to return.
 
         Returns:
             galsim.ImageView: A GalSim image for the requested galaxy.
@@ -63,9 +74,29 @@ class OverlapResults(object):
         if index < 0 or index >= len(self.stamps):
             raise RuntimeError('No such galaxy with index=%d.' % index)
         bounds = self.bounds[index]
-        image = galsim.Image(self.stamps[index][0],xmin = bounds.xmin,ymin = bounds.ymin,
+        image = galsim.Image(self.stamps[index][datacube_index],
+            xmin = bounds.xmin,ymin = bounds.ymin,
             scale = self.survey.pixel_scale,make_const = True)
         return image
+
+    def get_subimage(self,indices):
+        """Return simulated subimage of a set of objects.
+
+        Args:
+            indices(iterable): Indices of the objects to include in the subimage.
+
+        Returns:
+            galsim.Image: Image of the selected objects.
+        """
+        subimage_bounds = galsim.BoundsI()
+        for index in indices:
+            subimage_bounds += self.bounds[index]
+        subimage = galsim.Image(bounds = subimage_bounds, scale = self.survey.pixel_scale)
+        for index in indices:
+            stamp = self.get_stamp(index)
+            overlap = subimage_bounds & stamp.bounds
+            subimage[overlap] += stamp[overlap]
+        return subimage
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.
