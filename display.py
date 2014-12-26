@@ -20,6 +20,8 @@ def main():
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
     descwl.output.Reader.add_args(parser)
+    parser.add_argument('--no-display', action = 'store_true',
+        help = 'Do not display the image on screen.')
     parser.add_argument('-o','--output-name',type = str, default = None, metavar = 'FILE',
         help = 'Name of the output file to write.')
 
@@ -47,15 +49,21 @@ def main():
     display_group.add_argument('--magnification', type = float,
         default = 1, metavar = 'MAG',
         help = 'Magnification factor to use for display.')
+    display_group.add_argument('--max-view-size', type = int,
+        default = 2048, metavar = 'SIZE',
+        help = 'Maximum allowed pixel dimensions of displayed image.')
     display_group.add_argument('--colormap', type = str,
-        default = 'gray_r', metavar = 'CMAP',
+        default = 'Blues', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for background pixel values.')
     display_group.add_argument('--highlight', type = str,
         default = 'hot_r', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for highlighted pixel values.')
-    display_group.add_argument('--annotate-color', type = str,
+    display_group.add_argument('--crosshair-color', type = str,
         default = 'greenyellow', metavar = 'COL',
-        help = 'Matplotlib color name to use for annotation crosshairs and text.')
+        help = 'Matplotlib color name to use for crosshairs.')
+    display_group.add_argument('--annotate-color', type = str,
+        default = 'green', metavar = 'COL',
+        help = 'Matplotlib color name to use for annotation text.')
     display_group.add_argument('--clip-lo-percentile', type = float,
         default = 0.0, metavar = 'PCT',
         help = 'Clip pixels with values below this percentile for the image.')
@@ -64,6 +72,9 @@ def main():
         help = 'Clip pixels with values above this percentile for the image.')
 
     args = parser.parse_args()
+    if args.no_display and not args.output_name:
+        print 'No display our output requested.'
+        return 0
 
     # Load the analysis results file we will display from.
     reader = descwl.output.Reader.from_args(args)
@@ -122,6 +133,11 @@ def main():
     # Initialize a matplotlib figure to display our view bounds.
     view_width = view_bounds.xmax - view_bounds.xmin + 1
     view_height = view_bounds.ymax - view_bounds.ymin + 1
+    if (view_width*args.magnification > args.max_view_size or
+        view_height*args.magnification > args.max_view_size):
+        print 'Requested view dimensions %d x %d too big. Increase --max-view-size if necessary.' % (
+            view_width*args.magnification,view_height*args.magnification)
+        return -1
     fig_height = args.magnification*(view_height/args.dpi)
     fig_width = args.magnification*(view_width/args.dpi)
     figure = plt.figure(figsize = (fig_width,fig_height),frameon = False,dpi = args.dpi)
@@ -159,7 +175,7 @@ def main():
         y_center = (0.5*results.survey.image_height +
             results.table['dy'][index]/results.survey.pixel_scale)
         # Draw a crosshair at the centroid of selected objects.
-        axes.plot(x_center,y_center,'+',color = args.annotate_color,
+        axes.plot(x_center,y_center,'+',color = args.crosshair_color,
             markeredgewidth = 2,markersize = 24)
         if args.annotate:
             info = results.table[index]
@@ -170,7 +186,8 @@ def main():
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
 
-    plt.show()
+    if not args.no_display:
+        plt.show()
 
 if __name__ == '__main__':
     main()
