@@ -55,29 +55,12 @@ class OverlapResults(object):
         if selector == 'ALL':
             return np.ones(self.num_objects,dtype=bool)
         elif selector == 'NONE':
-            return no.zeros(self.num_objects,dtype=bool)
+            return np.zeros(self.num_objects,dtype=bool)
         else:
             try:
                 return eval(selector,self.locals)
             except NameError,e:
                 raise RuntimeError('%s in selector %r.' % (e.message,selector))
-
-    def find_galaxy(self,identifier):
-        """Find a galaxy in our results.
-
-        Args:
-            identifier(int): Unique galaxy identifier to find.
-
-        Returns:
-            int: Index of the requested galaxy.
-
-        Raises:
-            RuntimeError: No such galaxy in the results.
-        """
-        finder = (self.table['db_id'] == identifier)
-        if np.count_nonzero(finder) != 1:
-            raise RuntimeError('No such galaxy with id=%d.' % identifier)
-        return np.argmax(finder)
 
     def get_stamp(self,index,datacube_index=0):
         """Return the simulated postage stamp for a single galaxy.
@@ -108,11 +91,19 @@ class OverlapResults(object):
             indices(iterable): Indices of the objects to include in the subimage.
 
         Returns:
-            galsim.Image: Image of the selected objects.
+            galsim.Image: Image of the selected objects or None of indices is empty.
+
+        Raises:
+            RuntimeError: An index is out of range.
         """
+        if len(indices) == 0:
+            return None
         subimage_bounds = galsim.BoundsI()
-        for index in indices:
-            subimage_bounds += self.bounds[index]
+        try:
+            for index in indices:
+                subimage_bounds += self.bounds[index]
+        except IndexError:
+            raise RuntimeError('Index out of range %d' % index)
         subimage = galsim.Image(bounds = subimage_bounds, scale = self.survey.pixel_scale)
         for index in indices:
             stamp = self.get_stamp(index)

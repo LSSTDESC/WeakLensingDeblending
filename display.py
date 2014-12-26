@@ -26,7 +26,10 @@ def main():
     select_group = parser.add_argument_group('Object selection options')
     select_group.add_argument('--galaxy', type = int, action = 'append',
         default = [ ], metavar = 'ID',
-        help = 'Select the galaxy with this unique identifier (can be repeated).')
+        help = 'Select the galaxy with this database ID (can be repeated).')
+    select_group.add_argument('--group', type = int, action = 'append',
+        default = [ ], metavar = 'ID',
+        help = 'Select galaxies belonging to the group with this group ID (can be repeated).')
     select_group.add_argument('--select', type = str, action = 'append',
         default = [ ], metavar = 'CUT',
         help = 'Select objects passing the specified cut (can be repeated).')
@@ -77,18 +80,30 @@ def main():
     else:
         # Nothing is selected by default.
         selection = results.select('NONE')
+    # Add any specified groups to the selection.
+    for identifier in args.group:
+        selected = results.select('grp_id==%d' % identifier)
+        if not np.any(selected):
+            print 'WARNING: no group found with ID %d.' % identifier
+        selection = np.logical_or(selection,selected)
     # Add any specified galaxies to the selection.
     for identifier in args.galaxy:
-        selection = np.logical_or(selection,results.select('db_id==%d' % identifier))
+        selected = results.select('db_id==%d' % identifier)
+        if not np.any(selected):
+            print 'WARNING: no galaxy found with ID %d.' % identifier
+        selection = np.logical_or(selection,selected)
     selected_indices = np.arange(results.num_objects)[selection]
 
     # Build the image of selected objects.
     selected_image = results.get_subimage(selected_indices)
 
-    # Use the selected pixels to determine the z scaling.
-    selected_pixels = selected_image.array
-    non_zero_pixels = (selected_pixels > 0)
-    vmin,vmax = np.percentile(selected_pixels[non_zero_pixels],
+    # Prepare the z scaling.
+    if selected_image:
+        zscale_pixels = selected_image.array
+    else:
+        zscale_pixels = results.survey.image.array
+    non_zero_pixels = (zscale_pixels > 0)
+    vmin,vmax = np.percentile(zscale_pixels[non_zero_pixels],
         q = (args.clip_lo_percentile,args.clip_hi_percentile))
 
     def znorm(pixels):
@@ -134,7 +149,8 @@ def main():
     show_image(results.survey.image,masked = False,cmap = args.colormap)
 
     # Overplot the selected objects showing only non-zero pixels.
-    show_image(selected_image,masked = True,cmap = args.highlight)
+    if selected_image:
+        show_image(selected_image,masked = True,cmap = args.highlight)
 
     for index in selected_indices:
         # Calculate the selected object's centroid position in user display coordinates.
