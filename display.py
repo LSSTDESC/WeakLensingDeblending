@@ -24,19 +24,21 @@ def main():
         help = 'Name of the output file to write.')
 
     select_group = parser.add_argument_group('Object selection options')
-    select_group.add_argument('--select-all', action = 'store_true',
-        help = 'Select all galaxies with centroids within the simulated image.')
-    select_group.add_argument('--galaxy', type = int, default = None, metavar = 'ID',
-        help = 'Highlight the galaxy with this unique identifier.')
-    select_group.add_argument('--crop', action = 'store_true',
-        help = 'Crop the displayed pixels around the selected objects.')
-    select_group.add_argument('--annotate', action = 'store_true',
-        help = 'Annotate selected objects with a brief description.')
-    select_group.add_argument('--annotate-format', type = str,
-        default = 'ID %(db_id)d\nz=%(z).1f AB=%(ab_mag).1f', metavar = 'FMT',
-        help = 'String interpolation format to generate annotation labels.')
+    select_group.add_argument('--galaxy', type = int, action = 'append',
+        default = [ ], metavar = 'ID',
+        help = 'Select the galaxy with this unique identifier (can be repeated).')
+    select_group.add_argument('--select', type = str, action = 'append',
+        default = [ ], metavar = 'CUT',
+        help = 'Select objects passing the specified cut (can be repeated).')
 
     display_group = parser.add_argument_group('Display options')
+    display_group.add_argument('--crop', action = 'store_true',
+        help = 'Crop the displayed pixels around the selected objects.')
+    display_group.add_argument('--annotate', action = 'store_true',
+        help = 'Annotate selected objects with a brief description.')
+    display_group.add_argument('--annotate-format', type = str,
+        default = 'ID %(db_id)d\nz=%(z).1f AB=%(ab_mag).1f', metavar = 'FMT',
+        help = 'String interpolation format to generate annotation labels.')
     display_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
     display_group.add_argument('--magnification', type = float,
@@ -49,7 +51,7 @@ def main():
         default = 'hot_r', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for highlighted pixel values.')
     display_group.add_argument('--annotate-color', type = str,
-        default = 'white', metavar = 'COL',
+        default = 'greenyellow', metavar = 'COL',
         help = 'Matplotlib color name to use for annotation crosshairs and text.')
     display_group.add_argument('--clip-lo-percentile', type = float,
         default = 0.0, metavar = 'PCT',
@@ -66,13 +68,19 @@ def main():
     if args.verbose:
         print results.survey.description()
 
-    # Perform object selection
-    selected_image = None
-    selected_indices = set()
-    if args.select_all:
-        selected_indices.update(results.find_all_visible())
-    elif args.galaxy:
-        selected_indices.add(results.find_galaxy(args.galaxy))
+    # Perform object selection.
+    if args.select:
+        # Combine select clauses with logical AND.
+        selection = results.select('ALL')
+        for selector in args.select:
+            selection = np.logical_and(selection,results.select(selector))
+    else:
+        # Nothing is selected by default.
+        selection = results.select('NONE')
+    # Add any specified galaxies to the selection.
+    for identifier in args.galaxy:
+        selection = np.logical_or(selection,results.select('db_id==%d' % identifier))
+    selected_indices = np.arange(results.num_objects)[selection]
 
     # Build the image of selected objects.
     selected_image = results.get_subimage(selected_indices)

@@ -30,15 +30,37 @@ class OverlapResults(object):
         self.table = table
         self.stamps = stamps
         self.bounds = bounds
+        self.num_objects = len(self.table)
+        self.locals = { name: self.table[name] for name in self.table.colnames }
 
-    def find_all_visible(self):
-        """Find all galaxies with centroids within the simulated image.
+    def select(self,selector):
+        """Select objects.
+
+        This function is implemented using :func:`eval` so should only be used when the
+        source of the selector string is trusted.
+
+        Args:
+            selector(str): A selection string consisting of a boolean expression of
+                column table names, e.g. 'snr_iso > 5'.  The special strings 'ALL' and
+                'NONE' do what you would expect.
 
         Returns:
-            :class:`numpy.ndarray`: Integer array of indices for the found galaxies.
+            :class:`numpy.ndarray`: Boolean array containing a selection mask with one
+                entry per object whose True/False value indicates if the object has
+                been selected.
+
+        Raises:
+            RuntimeError: Selector uses an undefined variable name.
         """
-        finder = (self.table['visible'] == True)
-        return np.arange(len(self.table))[finder]
+        if selector == 'ALL':
+            return np.ones(self.num_objects,dtype=bool)
+        elif selector == 'NONE':
+            return no.zeros(self.num_objects,dtype=bool)
+        else:
+            try:
+                return eval(selector,self.locals)
+            except NameError,e:
+                raise RuntimeError('%s in selector %r.' % (e.message,selector))
 
     def find_galaxy(self,identifier):
         """Find a galaxy in our results.
