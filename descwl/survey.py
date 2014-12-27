@@ -3,6 +3,8 @@
 
 import math
 
+import numpy as np
+
 import galsim
 
 class Survey(object):
@@ -60,7 +62,7 @@ class Survey(object):
         # Create an empty image using (0,0) to index the lower-left corner pixel.
         self.image_bounds = galsim.BoundsI(0,self.image_width-1,0,self.image_height-1)
         self.image = galsim.Image(bounds = self.image_bounds,scale=self.pixel_scale,
-            dtype = np.float64)
+            dtype = np.float32)
 
     def description(self):
         """Describe the survey we simulate.

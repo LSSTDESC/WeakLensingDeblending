@@ -118,7 +118,7 @@ class Engine(object):
             ],gsparams=self.galsim_params)
 
         # Render the model in its own postage stamp.
-        stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale, dtype = np.float64)
+        stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale, dtype = np.float32)
         model.drawImage(image = stamp, use_true_center = True)
 
         # Identify pixels with flux above our cut and within our truncation radius
