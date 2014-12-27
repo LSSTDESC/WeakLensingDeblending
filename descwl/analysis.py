@@ -236,7 +236,7 @@ class OverlapAnalyzer(object):
                 group_image = results.get_subimage(group_indices)
                 # Loop over pairs of galaxies in this overlapping group to calculate
                 # the Fisher matrix for the overlapping S/N calculation.
-                fisher = np.empty((grp_size,grp_size),dtype = np.float64)
+                fisher = np.zeros((grp_size,grp_size),dtype = np.float64)
                 flux = np.empty(grp_size,dtype = np.float64)
                 for i1,g1 in enumerate(group_indices):
                     stamp1 = results.get_stamp(g1)
@@ -257,6 +257,9 @@ class OverlapAnalyzer(object):
                         fisher[i2,i1] = fisher[i1,i2]
                 covariance = numpy.linalg.inv(fisher)
                 variance = np.diag(covariance)
+                if not np.all(variance > 0):
+                    print 'variance < 0',variance
+                    print fisher
                 snr_squared = flux**2/variance
                 data['snr_grp'][grp_members] = np.sqrt(snr_squared)
                 print data['snr_grp'][grp_members]
