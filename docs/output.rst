@@ -20,6 +20,8 @@ The primary HDU contains the final simulated image using double precision floats
 
 All of the :class:`descwl.survey.Survey` constructor args are saved as header keywords in the primary HDU, using only the first eight characters in upper case for the corresponding keys.
 
+.. _analysis-results:
+
 Analysis Results
 ----------------
 
