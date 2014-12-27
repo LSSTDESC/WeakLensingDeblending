@@ -59,13 +59,9 @@ def main():
         for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
             try:
-
                 galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-
                 stamps,bounds = render_engine.render_galaxy(galaxy)
-
                 analyzer.add_galaxy(galaxy,stamps,bounds)
-                output.save_stamps(stamps,bounds)
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass

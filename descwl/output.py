@@ -118,6 +118,7 @@ class Writer(object):
         RuntimeError: Unable to initialize FITS output file.
     """
     def __init__(self,survey,output_name,output_no_clobber):
+        self.survey = survey
         self.output_name = output_name
         self.output_no_clobber = output_no_clobber
         self.hdu_list = None
@@ -145,10 +146,8 @@ class Writer(object):
             self.hdu_list = astropy.io.fits.open(self.output_name, mode = 'update',
                 memmap = False)
             assert len(self.hdu_list) == 0, 'Expected new FITS file to be empty.'
-            # Add the primary HDU.
-            primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
-            for key,value in survey.args.iteritems():
-                primary_hdu.header.set(key[:8],value)
+            # Add an empty primary HDU for now.
+            primary_hdu = astropy.io.fits.PrimaryHDU()
             self.hdu_list.append(primary_hdu)
 
     def description(self):
@@ -159,33 +158,30 @@ class Writer(object):
         """
         return 'Simulation output will be saved to %s' % self.output_name
 
-    def save_stamps(self,stamps,bounds):
-        """Save a datacube of postage stamp images for a single source.
-
-        Args:
-            stamps(:class:`numpy.ndarray`): Array of shape (nstamp,width,height) containing
-                pixel values for nstamp stamps of dimensions (width,height).
-            bounds(galsim.BoundsI): Bounds of the stamps in the full simulated survey image.
-        """
-        if self.hdu_list:
-            data_cube = astropy.io.fits.ImageHDU(data = stamps)
-            data_cube.header['X_MIN'] = bounds.xmin
-            data_cube.header['Y_MIN'] = bounds.ymin
-            self.hdu_list.append(data_cube)
-
     def finalize(self,results):
         """Save analysis results and close the output file, if any.
 
         Args:
-            :class:`astropy.table.Table`: Table of analysis results with one row per galaxy.
+            :class:`descwl.analysis.OverlapResults`: Overlap analysis results.
         """
-        if self.hdu_list:
-            table = astropy.io.fits.BinTableHDU.from_columns(np.array(results))
-            self.hdu_list.insert(1,table)
-            # We don't need to set clobber = True here since we already deleted any previous
-            # contents in our constructor.
-            self.hdu_list.writeto(self.output_name)
-            self.hdu_list.close()
+        if self.hdu_list is None:
+            return
+        # Fill in the primary HDU image data and headers.
+        primary_hdu = self.hdu_list[0]
+        primary_hdu.data = results.survey.image.array
+        for key,value in results.survey.args.iteritems():
+            primary_hdu.header.set(key[:8],value)
+        # Save the analysis results table in HDU[1].
+        table = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
+        self.hdu_list.append(table)
+        # Save each stamp datacube.
+        for stamps,bounds in zip(results.stamps,results.bounds):
+            data_cube = astropy.io.fits.ImageHDU(data = stamps)
+            data_cube.header['X_MIN'] = bounds.xmin
+            data_cube.header['Y_MIN'] = bounds.ymin
+            self.hdu_list.append(data_cube)
+        # Write and close our FITS file.
+        self.hdu_list.close()
 
     @staticmethod
     def add_args(parser):

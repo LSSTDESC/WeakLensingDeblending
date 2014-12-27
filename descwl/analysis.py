@@ -119,7 +119,9 @@ class OverlapAnalyzer(object):
     """
     def __init__(self,survey):
         self.survey = survey
-        self.galaxies = [ ]
+        self.models = [ ]
+        self.stamps = [ ]
+        self.bounds = [ ]
 
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
@@ -130,16 +132,18 @@ class OverlapAnalyzer(object):
                 pixel values for nstamp stamps of dimensions (width,height).
             bounds(galsim.BoundsI): Bounds of the stamps in the full simulated survey image.
         """
-        self.galaxies.append((model,stamps,bounds))
+        self.models.append(model)
+        self.stamps.append(stamps)
+        self.bounds.append(bounds)
 
     def finalize(self):
         """Finalize analysis of all added galaxies.
 
         Returns:
-            :class:`astropy.table.Table`: Table of analysis results with one row per galaxy.
+            :class:`OverlapResults`: Overlap analysis results.
         """
         # Define columns and allocate space for our table data.
-        num_galaxies = len(self.galaxies)
+        num_galaxies = len(self.models)
         data = np.empty(num_galaxies,dtype=[
             ('db_id',np.int64),
             ('grp_id',np.int16),
@@ -155,7 +159,7 @@ class OverlapAnalyzer(object):
 
         # Calculate isolated galaxy quantities and identify overlapping groups.
         data['grp_id'] = np.arange(num_galaxies)
-        for index,(model,stamps,bounds) in enumerate(self.galaxies):
+        for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
             data['db_id'][index] = model.identifier
             data['dx'][index] = model.dx_arcsecs
             data['dy'][index] = model.dy_arcsecs
@@ -172,7 +176,8 @@ class OverlapAnalyzer(object):
             mu0 = fiducial + sky
             data['snr_iso'][index] = np.sqrt(np.sum(fiducial**2*(mu0**-1 + 0.5*mu0**-2)))
             # Loop over earlier galaxies to build overlapping groups.
-            for pre_index,(pre_model,pre_stamps,pre_bounds) in enumerate(self.galaxies[:index]):
+            for pre_index,(pre_model,pre_stamps,pre_bounds) in enumerate(
+                zip(self.models[:index],self.stamps[:index],self.bounds[:index])):
                 # Do bounding boxes overlap?
                 overlap = bounds & pre_bounds
                 if overlap.area() == 0:
@@ -200,4 +205,6 @@ class OverlapAnalyzer(object):
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
 
-        return astropy.table.Table(data,copy = False)
+        table = astropy.table.Table(data,copy = False)
+        results = OverlapResults(self.survey,table,self.stamps,self.bounds)
+        return results
