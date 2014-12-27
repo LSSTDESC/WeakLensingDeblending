@@ -176,7 +176,6 @@ class OverlapAnalyzer(object):
             xmax[:,np.newaxis] >= xmin[np.newaxis,:],
             ymax[:,np.newaxis] >= ymin[np.newaxis,:])
         overlapping_bounds = np.logical_and(x_overlap,y_overlap)
-        print overlapping_bounds.shape
 
         # Calculate isolated galaxy quantities and identify overlapping groups.
         data['grp_id'] = np.arange(num_galaxies)
@@ -196,15 +195,11 @@ class OverlapAnalyzer(object):
             # Include the signal in the noise variance.
             mu0 = fiducial + sky
             data['snr_iso'][index] = np.sqrt(np.sum(fiducial**2*(mu0**-1 + 0.5*mu0**-2)))
-            # Loop over earlier galaxies to build overlapping groups.
-            for pre_index,pre_bounds in enumerate(self.bounds[:index]):
-                # Do bounding boxes overlap?
+            # Loop over earlier galaxies with overlapping bounding boxes.
+            for pre_index in np.arange(index)[overlapping_bounds[index,:index]]:
+                pre_bounds = self.bounds[pre_index]
                 overlap = bounds & pre_bounds
-                if overlap.area() == 0:
-                    assert overlapping_bounds[index,pre_index] == False
-                    continue
-                else:
-                    assert overlapping_bounds[index,pre_index] == True
+                assert overlap.area() > 0
                 # Are there any overlapping pixels with non-zero flux from both sources?
                 pre_stamps = self.stamps[pre_index]
                 overlap_flux_product = np.sum(
