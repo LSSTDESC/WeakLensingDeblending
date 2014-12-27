@@ -127,12 +127,29 @@ class Writer(object):
                 self.output_name += '.fits'
             elif extension.lower() != '.fits':
                 raise RuntimeError('Got unexpected output-name extension "%s".' % extension)
-            if not os.access(self.output_name,os.W_OK):
-                raise RuntimeError('Requested output file is not writeable: %s' % self.output_name)
+            try:
+                with open(self.output_name,'rb') as file:
+                    # File already exists. Can we clobber it?
+                    if self.output_no_clobber:
+                        raise RuntimeError('Cannot clobber existing file %r' %
+                            self.output_name)
+            except IOError:
+                pass
+            # Try to open an empty file, deleting any previous contents.
+            try:
+                with open(self.output_name,'wb') as file:
+                    pass
+            except IOError:
+                raise RuntimeError('File is not writeable %r' % args.output_name)
+            # Open the now-empty file as a FITS file.
+            self.hdu_list = astropy.io.fits.open(self.output_name, mode = 'update',
+                memmap = False)
+            assert len(self.hdu_list) == 0, 'Expected new FITS file to be empty.'
+            # Add the primary HDU.
             primary_hdu = astropy.io.fits.PrimaryHDU(data = survey.image.array)
             for key,value in survey.args.iteritems():
                 primary_hdu.header.set(key[:8],value)
-            self.hdu_list = astropy.io.fits.HDUList([primary_hdu])
+            self.hdu_list.append(primary_hdu)
 
     def description(self):
         """Describe our output configuration.
@@ -165,7 +182,9 @@ class Writer(object):
         if self.hdu_list:
             table = astropy.io.fits.BinTableHDU.from_columns(np.array(results))
             self.hdu_list.insert(1,table)
-            self.hdu_list.writeto(self.output_name,clobber = not self.output_no_clobber)
+            # We don't need to set clobber = True here since we already deleted any previous
+            # contents in our constructor.
+            self.hdu_list.writeto(self.output_name)
             self.hdu_list.close()
 
     @staticmethod
