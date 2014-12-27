@@ -42,7 +42,7 @@ def main():
     display_group.add_argument('--annotate', action = 'store_true',
         help = 'Annotate selected objects with a brief description.')
     display_group.add_argument('--annotate-format', type = str,
-        default = 'ID %(db_id)d\nz=%(z).1f AB=%(ab_mag).1f', metavar = 'FMT',
+        default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
         help = 'String interpolation format to generate annotation labels.')
     display_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
