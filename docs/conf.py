@@ -36,6 +36,7 @@ class Mock(MagicMock):
 MOCK_MODULES = [
     'numpy',
     'numpy.ma',
+    'numpy.linalg',
     'astropy',
     'astropy.table',
     'astropy.io',

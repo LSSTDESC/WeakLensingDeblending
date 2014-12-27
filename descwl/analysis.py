@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import numpy.linalg
 
 import astropy.table
 
@@ -155,6 +156,7 @@ class OverlapAnalyzer(object):
             ('ab_mag',np.float32),
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
+            ('snr_grp',np.float32),
             ])
 
         # Initialize integer arrays of bounding box limits.
@@ -178,6 +180,7 @@ class OverlapAnalyzer(object):
         overlapping_bounds = np.logical_and(x_overlap,y_overlap)
 
         # Calculate isolated galaxy quantities and identify overlapping groups.
+        sky = self.survey.mean_sky_level
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
             data['db_id'][index] = model.identifier
@@ -189,7 +192,6 @@ class OverlapAnalyzer(object):
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
             # Calculate the SNR this galaxy would have without any overlaps in the
             # sky-dominated limit.
-            sky = self.survey.mean_sky_level
             fiducial = stamps[0].flatten()
             data['snr_sky'][index] = np.sqrt(np.sum(fiducial**2)/sky)
             # Include the signal in the noise variance.
@@ -217,13 +219,46 @@ class OverlapAnalyzer(object):
                 # Reassign all galaxies in grp_id_old to grp_id_new.
                 data['grp_id'][data['grp_id'] == grp_id_old] = grp_id_new
 
+        # Initialize our results object so we can use its methods (but be careful not
+        # to use a method that needs something in table that we have not filled in yet).
+        table = astropy.table.Table(data,copy = False)
+        results = OverlapResults(self.survey,table,self.stamps,self.bounds)
+
         # Analyze overlapping groups.
+        ##data['snr_grp'] = data['snr_iso']
         num_groups = np.max(data['grp_id']) + 1
         for grp_id in range(num_groups):
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
+            if grp_size > 0:
+                group_indices = np.arange(num_galaxies)[grp_members]
+                group_image = results.get_subimage(group_indices)
+                # Loop over pairs of galaxies in this overlapping group to calculate
+                # the Fisher matrix for the overlapping S/N calculation.
+                fisher = np.empty((grp_size,grp_size),dtype = np.float64)
+                flux = np.empty(grp_size,dtype = np.float64)
+                for i1,g1 in enumerate(group_indices):
+                    stamp1 = results.get_stamp(g1)
+                    flux[i1] = self.models[g1].model.getFlux()
+                    for i2,g2 in enumerate(group_indices[:i1+1]):
+                        # Galaxies (g1,g2) might not directly overlap even if they are in
+                        # an overlapping group.
+                        if not overlapping_bounds[g1,g2]:
+                            continue
+                        stamp2 = results.get_stamp(g2)
+                        overlap = stamp1.bounds & stamp2.bounds
+                        assert overlap.area() > 0
+                        fiducial1 = stamp1[overlap].array.flatten()
+                        fiducial2 = stamp2[overlap].array.flatten()
+                        mu0 = group_image[overlap].array.flatten() + sky
+                        fisher[i1,i2] = np.sum(
+                            fiducial1*fiducial2*(mu0**-1 + 0.5*mu0**-2))/(flux[i1]*flux[i2])
+                        fisher[i2,i1] = fisher[i1,i2]
+                covariance = numpy.linalg.inv(fisher)
+                variance = np.diag(covariance)
+                snr_squared = flux**2/variance
+                data['snr_grp'][grp_members] = np.sqrt(snr_squared)
+                print data['snr_grp'][grp_members]
 
-        table = astropy.table.Table(data,copy = False)
-        results = OverlapResults(self.survey,table,self.stamps,self.bounds)
         return results
