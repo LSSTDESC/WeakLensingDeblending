@@ -48,6 +48,8 @@ class Engine(object):
         self.psf_dilution = psf_stamp.array[0]
         # We will render each source into a square stamp with width = height = 2*padding + 1.
         self.padding = int(math.ceil(self.truncate_radius/self.survey.pixel_scale - 0.5))
+        size = 2*self.padding + 1
+        self.stamp = galsim.Image(size,size,scale = self.survey.pixel_scale, dtype = np.float32)
         # Prepare a truncation mask.
         pixel_grid = np.arange(-self.padding,self.padding+1)*self.survey.pixel_scale
         pixel_x,pixel_y = np.meshgrid(pixel_grid,pixel_grid)
@@ -104,7 +106,6 @@ class Engine(object):
         x_max = x_center_index + self.padding
         y_min = y_center_index - self.padding
         y_max = y_center_index + self.padding
-        bounds = galsim.BoundsI(x_min,x_max,y_min,y_max)
 
         # Calculate the offset of the bounding box center from the image center in arcsecs.
         dx_stamp_arcsec = 0.5*(x_min + x_max+1 - self.survey.image_width)*self.survey.pixel_scale
@@ -117,16 +118,16 @@ class Engine(object):
             self.survey.psf_model
             ],gsparams=self.galsim_params)
 
-        # Render the model in its own postage stamp.
-        stamp = galsim.Image(bounds = bounds,scale = self.survey.pixel_scale, dtype = np.float32)
-        model.drawImage(image = stamp, use_true_center = True)
+        # Render the model in our postage stamp.
+        self.stamp.setOrigin(x_min,y_min)
+        model.drawImage(image = self.stamp, use_true_center = True)
 
         # Identify pixels with flux above our cut and within our truncation radius
         # and zero all other pixel fluxes.
-        keep_mask = (stamp.array*self.truncation_mask > self.pixel_cut)
+        keep_mask = (self.stamp.array*self.truncation_mask > self.pixel_cut)
         if np.sum(keep_mask) == 0:
             raise SourceNotVisible
-        stamp.array[np.logical_not(keep_mask)] = 0.
+        self.stamp.array[np.logical_not(keep_mask)] = 0.
 
         # Crop the bounding box.
         x_projection = (np.sum(keep_mask,axis=0) > 0)
@@ -138,16 +139,13 @@ class Engine(object):
         cropped_bounds = galsim.BoundsI(
             x_min+x_min_inset,x_max-x_max_inset,
             y_min+y_min_inset,y_max-y_max_inset)
-        cropped_stamp = stamp[cropped_bounds]
+        cropped_stamp = self.stamp[cropped_bounds]
 
         # Add the rendered model to the survey image.
         survey_overlap = cropped_bounds & self.survey.image.bounds
         if survey_overlap.area() == 0:
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
-
-        # Draw directly into the survey image, with no truncation.
-        #model.drawImage(image = self.survey.image,add_to_image = True,use_true_center = True)
 
         if self.verbose_render:
             print 'Rendered galaxy model for id = %d with z = %.3f' % (
@@ -157,7 +155,9 @@ class Engine(object):
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
-        return cropped_stamp.array[np.newaxis,:,:],cropped_bounds
+        # Copy the cropped stamp into a new datacube.
+        datacube = np.copy(cropped_stamp.array[np.newaxis,:,:])
+        return datacube,cropped_bounds
 
     @staticmethod
     def add_args(parser):
