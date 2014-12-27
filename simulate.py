@@ -13,6 +13,8 @@ def main():
         help = 'Provide verbose output.')
     parser.add_argument('--survey-defaults', action = 'store_true',
         help = 'Print survey camera and observing parameter defaults and exit.')
+    parser.add_argument('--memory-trace', action = 'store_true',
+        help = 'Trace memory usage (requires the psutil module).')
     catalog_group = parser.add_argument_group('Catalog input',
         'Specify an input catalog of source parameters for simulation.')
     descwl.catalog.Reader.add_args(catalog_group)
@@ -33,6 +35,28 @@ def main():
     if args.survey_defaults:
         descwl.survey.Survey.print_defaults()
         return 0
+
+    if args.memory_trace:
+        try:
+            import psutil
+            import os
+            this_process = psutil.Process(os.getpid())
+            global last_usage
+            last_usage = this_process.get_memory_info()[0]
+            print 'last_usage',last_usage
+            def trace(label):
+                global last_usage
+                usage = this_process.get_memory_info()[0]
+                print '%s memory usage: %.3f Mb (%+d bytes)' % (label,
+                    usage/float(2**20),usage-last_usage)
+                last_usage = usage
+        except:
+            print 'Unable to initialize memory-trace. Is psutils installed?'
+            return -1
+    else:
+        def trace(label): pass
+
+    trace('begin')
 
     try:
 
@@ -56,18 +80,23 @@ def main():
         if args.verbose:
             print output.description()
 
+        trace('initialized')
+
         for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
             try:
                 galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
                 stamps,bounds = render_engine.render_galaxy(galaxy)
                 analyzer.add_galaxy(galaxy,stamps,bounds)
+                trace('render')
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
 
         results = analyzer.finalize()
+        trace('analyzer.finalize')
         output.finalize(results)
+        trace('output.finalize')
 
     except RuntimeError,e:
         print str(e)
