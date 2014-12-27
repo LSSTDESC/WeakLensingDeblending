@@ -157,6 +157,27 @@ class OverlapAnalyzer(object):
             ('snr_iso',np.float32),
             ])
 
+        # Initialize integer arrays of bounding box limits.
+        xmin = np.empty(num_galaxies,np.int32)
+        ymin = np.empty(num_galaxies,np.int32)
+        xmax = np.empty(num_galaxies,np.int32)
+        ymax = np.empty(num_galaxies,np.int32)
+        for i in range(num_galaxies):
+            xmin[i] = self.bounds[i].xmin
+            ymin[i] = self.bounds[i].ymin
+            xmax[i] = self.bounds[i].xmax
+            ymax[i] = self.bounds[i].ymax
+
+        # Find overlapping bounding boxes.
+        x_overlap = np.logical_and(
+            xmin[:,np.newaxis] <= xmax[np.newaxis,:],
+            ymin[:,np.newaxis] <= ymax[np.newaxis,:])
+        y_overlap = np.logical_and(
+            xmax[:,np.newaxis] >= xmin[np.newaxis,:],
+            ymax[:,np.newaxis] >= ymin[np.newaxis,:])
+        overlapping_bounds = np.logical_and(x_overlap,y_overlap)
+        print overlapping_bounds.shape
+
         # Calculate isolated galaxy quantities and identify overlapping groups.
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
@@ -176,13 +197,16 @@ class OverlapAnalyzer(object):
             mu0 = fiducial + sky
             data['snr_iso'][index] = np.sqrt(np.sum(fiducial**2*(mu0**-1 + 0.5*mu0**-2)))
             # Loop over earlier galaxies to build overlapping groups.
-            for pre_index,(pre_model,pre_stamps,pre_bounds) in enumerate(
-                zip(self.models[:index],self.stamps[:index],self.bounds[:index])):
+            for pre_index,pre_bounds in enumerate(self.bounds[:index]):
                 # Do bounding boxes overlap?
                 overlap = bounds & pre_bounds
                 if overlap.area() == 0:
+                    assert overlapping_bounds[index,pre_index] == False
                     continue
+                else:
+                    assert overlapping_bounds[index,pre_index] == True
                 # Are there any overlapping pixels with non-zero flux from both sources?
+                pre_stamps = self.stamps[pre_index]
                 overlap_flux_product = np.sum(
                     stamps[0,
                         overlap.ymin-bounds.ymin:overlap.ymax-bounds.ymin+1,
