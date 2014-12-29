@@ -158,6 +158,13 @@ class OverlapAnalyzer(object):
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
             ('snr_grp',np.float32),
+            ('sigma_m',np.float32),
+            ('sigma_p',np.float32),
+            ('e1',np.float32),
+            ('e2',np.float32),
+            ('a',np.float32),
+            ('b',np.float32),
+            ('beta',np.float32),
             ])
 
         # Initialize integer arrays of bounding box limits.
@@ -191,6 +198,30 @@ class OverlapAnalyzer(object):
             data['ab_mag'][index] = model.ab_magnitude
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
+            # Calculate this galaxy's size and shape from its second-moments tensor.
+            detQ = numpy.linalg.det(model.second_moments)
+            # Calculate a**2 + b**2.
+            trQ = model.second_moments[0,0] + model.second_moments[1,1]
+            # Calculate a**2 - b**2.
+            asymQx = model.second_moments[0,0] - model.second_moments[1,1]
+            asymQy = 2*model.second_moments[0,1]
+            asymQ = np.sqrt(asymQx**2 + asymQy**2)
+            # Calculate the ellipse parameters.
+            a = np.sqrt(0.5*(trQ + asymQ))
+            b = np.sqrt(0.5*(trQ - asymQ))
+            beta = 0.5*np.arctan2(asymQy,asymQx)
+            # Calculate the ellipticity spinor.
+            e_denom = trQ + 2*np.sqrt(detQ)
+            e1 = asymQx/e_denom
+            e2 = asymQy/e_denom
+            # Save values to the analysis results.
+            data['sigma_m'][index] = detQ**0.25
+            data['sigma_p'][index] = (0.5*trQ)**0.5
+            data['a'][index] = a
+            data['b'][index] = b
+            data['e1'][index] = e1
+            data['e2'][index] = e2
+            data['beta'][index] = beta
             # Calculate the SNR this galaxy would have without any overlaps in the
             # sky-dominated limit.
             fiducial = stamps[0].flatten()

@@ -33,15 +33,22 @@ Name     Type    Description
 db_id    int64   Unique identifier for this source in the LSST DM catalog database
 grp_id   int16   Indentifier for the group that this source belongs to
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
-grp_rank int16   Rank position of this source in its group based on decreasing snr_grp.
+grp_rank int16   Rank position of this source in its group based on decreasing snr_grp
 visible  bool8   Is this source's centroid within the simulated image bounds?
-dx       float32 Source centroid in x relative to image center in arcseconds.
-dy       float32 Source centroid in y relative to image center in arcseconds.
+dx       float32 Source centroid in x relative to image center in arcseconds
+dy       float32 Source centroid in y relative to image center in arcseconds
 z        float32 Simulated source redshift
 ab_mag   float32 Simulated source AB magnitude in simulated filter band
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
 snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
 snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
+sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as |Q|**0.25
+sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5
+e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2|Q|**0.5)
+e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2|Q|**0.5)
+a        float32 Semi-major axis of bulge + disk 50% isophote in arcseconds
+b        float32 Semi-minor axis of bulge + disk 50% isophote in arcseconds
+beta     float32 Position angle of bulge + disk isophotes in radians from (-pi,+pi).
 ======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::
