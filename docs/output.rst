@@ -33,6 +33,7 @@ Name     Type    Description
 db_id    int64   Unique identifier for this source in the LSST DM catalog database
 grp_id   int16   Indentifier for the group that this source belongs to
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
+grp_rank int16   Rank position of this source in its group based on decreasing snr_grp.
 visible  bool8   Is this source's centroid within the simulated image bounds?
 dx       float32 Source centroid in x relative to image center in arcseconds.
 dy       float32 Source centroid in y relative to image center in arcseconds.

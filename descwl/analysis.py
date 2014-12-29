@@ -149,6 +149,7 @@ class OverlapAnalyzer(object):
             ('db_id',np.int64),
             ('grp_id',np.int16),
             ('grp_size',np.int16),
+            ('grp_rank',np.int16),
             ('visible',np.bool8),
             ('dx',np.float32),
             ('dy',np.float32),
@@ -260,7 +261,11 @@ class OverlapAnalyzer(object):
                 if not np.all(variance > 0):
                     print 'variance < 0',variance
                     print fisher
-                snr_squared = flux**2/variance
-                data['snr_grp'][grp_members] = np.sqrt(snr_squared)
+                group_snr = np.sqrt(flux**2/variance)
+                data['snr_grp'][grp_members] = group_snr
+                # Order group members by decreasing group S/N.
+                sorted_indices = group_indices[np.argsort(group_snr)[::-1]]
+                data['grp_rank'][sorted_indices] = np.arange(grp_size)
+                print data['snr_grp'][sorted_indices]
 
         return results
