@@ -24,14 +24,16 @@ Run i-band calculation for LSST with a small field and verbose output::
 
 	./display.py --input-name demo --annotate --annotate-format '%(grp_id)d' --select 'grp_size>1' --magnification 2
 
-	./display.py --input-name demo --annotate --crop --group 321 --magnification 16
+	./display.py --input-name demo --annotate --crop --group 367 --magnification 16
 
 	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --airmass 1.2 --extinction 0.07 -o baseline --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5
 
 Calculate Blending Statistics for CFHT, DES, LSST
 -------------------------------------------------
 
-Run i-band calculations::
+Run i-band calculations (each one takes about 7.5 minutes on a 2.5GHz i7 laptop and uses up to 1.5 Gb)::
+
+	./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --filter-band i --output-name LSST_i
 
 	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o lsst_i --pixel-scale 0.200 --width 4096 --height 4096 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5 --hsm
 	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --save-noise --airmass 1.2 --extinction 0.07 -o des_i  --pixel-scale 0.263 --width 3115 --height 3115 --exposure-time 1000 --sky-brightness 20.1 --zenith-fwhm 0.79 --zero-point 12.5 --hsm

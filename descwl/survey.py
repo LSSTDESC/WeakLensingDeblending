@@ -21,10 +21,11 @@ class Survey(object):
         pixel_scale(float): Simulated camera pixel scale in arcseconds per pixel.
         exposure_time(float): Simulated camera total exposure time seconds.
         zero_point(float): Simulated camera zero point in electrons per second at 24th magnitude.
-        mirror_diameter(float): Size of the primary mirror in meters to use for the optical PSF,
-            or zero if no optical PSF should be simulated.
-        obscuration_fraction(float): Linear obscuration fraction of the primary mirror to
-            use for the optical PSF. Ignored if mirror_diameter is zero.
+        mirror_diameter(float): Size of the primary mirror's clear aperture in meters to use for
+            the optical PSF, or zero if no optical PSF should be simulated.
+        effective_area(float): Effective total light collecting area in square meters. Used to
+            determine the obscuration fraction in the simulated optical PSF. Ignored if
+            mirror_diameter is zero.
         zenith_psf_fwhm(float): FWHM of the atmospheric PSF at zenith in arcseconds.
         atmospheric_psf_beta(float): Moffat beta parameter of the atmospheric PSF, or use a Kolmogorov
             PSF if beta <= 0.
@@ -51,10 +52,13 @@ class Survey(object):
         if self.mirror_diameter > 0:
             lambda_over_diameter = 3600*math.degrees(
                 1e-10*Survey._central_wavelength[self.filter_band]/self.mirror_diameter)
-            assert obscuration >= 0. and obscuration <= 1., 'Invalid obscuration_fraction'
+            area_ratio = self.effective_area/(math.pi*(0.5*self.mirror_diameter)**2)
+            if area_ratio <= 0 or area_ratio > 1:
+                raise RuntimeError('Incompatible effective-area and mirror-diameter values.')
+            self.obscuration_fraction = math.sqrt(1 - area_ratio)
             optical_psf_model = galsim.Airy(lam_over_diam = lambda_over_diameter,
                 obscuration = self.obscuration_fraction)
-            self.psf_model = galsim.Add(atmospheric_psf_model,optical_psf_model)
+            self.psf_model = galsim.Convolve(atmospheric_psf_model,optical_psf_model)
         else:
             self.psf_model = atmospheric_psf_model
         # Calculate the mean sky background level in detected electrons per pixel.
@@ -70,8 +74,8 @@ class Survey(object):
         Returns:
             str: Description of the camera design and observing conditions we simulate.
         """
-        return 'Simulating %s %s-band survey with %r' % (
-            self.survey_name,self.filter_band,self.args)
+        return 'Simulating %s %s-band survey with %r (obs.frac. = %.3f)' % (
+            self.survey_name,self.filter_band,self.args,self.obscuration_fraction)
 
     def get_flux(self,ab_magnitude):
         """Convert source magnitude to flux.
@@ -106,7 +110,7 @@ class Survey(object):
     _parameter_names = (
         'survey_name','filter_band',
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
-        'mirror_diameter','obscuration_fraction',
+        'mirror_diameter','effective_area',
         'zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
         'airmass','extinction'
         )
@@ -121,13 +125,14 @@ class Survey(object):
     # Default constructor arg values for different (survey,filter_band) combinations.
     _defaults = {
         '*': {
-            'mirror_diameter': 0.0,
-            'obscuration_fraction': 0.0,
             'atmospheric_psf_beta': 0.0,
             'airmass': 1.2,
         },
         'LSST': {
+            # http://www.lsst.org/lsst/science/optical_design
             '*': {
+                'mirror_diameter': 8.36,
+                'effective_area': 33.212,
                 'image_width': 4096,
                 'image_height': 4096,
                 'pixel_scale': 0.2,
@@ -148,7 +153,12 @@ class Survey(object):
             },
         },
         'DES': {
+            # http://www.ctio.noao.edu/noao/content/Basic-Optical-Parameters
+            # http://www.ctio.noao.edu/noao/content/DECam-What
+            # http://www.darkenergysurvey.org/survey/des-description.pdf
             '*': {
+                'mirror_diameter': 3.934,
+                'effective_area': 10.014,
                 'image_width': 3115,
                 'image_height': 3115,
                 'pixel_scale': 0.263,
@@ -169,7 +179,11 @@ class Survey(object):
             },
         },
         'CFHT': {
+            # http://www.cfht.hawaii.edu/Instruments/Imaging/Megacam/generalinformation.html
+            # http://www.cfht.hawaii.edu/Instruments/ObservatoryManual/om-focplndat.gif
             '*': {
+                'mirror_diameter': 3.592,
+                'effective_area': 8.022,
                 'image_width': 4428,
                 'image_height': 4428,
                 'pixel_scale': 0.185,
@@ -232,8 +246,8 @@ class Survey(object):
             help = 'Simulated camera zero point in electrons per second at 24th magnitude.')
         parser.add_argument('--mirror-diameter', type = float, metavar = 'D',
             help = 'Size of the primary mirror in meters for the optical PSF (or zero for no PSF).')
-        parser.add_argument('--obscuration-fraction', type = float, metavar = 'F',
-            help = 'Linear obscuration fraction of the primary mirror for the optical PSF.')
+        parser.add_argument('--effective-area', type = float, metavar = 'A',
+            help = 'Effective light-collecting area in square meters for the optical PSF.')
         parser.add_argument('--zenith-psf-fwhm', type = float, metavar = 'FWHM',
             help = 'FWHM of the atmospheric PSF at zenith in arcseconds.')
         parser.add_argument('--atmospheric-psf-beta', type = float, metavar = 'BETA',

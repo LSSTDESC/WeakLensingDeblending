@@ -262,6 +262,5 @@ class OverlapAnalyzer(object):
                     print fisher
                 snr_squared = flux**2/variance
                 data['snr_grp'][grp_members] = np.sqrt(snr_squared)
-                print data['snr_grp'][grp_members]
 
         return results
