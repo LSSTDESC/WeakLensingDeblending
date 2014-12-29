@@ -266,6 +266,5 @@ class OverlapAnalyzer(object):
                 # Order group members by decreasing group S/N.
                 sorted_indices = group_indices[np.argsort(group_snr)[::-1]]
                 data['grp_rank'][sorted_indices] = np.arange(grp_size)
-                print data['snr_grp'][sorted_indices]
 
         return results

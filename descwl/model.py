@@ -4,7 +4,42 @@
 import math
 import inspect
 
+import numpy as np
+
 import galsim
+
+def sersic_second_moments(n,hlr,q,beta):
+    """Calculate the second-moment tensor of a sheared Sersic radial profile.
+
+    Args:
+        n(int): Sersic index of radial profile. Only n = 1 and n = 4 are supported.
+        hlr(float): Radius of 50% isophote before shearing, in arcseconds.
+        q(float): Ratio b/a of Sersic isophotes after shearing.
+        beta(float): Position angle of sheared isophotes in radians, measured anti-clockwise
+            from the positive x-axis.
+
+    Returns:
+        numpy.ndarray: Array of shape (2,2) with values of the second-moments tensor
+            matrix, in units of square arcseconds.
+
+    Raises:
+        RuntimeError: Invalid Sersic index n.
+    """
+    # Lookup the value of cn = 0.5*(r0/hlr)**2 Gamma(4*n)/Gamma(2*n)
+    if n == 1:
+        cn = 1.06502
+    elif n == 4:
+        cn = 10.8396
+    else:
+        raise RuntimeError('Invalid Sersic index n.')
+    e_mag = (1.-q)/(1.+q)
+    e_mag_sq = e_mag**2
+    e1 = e_mag*math.cos(2*beta)
+    e2 = e_mag*math.sin(2*beta)
+    Q11 = 1 + e_mag_sq + 2*e1
+    Q22 = 1 + e_mag_sq - 2*e1
+    Q12 = 2*e2
+    return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2/(1-e_mag_sq)**2
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible model components.
@@ -52,16 +87,23 @@ class Galaxy(object):
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
         components = [ ]
+        # Initialize second-moments tensor. Note that we can only add the tensors for the
+        # n = 1,4 components, as we do below, since they have the same centroid.
+        self.second_moments = np.zeros((2,2))
         if disk_flux > 0:
             disk = galsim.Exponential(
                 flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
                 q = disk_q, beta = beta_radians*galsim.radians)
             components.append(disk)
+            self.second_moments += disk_flux/(disk_flux+bulge_flux)*sersic_second_moments(
+                n=1,hlr=disk_hlr_arcsecs,q=disk_q,beta=beta_radians)
         if bulge_flux > 0:
             bulge = galsim.DeVaucouleurs(
                 flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
                 q = bulge_q, beta = beta_radians*galsim.radians)
             components.append(bulge)
+            self.second_moments += bulge_flux/(disk_flux+bulge_flux)*sersic_second_moments(
+                n=1,hlr=bulge_hlr_arcsecs,q=bulge_q,beta=beta_radians)
         # GalSim does not currently provide a "delta-function" component to model the AGN
         # so we use a very narrow Gaussian. See this GalSim issue for details:
         # https://github.com/GalSim-developers/GalSim/issues/533
