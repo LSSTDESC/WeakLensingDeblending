@@ -25,7 +25,7 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 Analysis Results
 ----------------
 
-HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below.
+HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below, where Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF.
 
 ======== ======= ====================================================================================
 Name     Type    Description
@@ -35,10 +35,12 @@ grp_id   int16   Indentifier for the group that this source belongs to
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
 grp_rank int16   Rank position of this source in its group based on decreasing snr_grp
 visible  bool8   Is this source's centroid within the simulated image bounds?
+f_disk   float32 Fraction of total galaxy flux to due a Sersic n=1 disk component
+f_bulge  float32 Fraction of total galaxy flux to due a Sersic n=4 bulge component
 dx       float32 Source centroid in x relative to image center in arcseconds
 dy       float32 Source centroid in y relative to image center in arcseconds
-z        float32 Simulated source redshift
-ab_mag   float32 Simulated source AB magnitude in simulated filter band
+z        float32 Catalog source redshift
+ab_mag   float32 Catalog source AB magnitude in the simulated filter band
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
 snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
 snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
@@ -46,9 +48,9 @@ sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as 
 sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5
 e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2|Q|**0.5)
 e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2|Q|**0.5)
-a        float32 Semi-major axis of bulge + disk 50% isophote in arcseconds
-b        float32 Semi-minor axis of bulge + disk 50% isophote in arcseconds
-beta     float32 Position angle of bulge + disk isophotes in radians from (-pi,+pi).
+a        float32 Semi-major axis of second-moment ellipse in arcseconds
+b        float32 Semi-minor axis of second-moment ellipse in arcseconds
+beta     float32 Position angle of second-moment ellipse in radians from (-pi,+pi)
 ======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::

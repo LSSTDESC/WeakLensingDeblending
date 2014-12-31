@@ -151,6 +151,8 @@ class OverlapAnalyzer(object):
             ('grp_size',np.int16),
             ('grp_rank',np.int16),
             ('visible',np.bool8),
+            ('f_disk', np.float32),
+            ('f_bulge', np.float32),
             ('dx',np.float32),
             ('dy',np.float32),
             ('z',np.float32),
@@ -198,6 +200,9 @@ class OverlapAnalyzer(object):
             data['ab_mag'][index] = model.ab_magnitude
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
+            # Save model parameters.
+            data['f_disk'] = model.disk_fraction
+            data['f_bulge'] = model.bulge_fraction
             # Calculate this galaxy's size and shape from its second-moments tensor.
             detQ = numpy.linalg.det(model.second_moments)
             # Calculate a**2 + b**2.
