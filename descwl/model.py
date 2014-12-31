@@ -90,19 +90,22 @@ class Galaxy(object):
         # Initialize second-moments tensor. Note that we can only add the tensors for the
         # n = 1,4 components, as we do below, since they have the same centroid.
         self.second_moments = np.zeros((2,2))
+        total_flux = disk_flux + bulge_flux + agn_flux
+        self.disk_fraction = disk_flux/total_flux
+        self.bulge_fraction = bulge_flux/total_flux
         if disk_flux > 0:
             disk = galsim.Exponential(
                 flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
                 q = disk_q, beta = beta_radians*galsim.radians)
             components.append(disk)
-            self.second_moments += disk_flux/(disk_flux+bulge_flux)*sersic_second_moments(
+            self.second_moments += self.disk_fraction*sersic_second_moments(
                 n=1,hlr=disk_hlr_arcsecs,q=disk_q,beta=beta_radians)
         if bulge_flux > 0:
             bulge = galsim.DeVaucouleurs(
                 flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
                 q = bulge_q, beta = beta_radians*galsim.radians)
             components.append(bulge)
-            self.second_moments += bulge_flux/(disk_flux+bulge_flux)*sersic_second_moments(
+            self.second_moments += self.bulge_fraction*sersic_second_moments(
                 n=1,hlr=bulge_hlr_arcsecs,q=bulge_q,beta=beta_radians)
         # GalSim does not currently provide a "delta-function" component to model the AGN
         # so we use a very narrow Gaussian. See this GalSim issue for details:

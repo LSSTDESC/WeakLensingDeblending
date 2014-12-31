@@ -9,6 +9,8 @@ import numpy as np
 import numpy.ma
 
 import matplotlib.pyplot as plt
+import matplotlib.collections
+import matplotlib.patches
 
 import astropy.io.fits
 
@@ -39,6 +41,8 @@ def main():
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--crop', action = 'store_true',
         help = 'Crop the displayed pixels around the selected objects.')
+    display_group.add_argument('--draw-moments', action = 'store_true',
+        help = 'Draw ellipses to represent the 50% iosophote second moments of selected objects.')
     display_group.add_argument('--annotate', action = 'store_true',
         help = 'Annotate selected objects with a brief description.')
     display_group.add_argument('--annotate-format', type = str,
@@ -61,6 +65,9 @@ def main():
     display_group.add_argument('--crosshair-color', type = str,
         default = 'greenyellow', metavar = 'COL',
         help = 'Matplotlib color name to use for crosshairs.')
+    display_group.add_argument('--ellipse-color', type = str,
+        default = 'greenyellow', metavar = 'COL',
+        help = 'Matplotlib color name to use for second-moment ellipses.')
     display_group.add_argument('--annotate-color', type = str,
         default = 'green', metavar = 'COL',
         help = 'Matplotlib color name to use for annotation text.')
@@ -168,20 +175,40 @@ def main():
     if selected_image:
         show_image(selected_image,masked = True,cmap = args.highlight)
 
-    for index in selected_indices:
+    scale = results.survey.pixel_scale
+    num_selected = len(selected_indices)
+    ellipse_centers = np.empty((num_selected,2))
+    ellipse_widths = np.empty(num_selected)
+    ellipse_heights = np.empty(num_selected)
+    ellipse_angles = np.empty(num_selected)
+    for index,selected in enumerate(selected_indices):
+        info = results.table[selected]
         # Calculate the selected object's centroid position in user display coordinates.
-        x_center = (0.5*results.survey.image_width +
-            results.table['dx'][index]/results.survey.pixel_scale)
-        y_center = (0.5*results.survey.image_height +
-            results.table['dy'][index]/results.survey.pixel_scale)
+        x_center = (0.5*results.survey.image_width + info['dx']/scale)
+        y_center = (0.5*results.survey.image_height + info['dy']/scale)
         # Draw a crosshair at the centroid of selected objects.
         axes.plot(x_center,y_center,'+',color = args.crosshair_color,
             markeredgewidth = 2,markersize = 24)
+        # Add annotation text if requested.
         if args.annotate:
-            info = results.table[index]
             annotation = args.annotate_format % info
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
                 textcoords = 'offset points',color = args.annotate_color)
+        # Add a second-moments ellipse if requested.
+        if args.draw_moments:
+            ellipse_centers[index] = (x_center,y_center)
+            ellipse_widths[index] = info['a']/scale
+            ellipse_heights[index] = info['b']/scale
+            ellipse_angles[index] = np.degrees(info['beta'])
+
+    # Draw any ellipses.
+    if args.draw_moments:
+        ellipses = matplotlib.collections.EllipseCollection(units = 'x',
+            widths = ellipse_widths,heights = ellipse_heights,angles = ellipse_angles,
+            offsets = ellipse_centers, transOffset = axes.transData)
+        ellipses.set_facecolor('none')
+        ellipses.set_edgecolor(args.ellipse_color)
+        axes.add_collection(ellipses,autolim = True)
 
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
