@@ -48,6 +48,8 @@ def main():
     display_group.add_argument('--annotate-format', type = str,
         default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
         help = 'String interpolation format to generate annotation labels.')
+    display_group.add_argument('--no-crosshair', action = 'store_true',
+        help = 'Do not draw a crosshair at the centroid of each selected object.')
     display_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
     display_group.add_argument('--magnification', type = float,
@@ -187,8 +189,9 @@ def main():
         x_center = (0.5*results.survey.image_width + info['dx']/scale)
         y_center = (0.5*results.survey.image_height + info['dy']/scale)
         # Draw a crosshair at the centroid of selected objects.
-        axes.plot(x_center,y_center,'+',color = args.crosshair_color,
-            markeredgewidth = 2,markersize = 24)
+        if not args.no_crosshair:
+            axes.plot(x_center,y_center,'+',color = args.crosshair_color,
+                markeredgewidth = 2,markersize = 24)
         # Add annotation text if requested.
         if args.annotate:
             annotation = args.annotate_format % info
