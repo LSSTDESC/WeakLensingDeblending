@@ -121,7 +121,11 @@ class Galaxy(object):
         # Shear the galaxy model, if necessary. Note that GalSim uses g1,g2 for the
         # |g| = (a-b)/(a+b) ellipticity spinor and e1,e2 for |e| = (a^2-b^2)/(a^2+b^2).
         if cosmic_shear_g1 != 0 or cosmic_shear_g2 != 0:
-            self.model = self.model.shear(g1 = cosmic_shear_g1,g2 = cosmic_shear_g2)
+            g1,g2 = cosmic_shear_g1,cosmic_shear_g2
+            self.model = self.model.shear(g1 = g1,g2 = g2)
+            detM = 1 - g1**2 - g2**2
+            Minv = np.array(((1+g1,g2),(g2,1-g1)))/detM
+            self.second_moments = Minv.dot(self.second_moments).dot(Minv.T)
         # Position relative to the image center.
         self.model = self.model.shift(dx=dx_arcsecs,dy=dy_arcsecs)
 
