@@ -52,6 +52,10 @@ class Survey(object):
                 beta = self.atmospheric_psf_beta, fwhm = atmospheric_psf_fwhm)
         else:
             atmospheric_psf_model = galsim.Kolmogorov(fwhm = atmospheric_psf_fwhm)
+        # Shear the atmospheric PSF, if necessary.
+        if self.atmospheric_psf_e1 != 0 or self.atmospheric_psf_e2 != 0:
+            atmospheric_psf_model = atmospheric_psf_model.shear(
+                e1 = self.atmospheric_psf_e1, e2 = self.atmospheric_psf_e2)
         # Combine with our optical PSF model, if any.
         if self.mirror_diameter > 0:
             lambda_over_diameter = 3600*math.degrees(
