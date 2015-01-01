@@ -118,10 +118,13 @@ def main():
     selected_image = results.get_subimage(selected_indices)
 
     # Prepare the z scaling.
+    zscale_pixels = results.survey.image.array
     if selected_image:
-        zscale_pixels = selected_image.array
-    else:
-        zscale_pixels = results.survey.image.array
+        if selected_image.bounds.area() < 16:
+            print 'WARNING: using full image for z-scaling since only %d pixel(s) selected.' % (
+                selected_image.bounds.area())
+        else:
+            zscale_pixels = selected_image.array
     non_zero_pixels = (zscale_pixels > 0)
     vmin,vmax = np.percentile(zscale_pixels[non_zero_pixels],
         q = (args.clip_lo_percentile,args.clip_hi_percentile))
