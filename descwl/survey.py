@@ -29,9 +29,13 @@ class Survey(object):
         zenith_psf_fwhm(float): FWHM of the atmospheric PSF at zenith in arcseconds.
         atmospheric_psf_beta(float): Moffat beta parameter of the atmospheric PSF, or use a Kolmogorov
             PSF if beta <= 0.
+        atmospheric_psf_e1(float): Atmospheric ellipticity component e1 (+).
+        atmospheric_psf_e2(float): Atmospheric ellipticity component e2 (x).
         sky_brightness(float): Sky brightness in mags/sq.arcsec during the observation.
         airmass(float): Optical path length through the atmosphere relative to the zenith path length.
         extinction(float): Exponential exctinction coefficient for atmospheric absorption.
+        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+).
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x).
 
     Raises:
         RuntimeError: Missing or extra arguments provided.
@@ -111,8 +115,9 @@ class Survey(object):
         'survey_name','filter_band',
         'image_width','image_height','pixel_scale','exposure_time','zero_point',
         'mirror_diameter','effective_area',
-        'zenith_psf_fwhm','atmospheric_psf_beta','sky_brightness',
-        'airmass','extinction'
+        'zenith_psf_fwhm','atmospheric_psf_beta','atmospheric_psf_e1',
+        'atmospheric_psf_e2','sky_brightness','airmass','extinction',
+        'cosmic_shear_g1','cosmic_shear_g2',
         )
 
     # Central wavelengths in Angstroms for each LSST filter band, calculated from the
@@ -126,6 +131,10 @@ class Survey(object):
     _defaults = {
         '*': {
             'atmospheric_psf_beta': 0.0,
+            'atmospheric_psf_e1': 0.0,
+            'atmospheric_psf_e2': 0.0,
+            'cosmic_shear_g1': 0.0,
+            'cosmic_shear_g2': 0.0,
             'airmass': 1.2,
         },
         'LSST': {
@@ -252,12 +261,20 @@ class Survey(object):
             help = 'FWHM of the atmospheric PSF at zenith in arcseconds.')
         parser.add_argument('--atmospheric-psf-beta', type = float, metavar = 'BETA',
             help = 'Moffat beta parameter of the atmospheric PSF, or use a Kolmogorov PSF if beta <= 0.')
+        parser.add_argument('--atmospheric-psf-e1', type = float, metavar = 'E1',
+            help = 'Atmospheric ellipticity component e1 (+).')
+        parser.add_argument('--atmospheric-psf-e2', type = float, metavar = 'E2',
+            help = 'Atmospheric ellipticity component e2 (x).')
         parser.add_argument('--sky-brightness', type = float, metavar = 'B',
             help = 'Sky brightness in mags/sq.arcsec during the observation.')
         parser.add_argument('--airmass', type = float, metavar = 'X',
             help = 'Optical path length through the atmosphere relative to the zenith path length.')
         parser.add_argument('--extinction', type = float, metavar = 'k',
             help = 'Exponential exctinction coefficient for atmospheric absorption.')
+        parser.add_argument('--cosmic-shear-g1', type = float, metavar = 'G1',
+            help = 'Cosmic shear ellipticity component g1 (+).')
+        parser.add_argument('--cosmic-shear-g2', type = float, metavar = 'G2',
+            help = 'Cosmic shear ellipticity component g2 (x).')
 
     @staticmethod
     def get_defaults(survey_name,filter_band):
