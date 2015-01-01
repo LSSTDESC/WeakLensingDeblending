@@ -52,10 +52,11 @@ class Survey(object):
                 beta = self.atmospheric_psf_beta, fwhm = atmospheric_psf_fwhm)
         else:
             atmospheric_psf_model = galsim.Kolmogorov(fwhm = atmospheric_psf_fwhm)
-        # Shear the atmospheric PSF, if necessary.
+        # Shear the atmospheric PSF, if necessary. Note that GalSim uses g1,g2 for the
+        # |g| = (a-b)/(a+b) ellipticity spinor and e1,e2 for |e| = (a^2-b^2)/(a^2+b^2).
         if self.atmospheric_psf_e1 != 0 or self.atmospheric_psf_e2 != 0:
             atmospheric_psf_model = atmospheric_psf_model.shear(
-                e1 = self.atmospheric_psf_e1, e2 = self.atmospheric_psf_e2)
+                g1 = self.atmospheric_psf_e1, g2 = self.atmospheric_psf_e2)
         # Combine with our optical PSF model, if any.
         if self.mirror_diameter > 0:
             lambda_over_diameter = 3600*math.degrees(
