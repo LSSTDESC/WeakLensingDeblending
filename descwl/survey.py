@@ -29,13 +29,13 @@ class Survey(object):
         zenith_psf_fwhm(float): FWHM of the atmospheric PSF at zenith in arcseconds.
         atmospheric_psf_beta(float): Moffat beta parameter of the atmospheric PSF, or use a Kolmogorov
             PSF if beta <= 0.
-        atmospheric_psf_e1(float): Atmospheric ellipticity component e1 (+).
-        atmospheric_psf_e2(float): Atmospheric ellipticity component e2 (x).
+        atmospheric_psf_e1(float): Atmospheric ellipticity component e1 (+) with |e| = (a-b)/(a+b).
+        atmospheric_psf_e2(float): Atmospheric ellipticity component e2 (x) with |e| = (a-b)/(a+b).
         sky_brightness(float): Sky brightness in mags/sq.arcsec during the observation.
         airmass(float): Optical path length through the atmosphere relative to the zenith path length.
         extinction(float): Exponential exctinction coefficient for atmospheric absorption.
-        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+).
-        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x).
+        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with |g| = (a-b)/(a+b).
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with |g| = (a-b)/(a+b).
 
     Raises:
         RuntimeError: Missing or extra arguments provided.
