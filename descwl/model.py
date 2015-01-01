@@ -56,9 +56,11 @@ class Galaxy(object):
 
     Args:
         identifier(int): Unique integer identifier for this galaxy in the source catalog.
-        redshift(double): Catalog redshift of this galaxy.
-        ab_magnitude(double): Catalog AB magnitude of this galaxy in the filter band being
+        redshift(float): Catalog redshift of this galaxy.
+        ab_magnitude(float): Catalog AB magnitude of this galaxy in the filter band being
             simulated.
+        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with |g| = (a-b)/(a+b).
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with |g| = (a-b)/(a+b).        
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
@@ -79,6 +81,7 @@ class Galaxy(object):
         agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
     def __init__(self,identifier,redshift,ab_magnitude,
+        cosmic_shear_g1,cosmic_shear_g2,
         dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
         bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
         self.identifier = identifier
@@ -113,14 +116,20 @@ class Galaxy(object):
         if agn_flux > 0:
             agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
             components.append(agn)
-        # Combine the components and position relative to the image center.
-        self.model = galsim.Add(components).shift(dx=dx_arcsecs,dy=dy_arcsecs)
+        # Combine the components.
+        self.model = galsim.Add(components)
+        # Shear the galaxy model, if necessary. Note that GalSim uses g1,g2 for the
+        # |g| = (a-b)/(a+b) ellipticity spinor and e1,e2 for |e| = (a^2-b^2)/(a^2+b^2).
+        if cosmic_shear_g1 != 0 or cosmic_shear_g2 != 0:
+            self.model = self.model.shear(g1 = cosmic_shear_g1,g2 = cosmic_shear_g2)
+        # Position relative to the image center.
+        self.model = self.model.shift(dx=dx_arcsecs,dy=dy_arcsecs)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
 
     Args:
-        survey(descwl.survey.Survey): Survey parameters to use for flux normalization.
+        survey(descwl.survey.Survey): Survey to use for flux normalization and cosmic shear.
         no_disk(bool): Ignore any Sersic n=1 component in the model if it is present in the catalog.
         no_bulge(bool): Ignore any Sersic n=4 component in the model if it is present in the catalog.
         no_agn(bool): Ignore any PSF-like component in the model if it is present in the catalog.
@@ -214,6 +223,7 @@ class GalaxyBuilder(object):
             if agn_flux > 0:
                 print '  AGN: frac = %.6f' % (agn_flux/total_flux)
         return Galaxy(identifier,redshift,ab_magnitude,
+            self.survey.cosmic_shear_g1,self.survey.cosmic_shear_g2,
             dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux)
 
