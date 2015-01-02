@@ -48,3 +48,5 @@ A version of at least 0.4 is required due to recent changes in tables and FITS I
 
 	sudo conda update conda
 	sudo conda update anaconda
+
+Note that some additional packages are required to :ref:`query the LSST DM catalog <catalog-create>`, but you will not normally need to do this.

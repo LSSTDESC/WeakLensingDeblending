@@ -53,6 +53,8 @@ The catalog file can also be read as a FITS file containing a single table. A ca
 
 The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the `simulate.py` program to read, but may be less convenient for other programs to read.
 
+.. _catalog-create:
+
 Create Galaxy Catalog From LSST Database
 ----------------------------------------
 
@@ -63,6 +65,8 @@ The `lsst2wl.py` program automates the process of connecting to the database, ex
 The `OneDegSq.dat` catalog file was created using::
 
 	lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
+
+with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about ? seconds to run. The set of 
 
 Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block access to these ports from internal IP addresses, so if you are unable to connect, this is the most likely reason.
 
