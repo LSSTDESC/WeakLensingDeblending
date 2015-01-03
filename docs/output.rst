@@ -50,7 +50,7 @@ e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2
 e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2|Q|**0.5)
 a        float32 Semi-major axis of second-moment ellipse in arcseconds
 b        float32 Semi-minor axis of second-moment ellipse in arcseconds
-beta     float32 Position angle of second-moment ellipse in radians from (-pi,+pi)
+beta     float32 Position angle of second-moment ellipse in radians, or zero when a == b
 ======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::

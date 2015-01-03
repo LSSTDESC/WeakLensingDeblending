@@ -5,6 +5,7 @@ import math
 import inspect
 
 import numpy as np
+import numpy.linalg
 
 import galsim
 
@@ -40,6 +41,36 @@ def sersic_second_moments(n,hlr,q,beta):
     Q22 = 1 + e_mag_sq - 2*e1
     Q12 = 2*e2
     return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2/(1-e_mag_sq)**2
+
+def moments_size_and_shape(Q):
+    """Calculate size and shape parameters from a second-moment tensor.
+
+    If the input is an array of second-moment tensors, the calculation is vectorized
+    and returns a tuple of output arrays with the same leading dimensions (...).
+
+    Args:
+        Q(numpy.ndarray): Array of shape (...,2,2) containing second-moment tensors,
+            which are assumed to be symmetric (only the [0,1] component is used).
+
+    Returns:
+        tuple: Tuple (sigma_m,sigma_p,a,b,beta,e1,e2) of :class:`numpy.ndarray` objects
+            with shape (...). Refer to :ref:`analysis-results` for details on how
+            each of these vectors is defined.
+    """
+    trQ = np.trace(Q,axis1=-2,axis2=-1)
+    detQ = np.linalg.det(Q)
+    sigma_m = np.power(detQ,0.25)
+    sigma_p = np.sqrt(0.5*trQ)
+    asymQx = Q[...,0,0] - Q[...,1,1]
+    asymQy = 2*Q[...,0,1]
+    asymQ = np.sqrt(asymQx**2 + asymQy**2)
+    a = np.sqrt(0.5*(trQ + asymQ))
+    b = np.sqrt(0.5*(trQ - asymQ))
+    beta = 0.5*np.arctan2(asymQy,asymQx)
+    e_denom = trQ + 2*np.sqrt(detQ)
+    e1 = asymQx/e_denom
+    e2 = asymQy/e_denom
+    return sigma_m,sigma_p,a,b,beta,e1,e2
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible model components.

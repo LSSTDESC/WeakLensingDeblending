@@ -8,6 +8,8 @@ import astropy.table
 
 import galsim
 
+import descwl.model
+
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
 
@@ -204,24 +206,11 @@ class OverlapAnalyzer(object):
             data['f_disk'] = model.disk_fraction
             data['f_bulge'] = model.bulge_fraction
             # Calculate this galaxy's size and shape from its second-moments tensor.
-            detQ = numpy.linalg.det(model.second_moments)
-            # Calculate a**2 + b**2.
-            trQ = model.second_moments[0,0] + model.second_moments[1,1]
-            # Calculate a**2 - b**2.
-            asymQx = model.second_moments[0,0] - model.second_moments[1,1]
-            asymQy = 2*model.second_moments[0,1]
-            asymQ = np.sqrt(asymQx**2 + asymQy**2)
-            # Calculate the ellipse parameters.
-            a = np.sqrt(0.5*(trQ + asymQ))
-            b = np.sqrt(0.5*(trQ - asymQ))
-            beta = 0.5*np.arctan2(asymQy,asymQx)
-            # Calculate the ellipticity spinor.
-            e_denom = trQ + 2*np.sqrt(detQ)
-            e1 = asymQx/e_denom
-            e2 = asymQy/e_denom
+            sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
+                model.second_moments)
             # Save values to the analysis results.
-            data['sigma_m'][index] = detQ**0.25
-            data['sigma_p'][index] = (0.5*trQ)**0.5
+            data['sigma_m'][index] = sigma_m
+            data['sigma_p'][index] = sigma_p
             data['a'][index] = a
             data['b'][index] = b
             data['e1'][index] = e1
