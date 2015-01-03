@@ -34,3 +34,18 @@ Create a new documentation file `docs/src/descwl.xxx.rst` containing (replace `x
 	    :members:
 	    :undoc-members:
 	    :show-inheritance:
+
+Profiling
+---------
+
+The `simulate` program has a `--memory-trace` option that displays the memory usage at frequent checkpoints during the execution.
+
+Profile CPU usage with the `standard recipe <https://docs.python.org/2/library/profile.html#instant-user-s-manual>`_::
+
+	python -m cProfile -o profile.out ./simulate.py --catalog-name OneDegSq.fits --output-name profile
+
+Examine the results using::
+
+	import pstats
+	p = pstats.Stats('profile.out')
+	p.sort_stats('time').print_stats(10)
