@@ -12,3 +12,6 @@ catalogAnalysis
 
 # Sphinx documentation
 docs/_build/
+
+# Python profiling output
+profile.out
