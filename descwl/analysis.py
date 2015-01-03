@@ -162,6 +162,7 @@ class OverlapAnalyzer(object):
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
             ('snr_grp',np.float32),
+            ('purity',np.float32),
             ('sigma_m',np.float32),
             ('sigma_p',np.float32),
             ('e1',np.float32),
@@ -250,14 +251,16 @@ class OverlapAnalyzer(object):
         table = astropy.table.Table(data,copy = False)
         results = OverlapResults(self.survey,table,self.stamps,self.bounds)
 
-        # Analyze overlapping groups.
-        ##data['snr_grp'] = data['snr_iso']
+        # Initialize assuming that sources do not overlap.
+        data['snr_grp'] = data['snr_iso']
+        data['purity'] = 1.
+        # Loop over groups to calculate quantities that depend on overlaps.
         num_groups = np.max(data['grp_id']) + 1
         for grp_id in range(num_groups):
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
-            if grp_size > 0:
+            if grp_size > 1:
                 group_indices = np.arange(num_galaxies)[grp_members]
                 group_image = results.get_subimage(group_indices)
                 # Loop over pairs of galaxies in this overlapping group to calculate
@@ -267,6 +270,10 @@ class OverlapAnalyzer(object):
                 for i1,g1 in enumerate(group_indices):
                     stamp1 = results.get_stamp(g1)
                     flux[i1] = self.models[g1].model.getFlux()
+                    # Calculate this source's purity within its group.
+                    stamp1_group = group_image[stamp1.bounds]
+                    data['purity'][g1] = (
+                        np.sum(stamp1.array**2)/np.sum(stamp1.array*stamp1_group.array))
                     for i2,g2 in enumerate(group_indices[:i1+1]):
                         # Galaxies (g1,g2) might not directly overlap even if they are in
                         # an overlapping group.
