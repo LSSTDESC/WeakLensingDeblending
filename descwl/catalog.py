@@ -32,7 +32,7 @@ class Reader(object):
     Raises:
         RuntimeError: Missing required catalog_name arg.
     """
-    def __init__(self,catalog_name,ra_center,dec_center,only_id,skip_id):
+    def __init__(self,catalog_name,ra_center = 0.5,dec_center = 0.0,only_id = [],skip_id = []):
         if not catalog_name:
             raise RuntimeError('Missing required catalog_name arg.')
         self.catalog_name = catalog_name
