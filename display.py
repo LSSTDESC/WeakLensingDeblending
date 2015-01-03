@@ -48,6 +48,9 @@ def main():
     display_group.add_argument('--annotate-format', type = str,
         default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
         help = 'String interpolation format to generate annotation labels.')
+    display_group.add_argument('--annotate-size', type = str,
+        default = 'medium', metavar = 'SIZE',
+        help = 'Matplotlib font size specification in points or relative (small,large,...)')
     display_group.add_argument('--no-crosshair', action = 'store_true',
         help = 'Do not draw a crosshair at the centroid of each selected object.')
     display_group.add_argument('--dpi', type = float, default = 64.,
@@ -180,6 +183,10 @@ def main():
     if selected_image:
         show_image(selected_image,masked = True,cmap = args.highlight)
 
+    # The argparse module escapes any \n or \t in string args, but we need these
+    # to be unescaped in the annotation format string.
+    args.annotate_format = args.annotate_format.decode('string-escape')
+
     scale = results.survey.pixel_scale
     num_selected = len(selected_indices)
     ellipse_centers = np.empty((num_selected,2))
@@ -199,7 +206,8 @@ def main():
         if args.annotate:
             annotation = args.annotate_format % info
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
-                textcoords = 'offset points',color = args.annotate_color)
+                textcoords = 'offset points',color = args.annotate_color,
+                fontsize = args.annotate_size)
         # Add a second-moments ellipse if requested.
         if args.draw_moments:
             ellipse_centers[index] = (x_center,y_center)
