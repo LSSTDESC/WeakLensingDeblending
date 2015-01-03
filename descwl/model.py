@@ -90,8 +90,8 @@ class Galaxy(object):
         redshift(float): Catalog redshift of this galaxy.
         ab_magnitude(float): Catalog AB magnitude of this galaxy in the filter band being
             simulated.
-        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with |g| = (a-b)/(a+b).
-        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with |g| = (a-b)/(a+b).        
+        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).        
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center

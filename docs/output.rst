@@ -44,13 +44,13 @@ ab_mag   float32 Catalog source AB magnitude in the simulated filter band
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
 snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
 snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
-sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as |Q|**0.25
+sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as \|Q\|**0.25
 sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5
-e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2|Q|**0.5)
-e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2|Q|**0.5)
+e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
+e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
 a        float32 Semi-major axis of second-moment ellipse in arcseconds
 b        float32 Semi-minor axis of second-moment ellipse in arcseconds
-beta     float32 Position angle of second-moment ellipse in radians, or zero when a == b
+beta     float32 Position angle of second-moment ellipse in radians, or zero when a = b
 ======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::
