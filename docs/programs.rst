@@ -35,6 +35,13 @@ Pixel values are :func:`clipped <numpy.clip>` with limits based on percentiles o
 
 Scaled pixel values are displayed using two colormaps: one for selected objects and another for background objects.  Use the `--highlight` and `--colormap` command-line args to change the defaults using any `named matplotlib colormap <http://matplotlib.org/examples/color/colormaps_reference.html>`_.
 
+.. _prog-fisher:
+
+fisher
+------
+
+The `fisher` program creates plots to illustrate galaxy parameter error estimation using Fisher matrices.
+
 .. _prog-lsst2wl:
 
 lsst2wl
