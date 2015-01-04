@@ -169,14 +169,14 @@ class Engine(object):
             variations = [
                 ('dx',self.survey.pixel_scale/3), # arcsecs
                 ('dy',self.survey.pixel_scale/3), # arcsecs
-                ('dtheta',0.05), # radians
                 ('dscale',0.05), # relative dilation (flux preserving)
-                ('dg1',0.03),
-                ('dg2',0.03),
+                ('dtheta',0.05), # radians
+                ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
+                ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
                 ]
             for i,(pname,delta) in enumerate(variations):
                 for sign in (-1,+1):
-                    variation_model = galaxy.get_variation_model(pname,sign*delta)
+                    variation_model = galaxy.get_transformed_model(**{pname:sign*delta})
                     model = galsim.Convolve([
                         variation_model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
                         self.survey.psf_model

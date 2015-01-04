@@ -77,15 +77,6 @@ class SourceNotVisible(Exception):
     """
     pass
 
-def transform_model(source,g1,g2,dx,dy,dtheta=0,scale=1):
-    """Create a transformed source model.
-    """
-    return (source
-        .rotate(dtheta*galsim.radians)
-        .dilate(scale)
-        .shear(g1 = g1,g2 = g2)
-        .shift(dx = dx,dy = dy))
-
 class Galaxy(object):
     """Source model for a galaxy.
 
@@ -161,9 +152,7 @@ class Galaxy(object):
         # Combine the components into our final profile.
         self.profile = galsim.Add(components)
         # Apply transforms to build the final model.
-        self.model = transform_model(self.profile,
-            g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
-            dx = self.dx_arcsecs,dy = self.dy_arcsecs)
+        self.model = self.get_transformed_model()
         # Shear the second moments, if necessary.
         if self.cosmic_shear_g1 != 0 or self.cosmic_shear_g2 != 0:
             g1,g2 = self.cosmic_shear_g1,self.cosmic_shear_g2
@@ -171,37 +160,34 @@ class Galaxy(object):
             Minv = np.array(((1+g1,g2),(g2,1-g1)))/detM
             self.second_moments = Minv.dot(self.second_moments).dot(Minv.T)
 
-    def get_variation_model(self,pname,delta):
-        """Return a new model with a single parameter variation.
+    def get_transformed_model(self,dx=0,dy=0,dscale=0,dtheta=0,dg1=0,dg2=0):
+        """Apply transforms to our model.
+
+        The nominal model returned by `get_transformed_model()` is available via
+        the `model` attribute.
+
+        Args:
+            dx(float): Amount to shift centroid in x, in arcseconds.
+            dy(float): Amount to shift centroid in y, in arcseconds.
+            dscale(float): Relative amount to scale the galaxy profile in the
+                radial direction while conserving flux, before applying shear
+                or convolving with the PSF.
+            dtheta(float): Amount to rotate the galaxy profile clockwise, in radians,
+                before applying shear or convolving with the PSF.
+            dg1(float): Amount to adjust the + shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+            dg2(float): Amount to adjust the x shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+
+        Returns:
+            galsim.GSObject: New model constructed using our source profile with
+                the requested transforms applied.
         """
-        if pname == 'dtheta':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
-                dx = self.dx_arcsecs,dy = self.dy_arcsecs,
-                dtheta = delta)
-        elif pname == 'dscale':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
-                dx = self.dx_arcsecs,dy = self.dy_arcsecs,
-                scale = 1 + delta)
-        elif pname == 'dg1':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1 + delta,g2 = self.cosmic_shear_g2,
-                dx = self.dx_arcsecs,dy = self.dy_arcsecs)
-        elif pname == 'dg2':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2 + delta,
-                dx = self.dx_arcsecs,dy = self.dy_arcsecs)
-        elif pname == 'dx':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
-                dx = self.dx_arcsecs + delta,dy = self.dy_arcsecs)
-        elif pname == 'dy':
-            return transform_model(self.profile,
-                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
-                dx = self.dx_arcsecs,dy = self.dy_arcsecs + delta)
-        else:
-            raise RuntimeError('Invalid variation parameter %s' % pname)
+        return (self.profile
+            .dilate(1 + dscale)
+            .rotate(dtheta*galsim.radians)
+            .shear(g1 = self.cosmic_shear_g1 + dg1,g2 = self.cosmic_shear_g2 + dg2)
+            .shift(dx = self.dx_arcsecs + dx,dy = self.dy_arcsecs + dy))
 
 class GalaxyBuilder(object):
     """Build galaxy source models.
