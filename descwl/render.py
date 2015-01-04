@@ -27,20 +27,22 @@ class Engine(object):
             set by the expected fluctuations in the sky background during a full exposure.
         truncate_radius(float): All extended sources are truncated at this radius in arcseconds.
         no_margin(bool): Do not simulate the tails of objects just outside the field.
+        no_partials(bool): Do not calculate partial derivative images.
         verbose_render(bool): Provide verbose output on rendering process.
     """
-    def __init__(self,survey,min_snr,truncate_radius,no_margin,verbose_render):
+    def __init__(self,survey,min_snr,truncate_radius,no_margin,no_partials,verbose_render):
         self.survey = survey
         self.min_snr = min_snr
         self.truncate_radius = truncate_radius
         self.no_margin = no_margin
+        self.no_partials = no_partials
         self.verbose_render = verbose_render
         # Calculate pixel flux threshold in electrons per pixel that determines how big a
         # bounding box we simulate for each source.
         sky_noise = math.sqrt(survey.mean_sky_level)
         self.pixel_cut = self.min_snr*sky_noise
         # Initialize our GalSim parameters.
-        self.galsim_params = galsim.GSParams(maximum_fft_size=32768)
+        self.galsim_params = galsim.GSParams(maximum_fft_size=1<<16)
         # Evaluate the PSF dilution factor as the maximum fraction of a source's total flux
         # that can end up in a single pixel after convolution with the PSF.
         psf_stamp = galsim.ImageD(1,1,scale=self.survey.pixel_scale)
@@ -147,6 +149,44 @@ class Engine(object):
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
+        # Prepare the datacube that we will return.
+        if self.no_partials:
+            ncube = 1
+        else:
+            ncube = 7
+        height,width = cropped_stamp.array.shape
+        datacube = np.empty((ncube,height,width))
+        datacube[0] = cropped_stamp.array
+
+        # Calculate partial derivative images, if requested.
+        if not self.no_partials:
+            dx_stamp_arcsec = 0.5*(cropped_bounds.xmin + cropped_bounds.xmax+1 -
+                self.survey.image_width)*self.survey.pixel_scale
+            dy_stamp_arcsec = 0.5*(cropped_bounds.ymin + cropped_bounds.ymax+1 -
+                self.survey.image_height)*self.survey.pixel_scale
+            mask = (cropped_stamp.array == 0)
+            variation_stamp = cropped_stamp.copy()
+            variations = [
+                ('dx',self.survey.pixel_scale/3), # arcsecs
+                ('dy',self.survey.pixel_scale/3), # arcsecs
+                ('dtheta',0.05), # radians
+                ('dscale',0.05), # relative dilation (flux preserving)
+                ('dg1',0.03),
+                ('dg2',0.03),
+                ]
+            for i,(pname,delta) in enumerate(variations):
+                for sign in (-1,+1):
+                    variation_model = galaxy.get_variation_model(pname,sign*delta)
+                    model = galsim.Convolve([
+                        variation_model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
+                        self.survey.psf_model
+                        ],gsparams=self.galsim_params)
+                    model.drawImage(image = variation_stamp,
+                        use_true_center = True, add_to_image = (sign > 0))
+                    variation_stamp = sign*variation_stamp
+                variation_stamp.array[mask] = 0.
+                datacube[i+1] = variation_stamp.array/(2*delta)
+
         if self.verbose_render:
             print 'Rendered galaxy model for id = %d with z = %.3f' % (
                 galaxy.identifier,galaxy.redshift)
@@ -155,8 +195,6 @@ class Engine(object):
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
 
-        # Copy the cropped stamp into a new datacube.
-        datacube = np.copy(cropped_stamp.array[np.newaxis,:,:])
         return datacube,cropped_bounds
 
     @staticmethod
@@ -177,6 +215,8 @@ class Engine(object):
             help = 'All extended sources are truncated at this radius in arcseconds.')
         parser.add_argument('--no-margin', action = 'store_true',
             help = 'Do not simulate the tails of objects just outside the field.')
+        parser.add_argument('--no-partials', action = 'store_true',
+            help = 'Do not calculate partial derivative images.')
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
 

@@ -77,6 +77,15 @@ class SourceNotVisible(Exception):
     """
     pass
 
+def transform_model(source,g1,g2,dx,dy,dtheta=0,scale=1):
+    """Create a transformed source model.
+    """
+    return (source
+        .rotate(dtheta*galsim.radians)
+        .dilate(scale)
+        .shear(g1 = g1,g2 = g2)
+        .shift(dx = dx,dy = dy))
+
 class Galaxy(object):
     """Source model for a galaxy.
 
@@ -120,6 +129,8 @@ class Galaxy(object):
         self.ab_magnitude = ab_magnitude
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
+        self.cosmic_shear_g1 = cosmic_shear_g1
+        self.cosmic_shear_g2 = cosmic_shear_g2
         components = [ ]
         # Initialize second-moments tensor. Note that we can only add the tensors for the
         # n = 1,4 components, as we do below, since they have the same centroid.
@@ -147,18 +158,50 @@ class Galaxy(object):
         if agn_flux > 0:
             agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
             components.append(agn)
-        # Combine the components.
-        self.model = galsim.Add(components)
-        # Shear the galaxy model, if necessary. Note that GalSim uses g1,g2 for the
-        # |g| = (a-b)/(a+b) ellipticity spinor and e1,e2 for |e| = (a^2-b^2)/(a^2+b^2).
-        if cosmic_shear_g1 != 0 or cosmic_shear_g2 != 0:
-            g1,g2 = cosmic_shear_g1,cosmic_shear_g2
-            self.model = self.model.shear(g1 = g1,g2 = g2)
+        # Combine the components into our final profile.
+        self.profile = galsim.Add(components)
+        # Apply transforms to build the final model.
+        self.model = transform_model(self.profile,
+            g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
+            dx = self.dx_arcsecs,dy = self.dy_arcsecs)
+        # Shear the second moments, if necessary.
+        if self.cosmic_shear_g1 != 0 or self.cosmic_shear_g2 != 0:
+            g1,g2 = self.cosmic_shear_g1,self.cosmic_shear_g2
             detM = 1 - g1**2 - g2**2
             Minv = np.array(((1+g1,g2),(g2,1-g1)))/detM
             self.second_moments = Minv.dot(self.second_moments).dot(Minv.T)
-        # Position relative to the image center.
-        self.model = self.model.shift(dx=dx_arcsecs,dy=dy_arcsecs)
+
+    def get_variation_model(self,pname,delta):
+        """Return a new model with a single parameter variation.
+        """
+        if pname == 'dtheta':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
+                dx = self.dx_arcsecs,dy = self.dy_arcsecs,
+                dtheta = delta)
+        elif pname == 'dscale':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
+                dx = self.dx_arcsecs,dy = self.dy_arcsecs,
+                scale = 1 + delta)
+        elif pname == 'dg1':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1 + delta,g2 = self.cosmic_shear_g2,
+                dx = self.dx_arcsecs,dy = self.dy_arcsecs)
+        elif pname == 'dg2':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2 + delta,
+                dx = self.dx_arcsecs,dy = self.dy_arcsecs)
+        elif pname == 'dx':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
+                dx = self.dx_arcsecs + delta,dy = self.dy_arcsecs)
+        elif pname == 'dy':
+            return transform_model(self.profile,
+                g1 = self.cosmic_shear_g1,g2 = self.cosmic_shear_g2,
+                dx = self.dx_arcsecs,dy = self.dy_arcsecs + delta)
+        else:
+            raise RuntimeError('Invalid variation parameter %s' % pname)
 
 class GalaxyBuilder(object):
     """Build galaxy source models.

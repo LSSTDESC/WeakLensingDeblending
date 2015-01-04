@@ -87,7 +87,7 @@ class OverlapResults(object):
             scale = self.survey.pixel_scale,make_const = True)
         return image
 
-    def get_subimage(self,indices):
+    def get_subimage(self,indices,datacube_index=0):
         """Return simulated subimage of a set of objects.
 
         Args:
@@ -109,7 +109,7 @@ class OverlapResults(object):
             raise RuntimeError('Index out of range %d' % index)
         subimage = galsim.Image(bounds = subimage_bounds, scale = self.survey.pixel_scale)
         for index in indices:
-            stamp = self.get_stamp(index)
+            stamp = self.get_stamp(index,datacube_index)
             overlap = subimage_bounds & stamp.bounds
             subimage[overlap] += stamp[overlap]
         return subimage
