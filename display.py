@@ -3,16 +3,12 @@
 """
 
 import argparse
-import os.path
 
 import numpy as np
 import numpy.ma
 
 import matplotlib.pyplot as plt
 import matplotlib.collections
-import matplotlib.patches
-
-import astropy.io.fits
 
 import descwl
 
@@ -82,6 +78,8 @@ def main():
     display_group.add_argument('--clip-hi-percentile', type = float,
         default = 90.0, metavar = 'PCT',
         help = 'Clip pixels with values above this percentile for the image.')
+    display_group.add_argument('--hide-background', action = 'store_true',
+        help = 'Do not display background pixels.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
@@ -89,10 +87,14 @@ def main():
         return 0
 
     # Load the analysis results file we will display from.
-    reader = descwl.output.Reader.from_args(args)
-    results = reader.results
-    if args.verbose:
-        print results.survey.description()
+    try:
+        reader = descwl.output.Reader.from_args(args)
+        results = reader.results
+        if args.verbose:
+            print results.survey.description()
+    except RuntimeError,e:
+        print str(e)
+        return -1
 
     # Perform object selection.
     if args.select:
@@ -128,7 +130,7 @@ def main():
                 selected_image.bounds.area())
         else:
             zscale_pixels = selected_image.array
-    non_zero_pixels = (zscale_pixels > 0)
+    non_zero_pixels = (zscale_pixels != 0)
     vmin,vmax = np.percentile(zscale_pixels[non_zero_pixels],
         q = (args.clip_lo_percentile,args.clip_hi_percentile))
 
@@ -177,7 +179,8 @@ def main():
             aspect = 'equal',origin = 'lower',interpolation = 'nearest',**kwargs)
 
     # Plot the full simulated image using the background colormap.
-    show_image(results.survey.image,masked = False,cmap = args.colormap)
+    if not args.hide_background:
+        show_image(results.survey.image,masked = False,cmap = args.colormap)
 
     # Overplot the selected objects showing only non-zero pixels.
     if selected_image:

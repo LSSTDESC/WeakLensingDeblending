@@ -32,6 +32,8 @@ class Reader(object):
         RuntimeError: Unable to initialize FITS input file.
     """
     def __init__(self,input_name):
+        if not input_name:
+            raise RuntimeError('Missing required input-name parameter.')
         self.input_name = input_name
         name,extension = os.path.splitext(self.input_name)
         if not extension:
