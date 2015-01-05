@@ -71,11 +71,13 @@ def main():
         if not np.any(selected):
             print 'No such galaxy with ID %d' % args.galaxy
             return -1
+        title = 'galaxy-%d' % args.galaxy
     else:
         selected = results.select('grp_id==%d' % args.group)
         if not np.any(selected):
             print 'No such group with ID %d' % args.group
             return -1
+        title = 'group-%d' % args.group
     selected = np.arange(results.num_objects)[selected]
     nselected = len(selected)
 
@@ -91,6 +93,7 @@ def main():
     figure_width = ncols*width*figure_scale
     figure_height = nrows*height*figure_scale
     figure = plt.figure(figsize = (figure_width,figure_height),frameon = False)
+    figure.canvas.set_window_title(title)
     plt.subplots_adjust(left = 0,bottom = 0,right = 1,top = 1,wspace = 0,hspace = 0)
 
     def draw(row,col,pixels):
@@ -103,7 +106,9 @@ def main():
 
     # Loop over pairs of partial derivatives.
     stamp1 = background.copy()
-    stamp2 = background.copy()
+    if not args.partials:
+        stamp2 = background.copy()
+        fisher_matrix = np.zeros((nrows,ncols))
     for index1 in range(ncols):
         galaxy1 = selected[index1//npartials]
         slice1 = index1%npartials
@@ -120,6 +125,15 @@ def main():
             fisher_image = stamp1.array*stamp2.array/(background.array + sky_level)
             if np.count_nonzero(fisher_image) > 0:
                 draw(index1,index2,fisher_image)
+                fisher_matrix[index1,index2] = np.sum(fisher_image)
+                fisher_matrix[index2,index1] = fisher_matrix[index1,index2]
+    print fisher_matrix
+    covariance = np.linalg.inv(fisher_matrix)
+    print covariance
+    variance = np.diag(covariance)
+    print variance
+    correlation = covariance/np.sqrt(np.outer(variance,variance))
+    print correlation
 
     if args.output_name:
         figure.savefig(args.output_name)
