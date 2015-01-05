@@ -49,7 +49,7 @@ def main():
         print 'Cannot specify both a galaxy and a group.'
         return -1
 
-    partials = ['dflux','dx','dy','dscale','dtheta','dg1','dg2']
+    partials = ['dflux','dx','dy','dscale','dg1','dg2']
     npartials = len(partials)
 
     # Load the analysis results file we will get partial derivative images from.

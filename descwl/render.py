@@ -153,7 +153,7 @@ class Engine(object):
         if self.no_partials:
             ncube = 1
         else:
-            ncube = 7
+            ncube = 6
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
         datacube[0] = cropped_stamp.array
@@ -170,7 +170,6 @@ class Engine(object):
                 ('dx',self.survey.pixel_scale/3), # arcsecs
                 ('dy',self.survey.pixel_scale/3), # arcsecs
                 ('dscale',0.05), # relative dilation (flux preserving)
-                ('dtheta',0.05), # radians
                 ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
                 ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
                 ]
