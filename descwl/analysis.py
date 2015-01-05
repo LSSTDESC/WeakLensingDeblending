@@ -34,6 +34,7 @@ class OverlapResults(object):
         self.stamps = stamps
         self.bounds = bounds
         self.num_objects = len(self.table)
+        self.num_slices = self.stamps[0].shape[0]
         self.locals = { name: self.table[name] for name in self.table.colnames }
 
     def select(self,selector):
