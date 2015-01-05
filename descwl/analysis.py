@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import numpy.linalg
 
 import astropy.table
 
@@ -289,7 +288,7 @@ class OverlapAnalyzer(object):
                         fisher[i1,i2] = np.sum(
                             fiducial1*fiducial2*(mu0**-1 + 0.5*mu0**-2))/(flux[i1]*flux[i2])
                         fisher[i2,i1] = fisher[i1,i2]
-                covariance = numpy.linalg.inv(fisher)
+                covariance = np.linalg.inv(fisher)
                 variance = np.diag(covariance)
                 if not np.all(variance > 0):
                     print 'variance < 0',variance

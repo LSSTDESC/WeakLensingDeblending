@@ -5,7 +5,6 @@
 import argparse
 
 import numpy as np
-import numpy.ma
 
 import matplotlib.pyplot as plt
 import matplotlib.collections
