@@ -159,6 +159,7 @@ class OverlapAnalyzer(object):
             ('dy',np.float32),
             ('z',np.float32),
             ('ab_mag',np.float32),
+            ('flux',np.float32),
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
             ('snr_grp',np.float32),
@@ -201,6 +202,7 @@ class OverlapAnalyzer(object):
             data['dy'][index] = model.dy_arcsecs
             data['z'][index] = model.redshift
             data['ab_mag'][index] = model.ab_magnitude
+            data['flux'][index] = model.model.getFlux()
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
             # Save model parameters.

@@ -41,6 +41,7 @@ dx       float32 Source centroid in x relative to image center in arcseconds
 dy       float32 Source centroid in y relative to image center in arcseconds
 z        float32 Catalog source redshift
 ab_mag   float32 Catalog source AB magnitude in the simulated filter band
+flux     float32 Total detected flux in electrons
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
 snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
 snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)

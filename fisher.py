@@ -114,6 +114,9 @@ def main():
         slice1 = index1%npartials
         stamp1.array[:] = 0.
         stamp1[results.bounds[galaxy1]] = results.get_stamp(galaxy1,slice1)
+        if slice1 == 0:
+            # Normalize to give partial with respect to added flux in electrons.
+            stamp1 /= results.table['flux'][galaxy1]
         if args.partials:
             draw(0,index1,stamp1.array)
             continue
@@ -122,6 +125,9 @@ def main():
             slice2 = index2%npartials
             stamp2.array[:] = 0.
             stamp2[results.bounds[galaxy2]] = results.get_stamp(galaxy2,slice2)
+            if slice2 == 0:
+                # Normalize to give partial with respect to added flux in electrons.
+                stamp2 /= results.table['flux'][galaxy2]
             fisher_image = stamp1.array*stamp2.array/(background.array + sky_level)
             if np.count_nonzero(fisher_image) > 0:
                 draw(index1,index2,fisher_image)
