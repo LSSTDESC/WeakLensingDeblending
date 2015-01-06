@@ -6,13 +6,13 @@ Galaxy Catalog Format
 
 The input catalog is a text file consisting of an initial header line and followed by one line of numbers per catalog object, for example a catalog with two objects might look like this::
 
-	id ra dec redshift fluxnorm_bulge fluxnorm_disk fluxnorm_agn a_b a_d b_b b_d pa_bulge pa_disk BulgeHalfLightRadius DiskHalfLightRadius u_ab g_ab r_ab i_ab z_ab y_ab
-	11962286 0.593881845474 0.000286099995719 2.02162647247 0.0 5.9757610912e-19 0.0 0.0 0.132357493043 0.0 0.130808100104 0.0 144.235595703 0.0 0.132357493043 26.9993686676 26.9311523438 26.9816989899 27.0538825989 27.0064048767 26.9156532288
-	12663653 0.594969153404 0.00124180002604 0.459954589605 0.0 3.85022202105e-19 0.0 0.0 0.46328830719 0.0 0.430979907513 0.0 325.863311768 0.0 0.46328830719 29.0297031403 28.4987335205 27.4711303711 27.1866264343 27.030462265 26.9395713806
+	id ra dec redshift fluxnorm_bulge fluxnorm_disk fluxnorm_agn a_b a_d b_b b_d pa_bulge pa_disk u_ab g_ab r_ab i_ab z_ab y_ab
+	11962286 0.593881845474 0.000286099995719 2.02162647247 0.0 5.9757610912e-19 0.0 0.0 0.132357493043 0.0 0.130808100104 0.0 144.235595703 26.9993686676 26.9311523438 26.9816989899 27.0538825989 27.0064048767 26.9156532288
+	12663653 0.594969153404 0.00124180002604 0.459954589605 0.0 3.85022202105e-19 0.0 0.0 0.46328830719 0.0 0.430979907513 0.0 325.863311768 29.0297031403 28.4987335205 27.4711303711 27.1866264343 27.030462265 26.9395713806
 
 The header line specifies a list of names, separated by white space, associated with each catalog parameter. Each catalog entry is represented by a a list of numbers, separated by white space, giving the corresponding parameter values.
 
-The parameter names below are required by the `galsimcat.py` program, but other parameters may also be present in the file. Parameters can be listed in any order as long as the order of values matches the header line. The names in the table below are a bit idiosyncratic (e.g., mixing under_scores with CamelCase and using three different ways to denote bulge vs. disk) but are chosen to match the names used in the `LSST DM galaxy catalog schema <https://confluence.lsstcorp.org/display/SIM/Database+Schema>`_.
+The parameter names below are required by the :ref:`prog-simulate` program, but other parameters may also be present in the file. Parameters can be listed in any order as long as the order of values matches the header line. The names in the table below are a bit idiosyncratic (e.g., mixing under_scores with CamelCase and using different schemes to denote bulge vs. disk) but are chosen to match the names used in the `LSST DM galaxy catalog schema <https://confluence.lsstcorp.org/display/SIM/Database+Schema>`_.
 
 ==================== ===========
 Name                 Description
@@ -30,8 +30,6 @@ a_d                  Semi-major axis of disk 50% isophote (arcseconds)
 b_d                  Semi-minor axis of disk 50% isophote (arcseconds)
 pa_bulge             Position angle of bulge (degrees)
 pa_disk              Position angle of disk (degrees)
-BulgeHalfLightRadius Equal to a_b, which is misleading. Will probably stop using this.
-DiskHalfLightRadius  Equal to a_d, which is misleading. Will probably stop using this.
 u_ab                 Apparent AB magnitude in the LSST u-band, including extinction effects 
 g_ab                 Apparent AB magnitude in the LSST g-band, including extinction effects 
 r_ab                 Apparent AB magnitude in the LSST r-band, including extinction effects 
@@ -51,7 +49,7 @@ The catalog file can also be read as a FITS file containing a single table. A ca
 	catalog = astropy.table.Table.read('OneDegSq.dat',format='ascii.basic')
 	catalog.write('OneDegSq.fits')
 
-The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the `simulate.py` program to read, but may be less convenient for other programs to read.
+The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the :ref:`prog-simulate` program to read, but may be less convenient for other programs to read or generate.
 
 .. _catalog-create:
 

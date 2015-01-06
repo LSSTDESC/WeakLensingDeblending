@@ -28,6 +28,7 @@ def main():
         help = "maximum RA value to fetch (deg)")
     parser.add_argument("--null-sub", type = float, default = -1,
         help = "numeric value to substitute for any SQL NULLs")
+    args = parser.parse_args()
 
     # Try to open the output file
     try:
@@ -57,7 +58,6 @@ def main():
     columns += addColumns(('fluxnorm_%s',),('bulge','disk','agn'))
     columns += addColumns(('a_%s','b_%s'),('b','d'))
     columns += addColumns(('pa_%s',),('bulge','disk'))
-    columns += addColumns(('%sHalfLightRadius',),('Bulge','Disk'))
 
     # Add filter-specific columns
     columns += addColumns(('%s_ab',),"ugrizy")
