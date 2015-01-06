@@ -42,6 +42,14 @@ fisher
 
 The `fisher` program creates plots to illustrate galaxy parameter error estimation using Fisher matrices.
 
+The program either calculates the Fisher matrix for a single galaxy (`--galaxy`) as if it were isolated, or else for an overlapping group of galaxies (`--group`). The displayed image consists of the lower-triangular part of a symmetric `npar x npar` matrix, where::
+
+	npar = num_partials * num_galaxies
+
+By default, the program displays the Fisher-matrix images whose sums (over pixels) give the Fisher matrix element values. Alternatively, you can display the partial derivative images (`--partials`), Fisher matrix elements (`--matrix`), covariance matrix elements (`--covariance`) or correlation coefficients matrix (`--correlation`).
+
+Use the `--colormap` option to select the color map. The vertical color scales are optimized independently for each partial-derivative or Fisher-matrix image, but are guaranteed to use ranges that are symmetric about zero (so `diverging colormaps <http://matplotlib.org/examples/color/colormaps_reference.html>`_ are usually the best choice). When Fisher or covariance matrix elements are being displayed, their relative values are somewhat arbitrary since they generally have different units.  However, the dimensionless correlation coefficient matrix is always displayed using a scale range of [-1,+1].
+
 .. _prog-dbquery:
 
 dbquery

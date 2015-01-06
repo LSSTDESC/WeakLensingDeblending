@@ -29,6 +29,12 @@ def main():
         help = 'Use the overlapping group of galaxies with this group ID.')
     parser.add_argument('--partials', action = 'store_true',
         help = 'Show partial derivative images (instead of Fisher matrix images).')
+    parser.add_argument('--matrix', action = 'store_true',
+        help = 'Show summed Fisher matrix elements (instead of Fisher matrix images).')
+    parser.add_argument('--covariance', action = 'store_true',
+        help = 'Show covariance matrix elements (instead of Fisher matrix images).')
+    parser.add_argument('--correlation', action = 'store_true',
+        help = 'Show correlation matrix elements (instead of Fisher matrix images).')
 
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--figure-size', type = float,
@@ -47,6 +53,9 @@ def main():
         return -1
     if args.galaxy is not None and args.group is not None:
         print 'Cannot specify both a galaxy and a group.'
+        return -1
+    if args.partials + args.matrix + args.covariance + args.correlation > 1:
+        print 'Can only specify one of the partials,matrix,covariance options.'
         return -1
 
     # Load the analysis results file we will get partial derivative images from.
@@ -80,6 +89,25 @@ def main():
     fisher_images = results.get_fisher_images(selected)
     nrows,ncols,height,width = fisher_images.shape
 
+    # If we will display matrix elements, calculate them now.
+    show_matrix = args.matrix or args.covariance or args.correlation
+    if show_matrix:
+        matrix = np.sum(fisher_images,axis=(2,3))
+        if args.covariance or args.correlation:
+            try:
+                matrix = np.linalg.inv(matrix)
+            except np.linalg.LinAlgError:
+                print 'Fisher matrix is not invertible.'
+                return -1
+            variance = np.diag(matrix)
+            if np.min(variance) <= 0:
+                print 'Some variances are <= 0.'
+                if args.correlation:
+                    return -1
+            if args.correlation:
+                matrix = matrix/np.sqrt(np.outer(variance,variance))
+        print matrix
+
     # Calculate the bounds for our figure.
     if args.partials:
         nrows = 1
@@ -109,6 +137,15 @@ def main():
                 # Normalize to give partial with respect to added flux in electrons.
                 stamp1 /= results.table['flux'][galaxy1]
             draw(0,index1,stamp1.array)
+    elif show_matrix:
+        span = np.arange(nrows)
+        row,col = np.meshgrid(span,span)
+        lower_triangle = np.ma.masked_where(row > col,matrix)
+        axes = plt.subplot(1,1,1)
+        axes.set_axis_off()
+        vmin,vmax = (-1.,+1.) if args.correlation else (None,None)
+        plt.imshow(lower_triangle,interpolation = 'nearest',aspect = 'auto',
+            cmap = args.colormap,vmin = vmin,vmax = vmax)
     else:
         for index1 in range(ncols):
             for index2 in range(index1+1):
