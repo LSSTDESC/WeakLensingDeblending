@@ -1,19 +1,14 @@
 #!/usr/bin/env python
-#######################################################################################################
-## Program to query the official LSST simulation galaxy catalog and write a simple text catalog
-## file suitable for weak lensing studies.
-##
-## Uses the pymsql package for talking to the remote Microsoft SQL server, which in turns requires
-## that Cython and FreeTDS are installed.
-##
-## Usage example: lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
-##
-## Created 07-Nov-2012 by David Kirkby <dkirkby@uci.edu>
-#######################################################################################################
-import _mssql
-import sys
+"""Query the LSST DM simulation galaxy catalog.
+
+Documentation for this program is available at
+http://weaklensingdeblending.readthedocs.org/en/latest/programs.html#dbquery
+"""
+
 import argparse
 import math
+
+import _mssql
 
 def main():
 
@@ -33,16 +28,6 @@ def main():
         help = "maximum RA value to fetch (deg)")
     parser.add_argument("--null-sub", type = float, default = -1,
         help = "numeric value to substitute for any SQL NULLs")
-    parser.add_argument("--bypass-stored-proc", action = "store_true",
-        help = "bypass stored procedure and use a direct query")
-    parser.add_argument("--maxrows", type = int, default = 100,
-        help = "maximum number of rows to fetch from the server when bypassing stored proc")
-    args = parser.parse_args()
-
-    # Check for a valid maxrows (total rows in the DB is about 17M)
-    if args.maxrows <= 0:
-        print 'Invalid maxrows %r <= 0'
-        sys.exit(-2)
 
     # Try to open the output file
     try:
@@ -51,13 +36,13 @@ def main():
     except IOError,e:
         print 'Cannot open output %r for writing' % args.output
         print str(e)
-        sys.exit(-2)
+        return -2
 
     # The ra,dec window to retrieve
     window = { 'RAmin':args.ra_min, 'RAmax':args.ra_max, 'DECmin':args.dec_min, 'DECmax':args.dec_max }
     if args.ra_min >= args.ra_max or args.dec_min >= args.dec_max:
         print 'Invalid RA-DEC window %r' % window
-        sys.exit(-2)
+        return -2
 
     def addColumns(patterns,types):
         text = ''
@@ -77,18 +62,12 @@ def main():
     # Add filter-specific columns
     columns += addColumns(('%s_ab',),"ugrizy")
 
-    # Build the query to execute
-    if args.bypass_stored_proc:
-        # SQL filter to use
-        filter = 'WHERE ra BETWEEN %(RAmin)s AND %(RAmax)s AND dec BETWEEN %(DECmin)s and %(DECmax)s' % window
-        query = "SELECT TOP %d %s FROM galaxy %s" % (args.maxrows,columns,filter)
-    else:
-        # calculate the radius in arcmins of a circle enclosing our search box
-        radius = 60*0.5*math.sqrt((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)
-        # use the stored procedure described at
-        # http://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html
-        query = "GalaxySearchSpecColsConstraint2013 @RaSearch = %f, @DecSearch = %f, @apertureRadius = %f, @ColumnNames = '%s', @WhereClause = ''" % (
-            0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,columns)
+    # calculate the radius in arcmins of a circle enclosing our search box
+    radius = 60*0.5*math.sqrt((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)
+    # use the stored procedure described at
+    # http://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html
+    query = "GalaxySearchSpecColsConstraint2013 @RaSearch = %f, @DecSearch = %f, @apertureRadius = %f, @ColumnNames = '%s', @WhereClause = ''" % (
+        0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,columns)
 
     if args.verbose:
         print 'using query: "%s"' % query
