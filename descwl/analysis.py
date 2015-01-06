@@ -26,6 +26,9 @@ class OverlapResults(object):
         stamps(array): Array of :class:`numpy.ndarray` postage-stamp datacubes.
         bounds(array): Array of galsim.BoundsI objects giving pixel coordinates of
             each datacube in the full simulated image.
+
+    Raises:
+        RuntimeError: Image datacubes have unexpected number of slices.
     """
     def __init__(self,survey,table,stamps,bounds):
         self.survey = survey
@@ -34,6 +37,10 @@ class OverlapResults(object):
         self.bounds = bounds
         self.num_objects = len(self.table)
         self.num_slices = self.stamps[0].shape[0]
+        self.slice_labels = ['dflux','dx','dy','dscale','dg1','dg2']
+        if self.num_slices not in (1,len(self.slice_labels)):
+            raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
+                % self.num_slices)
         self.locals = { name: self.table[name] for name in self.table.colnames }
 
     def select(self,selector):
@@ -94,7 +101,7 @@ class OverlapResults(object):
             indices(iterable): Indices of the objects to include in the subimage.
 
         Returns:
-            galsim.Image: Image of the selected objects or None of indices is empty.
+            galsim.Image: Image of the selected objects or None if indices is empty.
 
         Raises:
             RuntimeError: An index is out of range.
@@ -113,6 +120,57 @@ class OverlapResults(object):
             overlap = subimage_bounds & stamp.bounds
             subimage[overlap] += stamp[overlap]
         return subimage
+
+    def get_fisher_images(self,indices):
+        """Return Fisher-matrix images for a set of objects.
+
+        Args:
+            indices(iterable): Indices of the objects to include in the subimage.
+
+        Returns:
+            numpy.ndarray: Array with shape (npar,npar,height,width) where npar = 6*len(indices)
+                is the number of floating parameters used for the calculation, and (height,width)
+                are the dimensions of the subimage containing the requested objects.
+                The returned array is symmetric in its first two indices. Returns None if
+                indices is empty.
+
+        Raises:
+            RuntimeError: An index is out of range.
+        """
+        nselected = len(indices)
+        npartials = self.num_slices
+        npar = nselected*npartials
+        background = self.get_subimage(indices)
+        if nselected == 0 or background is None:
+            return None
+        height,width = background.array.shape
+        sky_level = self.survey.mean_sky_level
+
+        fisher_images = np.empty((npar,npar,height,width))
+        stamp1 = background.copy()
+        stamp2 = background.copy()
+
+        for index1 in range(npar):
+            galaxy1 = indices[index1//npartials]
+            slice1 = index1%npartials
+            stamp1.array[:] = 0.
+            stamp1[self.bounds[galaxy1]] = self.get_stamp(galaxy1,slice1)
+            if slice1 == 0:
+                # Normalize to give partial with respect to added flux in electrons.
+                stamp1 /= self.table['flux'][galaxy1]
+            for index2 in range(index1+1):
+                galaxy2 = indices[index2//npartials]
+                slice2 = index2%npartials
+                stamp2.array[:] = 0.
+                stamp2[self.bounds[galaxy2]] = self.get_stamp(galaxy2,slice2)
+                if slice2 == 0:
+                    # Normalize to give partial with respect to added flux in electrons.
+                    stamp2 /= self.table['flux'][galaxy2]
+                fisher_images[index1,index2] = stamp1.array*stamp2.array/(
+                    background.array + sky_level)
+                if index2 < index1:
+                    fisher_images[index2,index1] = fisher_images[index1,index2]
+        return fisher_images
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.

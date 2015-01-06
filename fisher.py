@@ -49,20 +49,16 @@ def main():
         print 'Cannot specify both a galaxy and a group.'
         return -1
 
-    partials = ['dflux','dx','dy','dscale','dg1','dg2']
-    npartials = len(partials)
-
     # Load the analysis results file we will get partial derivative images from.
     try:
         reader = descwl.output.Reader.from_args(args)
         results = reader.results
+        labels = results.slice_labels
+        npartials = len(labels)
         if args.verbose:
             print results.survey.description()
     except RuntimeError,e:
         print str(e)
-        return -1
-    if results.num_slices != npartials:
-        print 'Results file does not have the expected number of datacube slices.'
         return -1
 
     # Look for the selected galaxy or group.
@@ -79,16 +75,14 @@ def main():
             return -1
         title = 'group-%d' % args.group
     selected = np.arange(results.num_objects)[selected]
-    nselected = len(selected)
 
-    # Get the background subimage for the selected galaxies.
-    background = results.get_subimage(selected)
-    sky_level = results.survey.mean_sky_level
+    # Get the Fisher-matrix images for the selcted objects.
+    fisher_images = results.get_fisher_images(selected)
+    nrows,ncols,height,width = fisher_images.shape
 
     # Calculate the bounds for our figure.
-    ncols = nselected*npartials
-    nrows = 1 if args.partials else ncols
-    height,width = background.array.shape
+    if args.partials:
+        nrows = 1
     figure_scale = args.figure_size/(ncols*max(height,width))
     figure_width = ncols*width*figure_scale
     figure_height = nrows*height*figure_scale
@@ -104,42 +98,23 @@ def main():
         plt.imshow(scaled,origin = 'lower',interpolation = 'nearest',
             cmap = args.colormap,vmin = -vcut,vmax = +vcut)
 
-    # Loop over pairs of partial derivatives.
-    stamp1 = background.copy()
-    if not args.partials:
-        stamp2 = background.copy()
-        fisher_matrix = np.zeros((nrows,ncols))
-    for index1 in range(ncols):
-        galaxy1 = selected[index1//npartials]
-        slice1 = index1%npartials
-        stamp1.array[:] = 0.
-        stamp1[results.bounds[galaxy1]] = results.get_stamp(galaxy1,slice1)
-        if slice1 == 0:
-            # Normalize to give partial with respect to added flux in electrons.
-            stamp1 /= results.table['flux'][galaxy1]
-        if args.partials:
-            draw(0,index1,stamp1.array)
-            continue
-        for index2 in range(index1+1):
-            galaxy2 = selected[index2//npartials]
-            slice2 = index2%npartials
-            stamp2.array[:] = 0.
-            stamp2[results.bounds[galaxy2]] = results.get_stamp(galaxy2,slice2)
-            if slice2 == 0:
+    if args.partials:
+        stamp1 = results.get_subimage(selected)
+        for index1 in range(ncols):
+            galaxy1 = selected[index1//npartials]
+            slice1 = index1%npartials
+            stamp1.array[:] = 0.
+            stamp1[results.bounds[galaxy1]] = results.get_stamp(galaxy1,slice1)
+            if slice1 == 0:
                 # Normalize to give partial with respect to added flux in electrons.
-                stamp2 /= results.table['flux'][galaxy2]
-            fisher_image = stamp1.array*stamp2.array/(background.array + sky_level)
-            if np.count_nonzero(fisher_image) > 0:
-                draw(index1,index2,fisher_image)
-                fisher_matrix[index1,index2] = np.sum(fisher_image)
-                fisher_matrix[index2,index1] = fisher_matrix[index1,index2]
-    print fisher_matrix
-    covariance = np.linalg.inv(fisher_matrix)
-    print covariance
-    variance = np.diag(covariance)
-    print variance
-    correlation = covariance/np.sqrt(np.outer(variance,variance))
-    print correlation
+                stamp1 /= results.table['flux'][galaxy1]
+            draw(0,index1,stamp1.array)
+    else:
+        for index1 in range(ncols):
+            for index2 in range(index1+1):
+                fisher_image = fisher_images[index1,index2]
+                if np.count_nonzero(fisher_image) > 0:
+                    draw(index1,index2,fisher_image)        
 
     if args.output_name:
         figure.savefig(args.output_name)
