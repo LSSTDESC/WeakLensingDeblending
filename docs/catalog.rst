@@ -55,8 +55,8 @@ The resulting FITS file will be somewhat smaller (by about 30%) than the text or
 
 .. _catalog-create:
 
-Create Galaxy Catalog From LSST Database
-----------------------------------------
+Create Galaxy Catalog From LSST Catalog Database
+------------------------------------------------
 
 This section documents the process for creating a galaxy catalog from the LSST Data Management database. This is not something you will normally need (or want) to do since suitable catalogs are already provided. However, if you want to know exactly how the provided catalogs were created or do need to create your own, read on.
 
@@ -68,7 +68,7 @@ The `OneDegSq.dat` catalog file was created using::
 
 with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about ? seconds to run. The set of 
 
-Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block access to these ports from internal IP addresses, so if you are unable to connect, this is the most likely reason.
+Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block outbound packets to these ports from internal IP addresses. In addition, the UW hosts of the database only allow inbound packets to their SQL server from IP address ranges included in their whitelist. Therefore, if you are unable to connect, the most likely reason is packet filtering on one or both ends of your connection. One option is to use a host that has already been configured for access to the LSST catalog database (on the NCSA cluster, for example).
 
 You might find the following interactive python snippet useful for debugging connection problems::
 
@@ -81,3 +81,7 @@ You might find the following interactive python snippet useful for debugging con
 	for row in conn: print row[0]
 	conn.execute_scalar("select count(*) from galaxy")
 	conn.close()
+
+The second line will fail with a connection error after about 30 seconds if your packets are being filtered on either end::
+
+	MSSQLDatabaseException: (20009, 'DB-Lib error message 20009, severity 9:\nUnable to connect: Adaptive Server is unavailable or does not exist\nNet-Lib error during Operation now in progress (36)\n')
