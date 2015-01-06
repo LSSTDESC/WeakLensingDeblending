@@ -16,17 +16,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action = "store_true",
         help = "provide more verbose output")
-    parser.add_argument("-o", "--output", default = "gcat.dat",
+    parser.add_argument("-o", "--output", default = "gcat.dat", metavar = 'FILE',
         help = "name of output catalog file to write")
-    parser.add_argument("--dec-min", type = float, default = -1,
+    parser.add_argument("--dec-min", type = float, default = -0.5, metavar = 'DEC',
         help = "minimum DEC value to fetch (deg)")
-    parser.add_argument("--dec-max", type = float, default = 0,
+    parser.add_argument("--dec-max", type = float, default = +0.5, metavar = 'DEC',
         help = "maximum DEC value to fetch (deg)")
-    parser.add_argument("--ra-min", type = float, default = 0,
+    parser.add_argument("--ra-min", type = float, default = 0.0, metavar = 'RA',
         help = "minimum RA value to fetch (deg)")
-    parser.add_argument("--ra-max", type = float, default = 1,
+    parser.add_argument("--ra-max", type = float, default = 1.0, metavar = 'RA',
         help = "maximum RA value to fetch (deg)")
-    parser.add_argument("--null-sub", type = float, default = -1,
+    parser.add_argument("--null-sub", type = float, default = -1, metavar = 'SUB',
         help = "numeric value to substitute for any SQL NULLs")
     args = parser.parse_args()
 

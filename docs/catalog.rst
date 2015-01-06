@@ -62,7 +62,7 @@ The `dbquery.py` program automates the process of connecting to the database, ex
 
 The `OneDegSq.dat` catalog file was created using::
 
-	dbquery.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
+	dbquery.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0 --verbose
 
 with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about ? seconds to run. The set of 
 
