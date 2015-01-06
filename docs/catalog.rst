@@ -60,11 +60,11 @@ Create Galaxy Catalog From LSST Catalog Database
 
 This section documents the process for creating a galaxy catalog from the LSST Data Management database. This is not something you will normally need (or want) to do since suitable catalogs are already provided. However, if you want to know exactly how the provided catalogs were created or do need to create your own, read on.
 
-The `lsst2wl.py` program automates the process of connecting to the database, extracting the relevant data, and writing a catalog file.  The program uses the `pymsql <http://pymssql.org/en/stable/>`_ python interface to Microsoft SQL Server (which LSST DM uses), so you will need to install that and its dependencies (`FreeTDS <http://www.freetds.org>`_ and `Cython <http://cython.org>`_) in order to run `lsst2wl.py`.
+The `dbquery.py` program automates the process of connecting to the database, extracting the relevant data, and writing a catalog file.  The program uses the `pymsql <http://pymssql.org/en/stable/>`_ python interface to Microsoft SQL Server (which LSST DM uses), so you will need to install that and its dependencies (`FreeTDS <http://www.freetds.org>`_ and `Cython <http://cython.org>`_) in order to run `dbquery.py`.
 
 The `OneDegSq.dat` catalog file was created using::
 
-	lsst2wl.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
+	dbquery.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0
 
 with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about ? seconds to run. The set of 
 

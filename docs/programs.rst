@@ -42,9 +42,9 @@ fisher
 
 The `fisher` program creates plots to illustrate galaxy parameter error estimation using Fisher matrices.
 
-.. _prog-lsst2wl:
+.. _prog-dbquery:
 
-lsst2wl
+dbquery
 -------
 
 Program to query the official LSST simulation galaxy catalog and write a text :doc:`catalog file </catalog>` in the format expected by the `simulate` program.  You do not normally need to run this program since suitable catalog files are already provided.
