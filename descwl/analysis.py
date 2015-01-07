@@ -352,6 +352,9 @@ class OverlapAnalyzer(object):
         # to use a method that needs something in table that we have not filled in yet).
         table = astropy.table.Table(data,copy = False)
         results = OverlapResults(self.survey,table,self.stamps,self.bounds)
+        npartials = results.num_slices
+        assert npartials == len(results.slice_labels), (
+            'Datacubes have wrong num_slices = %d' % npartials)
 
         # Initialize assuming that sources do not overlap.
         data['snr_grp'] = data['snr_iso']

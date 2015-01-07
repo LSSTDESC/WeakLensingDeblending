@@ -27,15 +27,13 @@ class Engine(object):
             set by the expected fluctuations in the sky background during a full exposure.
         truncate_radius(float): All extended sources are truncated at this radius in arcseconds.
         no_margin(bool): Do not simulate the tails of objects just outside the field.
-        no_partials(bool): Do not calculate partial derivative images.
         verbose_render(bool): Provide verbose output on rendering process.
     """
-    def __init__(self,survey,min_snr,truncate_radius,no_margin,no_partials,verbose_render):
+    def __init__(self,survey,min_snr,truncate_radius,no_margin,verbose_render):
         self.survey = survey
         self.min_snr = min_snr
         self.truncate_radius = truncate_radius
         self.no_margin = no_margin
-        self.no_partials = no_partials
         self.verbose_render = verbose_render
         # Calculate pixel flux threshold in electrons per pixel that determines how big a
         # bounding box we simulate for each source.
@@ -70,11 +68,12 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy):
+    def render_galaxy(self,galaxy,no_partials = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
+            no_partials(bool): Do not calculate partial derivative images.
 
         Returns:
             tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
@@ -150,7 +149,7 @@ class Engine(object):
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
         # Prepare the datacube that we will return.
-        if self.no_partials:
+        if no_partials:
             ncube = 1
         else:
             ncube = 6
@@ -159,7 +158,7 @@ class Engine(object):
         datacube[0] = cropped_stamp.array
 
         # Calculate partial derivative images, if requested.
-        if not self.no_partials:
+        if not no_partials:
             dx_stamp_arcsec = 0.5*(cropped_bounds.xmin + cropped_bounds.xmax+1 -
                 self.survey.image_width)*self.survey.pixel_scale
             dy_stamp_arcsec = 0.5*(cropped_bounds.ymin + cropped_bounds.ymax+1 -
@@ -214,8 +213,6 @@ class Engine(object):
             help = 'All extended sources are truncated at this radius in arcseconds.')
         parser.add_argument('--no-margin', action = 'store_true',
             help = 'Do not simulate the tails of objects just outside the field.')
-        parser.add_argument('--no-partials', action = 'store_true',
-            help = 'Do not calculate partial derivative images.')
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
 
