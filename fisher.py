@@ -106,20 +106,16 @@ def main():
     # If we will display matrix elements, calculate them now.
     show_matrix = args.matrix or args.covariance or args.correlation
     if show_matrix:
-        matrix = np.sum(fisher_images,axis=(2,3))
-        if args.covariance or args.correlation:
-            try:
-                matrix = np.linalg.inv(matrix)
-            except np.linalg.LinAlgError:
-                print 'Fisher matrix is not invertible.'
-                return -1
-            variance = np.diag(matrix)
-            if np.min(variance) <= 0:
-                print 'Some variances are <= 0.'
-                if args.correlation:
-                    return -1
-            if args.correlation:
-                matrix = matrix/np.sqrt(np.outer(variance,variance))
+        fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
+        if args.matrix:
+            matrix = fisher
+        elif args.covariance:
+            matrix = covariance
+        else:
+            matrix = correlation
+        if matrix is None:
+            print 'Unable to evaluate the requested matrix elements.'
+            return -1
 
     # Calculate the bounds for our figure.
     if args.partials:
