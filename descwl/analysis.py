@@ -124,6 +124,11 @@ class OverlapResults(object):
     def get_fisher_images(self,indices):
         """Return Fisher-matrix images for a set of objects.
 
+        Fisher matrix images are derived from the partial derivatives with respect to
+        six parameters: total flux in detected electrons, centroid positions in x and y
+        in arcseconds, flux-preserving radial scale (dimensionless), and shear g1,g2
+        with \|g\| = (a-b)/(a+b).
+
         Args:
             indices(iterable): Indices of the objects to include in the subimage.
 
@@ -171,6 +176,43 @@ class OverlapResults(object):
                 if index2 < index1:
                     fisher_images[index2,index1] = fisher_images[index1,index2]
         return fisher_images
+
+    def get_matrices(self,fisher_images):
+        """Return matrices derived from Fisher-matrix images.
+
+        If the Fisher matrix is not invertible, `covariance`, `variance` and `correlation`
+        will be returned as None.  If any variances are <= 0, `correlation` will be
+        returned as None.
+
+        Args:
+            fisher_images(numpy.ndarray): Fisher-matrix images returned by
+                :meth:`get_fisher_images`. These are assumed to be symmetric in the
+                first two indices, but this is not checked.
+
+        Returns:
+            tuple: Tuple `(fisher,covariance,variance,correlation)` of :class:`numpy.ndarray`
+                where `variance` has shape (npar,) and all other arrays are symmetric with
+                shape (npar,npar).  If any array cannot be calculated, it will be returned
+                as None.
+
+        Raises:
+            RuntimeError: `fisher_images` has unexpected shape.
+        """
+        shape = fisher_images.shape
+        if len(shape) != 4 or shape[0] != shape[1]:
+            raise RuntimeError('Fisher images have unexpected shape %r' % shape)
+
+        fisher = np.sum(fisher_images,axis=(2,3))
+        covariance,variance,correlation = None,None,None
+        try:
+            covariance = np.linalg.inv(fisher)
+            variance = np.diag(covariance)
+            if np.min(variance) > 0:
+                correlation = covariance/np.sqrt(np.outer(variance,variance))
+        except np.linalg.LinAlgError:
+            pass
+
+        return fisher,covariance,variance,correlation
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.
