@@ -43,6 +43,17 @@ def main():
     display_group.add_argument('--colormap', type = str,
         default = 'RdBu', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use.')
+    display_group.add_argument('--no-labels', action = 'store_true',
+        help = 'Do not display any text labels.')
+    display_group.add_argument('--label-color', type = str,
+        default = 'greenyellow', metavar = 'COL',
+        help = 'Matplotlib color name to use for label text.')
+    display_group.add_argument('--label-size', type = str,
+        default = 'medium', metavar = 'SIZE',
+        help = 'Matplotlib font size specification in points or relative (small,large,...)')
+    display_group.add_argument('--value-format', type = str,
+        default = '%.3g', metavar = 'FMT',
+        help = 'Printf format to use for matrix element values.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
@@ -106,7 +117,6 @@ def main():
                     return -1
             if args.correlation:
                 matrix = matrix/np.sqrt(np.outer(variance,variance))
-        print matrix
 
     # Calculate the bounds for our figure.
     if args.partials:
@@ -146,6 +156,15 @@ def main():
         vmin,vmax = (-1.,+1.) if args.correlation else (None,None)
         plt.imshow(lower_triangle,interpolation = 'nearest',aspect = 'auto',
             cmap = args.colormap,vmin = vmin,vmax = vmax)
+        if not args.no_labels:
+            for row in range(nrows):
+                for col in range(row+1):
+                    value_label = args.value_format % matrix[row,col]
+                    xc = (col+0.5)/ncols
+                    yc = 1.-(row+0.5)/nrows
+                    plt.annotate(value_label,xy = (xc,yc),xycoords = 'figure fraction',
+                        color = args.label_color, fontsize = args.label_size,
+                        horizontalalignment = 'center',verticalalignment = 'center')
     else:
         for index1 in range(ncols):
             for index2 in range(index1+1):
