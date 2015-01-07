@@ -43,7 +43,10 @@ class Reader(object):
         # Without memmap=False, reading all the postage stamp HDUs crashes with
         # "OSError: [Errno 24] Too many open files" since each access to hdu_list[n].data
         # adds a new open file descriptor.
-        self.hdu_list = astropy.io.fits.open(self.input_name,mode='readonly',memmap=False)
+        try:
+            self.hdu_list = astropy.io.fits.open(self.input_name,mode='readonly',memmap=False)
+        except IOError,e:
+            raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
         header = self.hdu_list[0].header
         survey_args = { }
