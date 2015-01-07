@@ -207,7 +207,7 @@ class OverlapAnalyzer(object):
         num_galaxies = len(self.models)
         data = np.empty(num_galaxies,dtype=[
             ('db_id',np.int64),
-            ('grp_id',np.int16),
+            ('grp_id',np.int64),
             ('grp_size',np.int16),
             ('grp_rank',np.int16),
             ('visible',np.bool8),
@@ -358,5 +358,8 @@ class OverlapAnalyzer(object):
                 # Order group members by decreasing group S/N.
                 sorted_indices = group_indices[np.argsort(group_snr)[::-1]]
                 data['grp_rank'][sorted_indices] = np.arange(grp_size)
+                # Replace group ID with ID of galaxy with largest S/N.
+                group_leader = data['db_id'][sorted_indices[0]]
+                data['grp_id'][grp_members] = group_leader
 
         return results

@@ -22,13 +22,12 @@ Run i-band calculation for LSST with a small field and verbose output::
 
 	./simulate.py --catalog-name OneDegSq.fits --image-width 512 --image-height 512 --survey-name LSST --filter-band i --output-name demo --verbose --verbose-model --verbose-render
 
-	./display.py --input-name demo --annotate --annotate-format '%(grp_id)d' --select 'grp_size>1' --magnification 2
+	./display.py --input-name demo --annotate --annotate-format '%(grp_id)ld' --select 'grp_size>1' --select 'grp_rank==0' --magnification 2
 
-	./display.py --input-name demo --annotate --crop --group 367 --magnification 16
-
-	./display.py --input-name demo --annotate --crop --group 97 --magnification 16 --annotate-format "%(	purity).3f\n%(snr_grp).1f" --annotate-size x-large --draw-moments
-
-	./galsimcat.py -i OneDegSq.dat -x 0.5 -y 0.0 --max-size 30 --stamps --partials --save-field --airmass 1.2 --extinction 0.07 -o baseline --pixel-scale 0.200 --width 512 --height 512 --exposure-time 6900 --sky-brightness 20.0 --zenith-fwhm 0.67 --zero-point 41.5
+	./display.py --input-name demo --annotate --crop --group 102363 --magnification 16 --verbose
+	./fisher.py --input-name demo --galaxy 102363
+	./fisher.py --input-name demo --group 102363
+	./fisher.py --input-name demo --group 102363 --correlation
 
 Calculate Blending Statistics for CFHT, DES, LSST
 -------------------------------------------------

@@ -31,7 +31,7 @@ HDU[1] contains a binary table where each row represents one simulated source an
 Name     Type    Description
 ======== ======= ====================================================================================
 db_id    int64   Unique identifier for this source in the LSST DM catalog database
-grp_id   int16   Indentifier for the group that this source belongs to
+grp_id   int64   Group identifier (db_id of group member with largest snr_grp)
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
 grp_rank int16   Rank position of this source in its group based on decreasing snr_grp
 visible  bool8   Is this source's centroid within the simulated image bounds?
