@@ -294,6 +294,8 @@ class OverlapAnalyzer(object):
         overlapping_bounds = np.logical_and(x_overlap,y_overlap)
 
         # Calculate isolated galaxy quantities and identify overlapping groups.
+        # At this stage, we use small integers for grp_id values, but these are later
+        # reset to be the db_id of each group's leader.
         sky = self.survey.mean_sky_level
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
@@ -348,6 +350,12 @@ class OverlapAnalyzer(object):
                 # Reassign all galaxies in grp_id_old to grp_id_new.
                 data['grp_id'][data['grp_id'] == grp_id_old] = grp_id_new
 
+        # How many groups do we have?
+        grp_id_set = set(data['grp_id'])
+        num_groups = len(grp_id_set)
+        if verbose:
+            print 'Simulated %d galaxies in %d overlap groups' % (num_galaxies,num_groups)
+
         # Initialize our results object so we can use its methods (but be careful not
         # to use a method that needs something in table that we have not filled in yet).
         table = astropy.table.Table(data,copy = False)
@@ -360,9 +368,8 @@ class OverlapAnalyzer(object):
         data['snr_grp'] = data['snr_iso']
         data['purity'] = 1.
         data['grp_rank'] = 0
-        # Loop over groups to calculate quantities that depend on overlaps.
-        num_groups = np.max(data['grp_id']) + 1
-        for grp_id in range(num_groups):
+        # Loop over groups to calculate quantities that need the proto-results.
+        for grp_id in grp_id_set:
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
