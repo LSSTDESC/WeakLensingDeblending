@@ -253,6 +253,7 @@ class OverlapAnalyzer(object):
             ('grp_size',np.int16),
             ('grp_rank',np.int16),
             ('visible',np.bool8),
+            # Source properties.
             ('f_disk', np.float32),
             ('f_bulge', np.float32),
             ('dx',np.float32),
@@ -260,10 +261,6 @@ class OverlapAnalyzer(object):
             ('z',np.float32),
             ('ab_mag',np.float32),
             ('flux',np.float32),
-            ('snr_sky',np.float32),
-            ('snr_iso',np.float32),
-            ('snr_grp',np.float32),
-            ('purity',np.float32),
             ('sigma_m',np.float32),
             ('sigma_p',np.float32),
             ('e1',np.float32),
@@ -271,6 +268,13 @@ class OverlapAnalyzer(object):
             ('a',np.float32),
             ('b',np.float32),
             ('beta',np.float32),
+            # Pixel-level properties.
+            ('purity',np.float32),
+            ('snr_sky',np.float32),
+            ('snr_iso',np.float32),
+            ('snr_grp',np.float32),
+            ('snr_isof',np.float32),
+            ('snr_grpf',np.float32),
             ])
 
         # Initialize integer arrays of bounding box limits.

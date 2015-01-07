@@ -25,7 +25,7 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 Analysis Results
 ----------------
 
-HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below, where Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF.
+HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below. Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF.
 
 ======== ======= ====================================================================================
 Name     Type    Description
@@ -35,6 +35,9 @@ grp_id   int64   Group identifier (db_id of group member with largest snr_grp)
 grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
 grp_rank int16   Rank position of this source in its group based on decreasing snr_grp
 visible  bool8   Is this source's centroid within the simulated image bounds?
+-------- ------- ------------------------------------------------------------------------------------
+**Source Properties**
+-----------------------------------------------------------------------------------------------------
 f_disk   float32 Fraction of total galaxy flux to due a Sersic n=1 disk component
 f_bulge  float32 Fraction of total galaxy flux to due a Sersic n=4 bulge component
 dx       float32 Source centroid in x relative to image center in arcseconds
@@ -42,17 +45,22 @@ dy       float32 Source centroid in y relative to image center in arcseconds
 z        float32 Catalog source redshift
 ab_mag   float32 Catalog source AB magnitude in the simulated filter band
 flux     float32 Total detected flux in electrons
-snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
-snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
-snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
-purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
 sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as \|Q\|**0.25
 sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5
 e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
 e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
-a        float32 Semi-major axis of second-moment ellipse in arcseconds
-b        float32 Semi-minor axis of second-moment ellipse in arcseconds
+a        float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
+b        float32 Semi-minor axis of 50% isophote ellipse in arcseconds, derived from Q
 beta     float32 Position angle of second-moment ellipse in radians, or zero when a = b
+-------- ------- ------------------------------------------------------------------------------------
+**Pixel-Level Properties**
+-----------------------------------------------------------------------------------------------------
+purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
+snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
+snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
+snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
+snr_isof float32 Similar to `snr_iso` but including correlations with all fit parameters.
+snr_grpf float32 Similar to `snr_grp` but including correlations with all fit parameters.
 ======== ======= ====================================================================================
 
 You can load just the analysis results from the output file using, e.g.::
