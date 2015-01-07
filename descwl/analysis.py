@@ -306,8 +306,8 @@ class OverlapAnalyzer(object):
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
             # Save model parameters.
-            data['f_disk'] = model.disk_fraction
-            data['f_bulge'] = model.bulge_fraction
+            data['f_disk'][index] = model.disk_fraction
+            data['f_bulge'][index] = model.bulge_fraction
             # Calculate this galaxy's size and shape from its second-moments tensor.
             sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
                 model.second_moments)
