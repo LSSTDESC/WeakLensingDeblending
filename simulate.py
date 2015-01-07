@@ -94,7 +94,7 @@ def main():
                 pass
 
         trace('begin analyze')
-        results = analyzer.finalize()
+        results = analyzer.finalize(args.verbose)
         trace('analyzer.finalize')
         output.finalize(results)
         trace('output.finalize')

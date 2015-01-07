@@ -239,8 +239,11 @@ class OverlapAnalyzer(object):
         self.stamps.append(stamps)
         self.bounds.append(bounds)
 
-    def finalize(self):
+    def finalize(self,verbose):
         """Finalize analysis of all added galaxies.
+
+        Args:
+            verbose(bool): Print a summary of analysis results.
 
         Returns:
             :class:`OverlapResults`: Overlap analysis results.
