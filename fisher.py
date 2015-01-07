@@ -95,6 +95,9 @@ def main():
             return -1
         title = 'group-%d' % args.group
     selected = np.arange(results.num_objects)[selected]
+    # Sort selected galaxies in increasing rank order.
+    sort_order = np.argsort(results.table['grp_rank'][selected])
+    selected = selected[sort_order]
 
     # Get the Fisher-matrix images for the selcted objects.
     fisher_images = results.get_fisher_images(selected)
@@ -165,6 +168,18 @@ def main():
                     plt.annotate(value_label,xy = (xc,yc),xycoords = 'figure fraction',
                         color = args.label_color, fontsize = args.label_size,
                         horizontalalignment = 'center',verticalalignment = 'center')
+                    if row == col:
+                        islice = row%npartials
+                        igalaxy = row//npartials
+                        rank = results.table['grp_rank'][selected[igalaxy]]
+                        # Latex labels do not get the correct vertical alignment.
+                        ##param_label = '$%s_{%d}$' % (results.slice_labels[islice],rank)
+                        param_label = '%s[%d]' % (results.slice_labels[islice],rank)
+                        x = (col+1.)/ncols
+                        y = 1.-float(row)/nrows
+                        plt.annotate(param_label,xy = (x,y),xycoords = 'figure fraction',
+                        color = args.label_color, fontsize = args.label_size,
+                        horizontalalignment = 'right',verticalalignment = 'top')
     else:
         for index1 in range(ncols):
             for index2 in range(index1+1):
