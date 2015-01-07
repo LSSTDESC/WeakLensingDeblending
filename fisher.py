@@ -139,18 +139,37 @@ def main():
         plt.imshow(scaled,origin = 'lower',interpolation = 'nearest',
             cmap = args.colormap,vmin = -vcut,vmax = +vcut)
 
+    def draw_param_label(index,row,col):
+        # index determines which parameter label to draw.
+        # row,col determine where the label will be drawn.
+        islice = index%npartials
+        igalaxy = index//npartials
+        rank = results.table['grp_rank'][selected[igalaxy]]
+        # Latex labels do not get the correct vertical alignment.
+        ##param_label = '$%s_{%d}$' % (results.slice_labels[islice],rank)
+        param_label = '%s_%d' % (results.slice_labels[islice],rank)
+        x = (col+1.)/ncols
+        y = 1.-float(row)/nrows
+        plt.annotate(param_label,xy = (x,y),xycoords = 'figure fraction',
+        color = args.label_color, fontsize = args.label_size,
+        horizontalalignment = 'right',verticalalignment = 'top')
+
     if args.partials:
-        stamp1 = results.get_subimage(selected)
-        for index1 in range(ncols):
-            galaxy1 = selected[index1//npartials]
-            slice1 = index1%npartials
-            stamp1.array[:] = 0.
-            stamp1[results.bounds[galaxy1]] = results.get_stamp(galaxy1,slice1)
-            if slice1 == 0:
+        # Draw the partial-derivative images on a single row.
+        stamp = results.get_subimage(selected)
+        for col in range(ncols):
+            galaxy = selected[col//npartials]
+            islice = col%npartials
+            stamp.array[:] = 0.
+            stamp[results.bounds[galaxy]] = results.get_stamp(galaxy,islice)
+            if islice == 0:
                 # Normalize to give partial with respect to added flux in electrons.
-                stamp1 /= results.table['flux'][galaxy1]
-            draw(0,index1,stamp1.array)
+                stamp /= results.table['flux'][galaxy]
+            draw(0,col,stamp.array)
+            if not args.no_labels:
+                draw_param_label(index=col,row=0,col=col)
     elif show_matrix:
+        # Draw the values of the matrix we calculated above.
         span = np.arange(nrows)
         row,col = np.meshgrid(span,span)
         lower_triangle = np.ma.masked_where(row > col,matrix)
@@ -168,24 +187,17 @@ def main():
                     plt.annotate(value_label,xy = (xc,yc),xycoords = 'figure fraction',
                         color = args.label_color, fontsize = args.label_size,
                         horizontalalignment = 'center',verticalalignment = 'center')
-                    if row == col:
-                        islice = row%npartials
-                        igalaxy = row//npartials
-                        rank = results.table['grp_rank'][selected[igalaxy]]
-                        # Latex labels do not get the correct vertical alignment.
-                        ##param_label = '$%s_{%d}$' % (results.slice_labels[islice],rank)
-                        param_label = '%s[%d]' % (results.slice_labels[islice],rank)
-                        x = (col+1.)/ncols
-                        y = 1.-float(row)/nrows
-                        plt.annotate(param_label,xy = (x,y),xycoords = 'figure fraction',
-                        color = args.label_color, fontsize = args.label_size,
-                        horizontalalignment = 'right',verticalalignment = 'top')
+                    if row == col and not args.no_labels:
+                        draw_param_label(index=row,row=row,col=col)
     else:
-        for index1 in range(ncols):
-            for index2 in range(index1+1):
-                fisher_image = fisher_images[index1,index2]
+        # Draw Fisher-matrix images.
+        for row in range(nrows):
+            for col in range(row+1):
+                fisher_image = fisher_images[row,col]
                 if np.count_nonzero(fisher_image) > 0:
-                    draw(index1,index2,fisher_image)        
+                    draw(row,col,fisher_image)
+                if row == col and not args.no_labels:
+                    draw_param_label(index=row,row=row,col=col)
 
     if args.output_name:
         figure.savefig(args.output_name)
