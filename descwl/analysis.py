@@ -314,6 +314,7 @@ class OverlapAnalyzer(object):
         # Initialize assuming that sources do not overlap.
         data['snr_grp'] = data['snr_iso']
         data['purity'] = 1.
+        data['grp_rank'] = 0
         # Loop over groups to calculate quantities that depend on overlaps.
         num_groups = np.max(data['grp_id']) + 1
         for grp_id in range(num_groups):
@@ -357,7 +358,7 @@ class OverlapAnalyzer(object):
                 data['snr_grp'][grp_members] = group_snr
                 # Order group members by decreasing group S/N.
                 sorted_indices = group_indices[np.argsort(group_snr)[::-1]]
-                data['grp_rank'][sorted_indices] = np.arange(grp_size)
+                data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
                 # Replace group ID with ID of galaxy with largest S/N.
                 group_leader = data['db_id'][sorted_indices[0]]
                 data['grp_id'][grp_members] = group_leader
