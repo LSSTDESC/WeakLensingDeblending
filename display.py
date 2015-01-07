@@ -117,6 +117,8 @@ def main():
             print 'WARNING: no galaxy found with ID %d.' % identifier
         selection = np.logical_or(selection,selected)
     selected_indices = np.arange(results.num_objects)[selection]
+    if args.verbose:
+        print 'Selected IDs:\n%s' % np.array(results.table['db_id'][selected_indices])
 
     # Build the image of selected objects.
     selected_image = results.get_subimage(selected_indices)
@@ -173,7 +175,7 @@ def main():
         z = zscale(overlap_pixels)
         if masked:
             # Only show non-zero pixels.
-            z = numpy.ma.masked_where(overlap_pixels == 0,z)
+            z = np.ma.masked_where(overlap_pixels == 0,z)
         axes.imshow(z,extent = (xlo,xhi,ylo,yhi),
             aspect = 'equal',origin = 'lower',interpolation = 'nearest',**kwargs)
 
