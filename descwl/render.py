@@ -148,11 +148,24 @@ class Engine(object):
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
+        # Define the parameter variations we consider for building Fisher matrices.
+        # The names appearing below are args of Galaxy.get_transformed_model().
+        # We do not include 'flux' below since the nominal image is already the
+        # partial derivative wrt flux (after dividing by flux).
+        variations = [
+            ('dx',self.survey.pixel_scale/3), # arcsecs
+            ('dy',self.survey.pixel_scale/3), # arcsecs
+            ('dscale',0.05), # relative dilation (flux preserving)
+            ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
+            ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+            ]
+
         # Prepare the datacube that we will return.
         if no_partials:
             ncube = 1
         else:
-            ncube = 6
+            # The nominal image doubles as the flux partial derivative.
+            ncube = 1+len(variations)
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
         datacube[0] = cropped_stamp.array
@@ -165,13 +178,6 @@ class Engine(object):
                 self.survey.image_height)*self.survey.pixel_scale
             mask = (cropped_stamp.array == 0)
             variation_stamp = cropped_stamp.copy()
-            variations = [
-                ('dx',self.survey.pixel_scale/3), # arcsecs
-                ('dy',self.survey.pixel_scale/3), # arcsecs
-                ('dscale',0.05), # relative dilation (flux preserving)
-                ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
-                ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
-                ]
             for i,(pname,delta) in enumerate(variations):
                 for sign in (-1,+1):
                     variation_model = galaxy.get_transformed_model(**{pname:sign*delta})

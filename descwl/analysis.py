@@ -357,7 +357,7 @@ class OverlapAnalyzer(object):
         grp_id_set = set(data['grp_id'])
         num_groups = len(grp_id_set)
         if verbose:
-            print 'Simulated %d galaxies in %d overlap groups' % (num_galaxies,num_groups)
+            print 'Simulated %d galaxies in %d overlap groups.' % (num_galaxies,num_groups)
 
         # Initialize our results object so we can use its methods (but be careful not
         # to use a method that needs something in table that we have not filled in yet).
