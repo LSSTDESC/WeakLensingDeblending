@@ -241,7 +241,7 @@ class GalaxyBuilder(object):
         agn_flux = 0. if self.no_agn else entry['fluxnorm_agn']/total_fluxnorm*total_flux
         # Is there any flux to simulate?
         if disk_flux + bulge_flux + agn_flux == 0:
-            return SourceNotVisible
+            raise SourceNotVisible
         # Calculate the position of angle of the Sersic components, which are assumed to be the same.
         if disk_flux > 0:
             beta_radians = math.radians(entry['pa_disk'])
