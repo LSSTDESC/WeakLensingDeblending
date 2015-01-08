@@ -279,7 +279,7 @@ class OverlapAnalyzer(object):
             ('purity',np.float32),
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
-            ('snr_grp',np.float32),
+            ('snr_iso2',np.float32),
             ('snr_isof',np.float32),
             ('snr_grpf',np.float32),
             ])
@@ -307,7 +307,6 @@ class OverlapAnalyzer(object):
         # Calculate isolated galaxy quantities and identify overlapping groups.
         # At this stage, we use small integers for grp_id values, but these are later
         # reset to be the db_id of each group's leader.
-        sky = self.survey.mean_sky_level
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
             data['db_id'][index] = model.identifier
@@ -332,13 +331,6 @@ class OverlapAnalyzer(object):
             data['e1'][index] = e1
             data['e2'][index] = e2
             data['beta'][index] = beta
-            # Calculate the SNR this galaxy would have without any overlaps in the
-            # sky-dominated limit.
-            fiducial = stamps[0].flatten()
-            data['snr_sky'][index] = np.sqrt(np.sum(fiducial**2)/sky)
-            # Include the signal in the noise variance.
-            mu0 = fiducial + sky
-            data['snr_iso'][index] = np.sqrt(np.sum(fiducial**2*(mu0**-1 + 0.5*mu0**-2)))
             # Loop over earlier galaxies with overlapping bounding boxes.
             for pre_index in np.arange(index)[overlapping_bounds[index,:index]]:
                 pre_bounds = self.bounds[pre_index]
@@ -375,55 +367,53 @@ class OverlapAnalyzer(object):
         assert npartials == len(results.slice_labels), (
             'Datacubes have wrong num_slices = %d' % npartials)
 
-        # Initialize assuming that sources do not overlap.
-        data['snr_grp'] = data['snr_iso']
-        data['purity'] = 1.
-        data['grp_rank'] = 0
-        # Loop over groups to calculate quantities that need the proto-results.
+        sky = self.survey.mean_sky_level
+        # Loop over groups to calculate pixel-level quantities.
         for grp_id in grp_id_set:
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
-            if grp_size > 1:
-                group_indices = np.arange(num_galaxies)[grp_members]
-                group_image = results.get_subimage(group_indices)
-                # Loop over pairs of galaxies in this overlapping group to calculate
-                # the Fisher matrix for the overlapping S/N calculation.
-                fisher = np.zeros((grp_size,grp_size),dtype = np.float64)
-                flux = np.empty(grp_size,dtype = np.float64)
-                for i1,g1 in enumerate(group_indices):
-                    stamp1 = results.get_stamp(g1)
-                    flux[i1] = self.models[g1].model.getFlux()
-                    # Calculate this source's purity within its group.
-                    stamp1_group = group_image[stamp1.bounds]
-                    data['purity'][g1] = (
-                        np.sum(stamp1.array**2)/np.sum(stamp1.array*stamp1_group.array))
-                    for i2,g2 in enumerate(group_indices[:i1+1]):
-                        # Galaxies (g1,g2) might not directly overlap even if they are in
-                        # an overlapping group.
-                        if not overlapping_bounds[g1,g2]:
-                            continue
-                        stamp2 = results.get_stamp(g2)
-                        overlap = stamp1.bounds & stamp2.bounds
-                        assert overlap.area() > 0
-                        fiducial1 = stamp1[overlap].array.flatten()
-                        fiducial2 = stamp2[overlap].array.flatten()
-                        mu0 = group_image[overlap].array.flatten() + sky
-                        fisher[i1,i2] = np.sum(
-                            fiducial1*fiducial2*(mu0**-1 + 0.5*mu0**-2))/(flux[i1]*flux[i2])
-                        fisher[i2,i1] = fisher[i1,i2]
-                covariance = np.linalg.inv(fisher)
-                variance = np.diag(covariance)
-                if not np.all(variance > 0):
-                    print 'variance < 0',variance
-                    print fisher
-                group_snr = np.sqrt(flux**2/variance)
-                data['snr_grp'][grp_members] = group_snr
-                # Order group members by decreasing group S/N.
-                sorted_indices = group_indices[np.argsort(group_snr)[::-1]]
-                data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
-                # Replace group ID with ID of galaxy with largest S/N.
-                group_leader = data['db_id'][sorted_indices[0]]
-                data['grp_id'][grp_members] = group_leader
+            group_indices = np.arange(num_galaxies)[grp_members]
+
+            group_image = results.get_subimage(group_indices)
+            fisher_images = results.get_fisher_images(group_indices)
+            fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
+
+            for index,galaxy in enumerate(group_indices):
+                flux = data['flux'][galaxy]
+                signal = results.get_stamp(galaxy)
+                # Calculate this galaxy's purity.
+                signal_plus_background = group_image[signal.bounds]
+                data['purity'][galaxy] = (
+                    np.sum(signal.array**2)/np.sum(signal.array*signal_plus_background.array))
+                # Calculate the SNR this galaxy would have without any overlaps and
+                # assuming that we are in the sky-dominated limit.
+                data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
+                # Calculate this galaxy's SNR in various ways.
+                flux_index = index*npartials
+                data['snr_iso2'][galaxy] = flux*np.sqrt(fisher[flux_index,flux_index])
+                if correlation is not None:
+                    data['snr_grpf'][galaxy] = flux/np.sqrt(variance[flux_index])
+                else:
+                    data['snr_grpf'][galaxy] = -1.
+                if grp_size == 1:
+                    data['snr_iso'][galaxy] = data['snr_iso2'][galaxy]
+                    data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
+                else:
+                    iso_fisher_images = results.get_fisher_images([galaxy])
+                    iso_fisher,iso_covariance,iso_variance,iso_correlation = (
+                        results.get_matrices(iso_fisher_images))
+                    data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[0,0])
+                    if iso_correlation is not None:
+                        data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[0])
+                    else:
+                        data['snr_isof'][galaxy] = -1.
+
+            # Order group members by decreasing isolated S/N.
+            sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
+            data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
+            # Replace group ID with ID of galaxy with largest S/N.
+            group_leader = data['db_id'][sorted_indices[0]]
+            data['grp_id'][grp_members] = group_leader
 
         return results
