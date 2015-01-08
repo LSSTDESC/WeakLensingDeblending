@@ -9,6 +9,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+import astropy.table
+
 import descwl
 
 def main():
@@ -103,10 +105,10 @@ def main():
     fisher_images = results.get_fisher_images(selected)
     nrows,ncols,height,width = fisher_images.shape
 
-    # If we will display matrix elements, calculate them now.
+    # Calculate matrix elements.
+    fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
     show_matrix = args.matrix or args.covariance or args.correlation
     if show_matrix:
-        fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
         if args.matrix:
             matrix = fisher
         elif args.covariance:
@@ -116,6 +118,18 @@ def main():
         if matrix is None:
             print 'Unable to evaluate the requested matrix elements.'
             return -1
+
+    # Print a summary table of RMS errors on each parameter.
+    if args.verbose and correlation is not None:
+        dtypes = [ (name,np.float32) for name in results.slice_labels ]
+        dtypes.insert(0,('id',np.int64))
+        summary = np.empty(shape = (len(selected),),dtype = dtypes)
+        summary['id'] = results.table['db_id'][selected]
+        for index in range(ncols):
+            galaxy = index//npartials
+            islice = index%npartials
+            summary[galaxy][islice+1] = np.sqrt(variance[index])
+        print astropy.table.Table(summary)
 
     # Calculate the bounds for our figure.
     if args.partials:
