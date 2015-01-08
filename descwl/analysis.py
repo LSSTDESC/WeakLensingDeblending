@@ -127,7 +127,8 @@ class OverlapResults(object):
         Fisher matrix images are derived from the partial derivatives with respect to
         six parameters: total flux in detected electrons, centroid positions in x and y
         in arcseconds, flux-preserving radial scale (dimensionless), and shear g1,g2
-        with \|g\| = (a-b)/(a+b).
+        with \|g\| = (a-b)/(a+b). Use the :ref:`prog-fisher` program to display Fisher
+        matrix images.
 
         Args:
             indices(iterable): Indices of the objects to include in the subimage.
@@ -149,7 +150,9 @@ class OverlapResults(object):
         if nselected == 0 or background is None:
             return None
         height,width = background.array.shape
-        sky_level = self.survey.mean_sky_level
+        # Calculate the variance normalization for each pixel.
+        mu0 = background.array + self.survey.mean_sky_level
+        fisher_norm = mu0**-1 + 0.5*mu0**-2
 
         fisher_images = np.empty((npar,npar,height,width))
         stamp1 = background.copy()
@@ -171,8 +174,7 @@ class OverlapResults(object):
                 if slice2 == 0:
                     # Normalize to give partial with respect to added flux in electrons.
                     stamp2 /= self.table['flux'][galaxy2]
-                fisher_images[index1,index2] = stamp1.array*stamp2.array/(
-                    background.array + sky_level)
+                fisher_images[index1,index2] = fisher_norm*stamp1.array*stamp2.array
                 if index2 < index1:
                     fisher_images[index2,index1] = fisher_images[index1,index2]
         return fisher_images
@@ -182,7 +184,9 @@ class OverlapResults(object):
 
         If the Fisher matrix is not invertible, `covariance`, `variance` and `correlation`
         will be returned as None.  If any variances are <= 0, `correlation` will be
-        returned as None.
+        returned as None. These problems are generally associated with sources that are
+        barely above the pixel SNR threshold. Use the :ref:`prog-fisher` program to
+        visualize matrix elements and to analyze cases where some arrays are returned as None.
 
         Args:
             fisher_images(numpy.ndarray): Fisher-matrix images returned by
