@@ -70,6 +70,7 @@ class Survey(object):
             self.psf_model = galsim.Convolve(atmospheric_psf_model,optical_psf_model)
         else:
             self.psf_model = atmospheric_psf_model
+            self.obscuration_fraction = 0.
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
