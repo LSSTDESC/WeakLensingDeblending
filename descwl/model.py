@@ -172,8 +172,6 @@ class Galaxy(object):
             dscale(float): Relative amount to scale the galaxy profile in the
                 radial direction while conserving flux, before applying shear
                 or convolving with the PSF.
-            dtheta(float): Amount to rotate the galaxy profile clockwise, in radians,
-                before applying shear or convolving with the PSF.
             dg1(float): Amount to adjust the + shear applied to the galaxy profile,
                 with \|g\| = (a-b)/(a+b), before convolving with the PSF.
             dg2(float): Amount to adjust the x shear applied to the galaxy profile,
@@ -185,7 +183,6 @@ class Galaxy(object):
         """
         return (self.profile
             .dilate(1 + dscale)
-            .rotate(dtheta*galsim.radians)
             .shear(g1 = self.cosmic_shear_g1 + dg1,g2 = self.cosmic_shear_g2 + dg2)
             .shift(dx = self.dx_arcsecs + dx,dy = self.dy_arcsecs + dy))
 
