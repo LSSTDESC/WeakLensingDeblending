@@ -36,26 +36,7 @@ def main():
         descwl.survey.Survey.print_defaults()
         return 0
 
-    if args.memory_trace:
-        try:
-            import psutil
-            import os
-            this_process = psutil.Process(os.getpid())
-            global last_usage
-            last_usage = this_process.get_memory_info()[0]
-            print 'last_usage',last_usage
-            def trace(label):
-                global last_usage
-                usage = this_process.get_memory_info()[0]
-                print '%s memory usage: %.3f Mb (%+d bytes)' % (label,
-                    usage/float(2**20),usage-last_usage)
-                last_usage = usage
-        except:
-            print 'Unable to initialize memory-trace. Is psutils installed?'
-            return -1
-    else:
-        def trace(label): pass
-
+    trace = descwl.trace.Memory(args.memory_trace)
     trace('begin')
 
     try:
