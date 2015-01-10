@@ -50,3 +50,5 @@ A version of at least 0.4 is required due to recent changes in tables and FITS I
 	sudo conda update anaconda
 
 Note that some additional packages are required to :ref:`query the LSST DM catalog <catalog-create>`, but you will not normally need to do this.
+
+The `psutil <https://pypi.python.org/pypi/psutil>`_ package is required if you use the `--memory-trace` command-line argument to the :ref:`prog-simulate` program, but you normally would not need to do this.

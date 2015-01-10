@@ -117,14 +117,18 @@ class Writer(object):
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
         output_name(str): Base name of FITS output files to write. The ".fits" extension
             can be omitted.
+        no_catalog(bool): Do not save the results catalog.
+        no_stamps(bool): Do not save postage stamp datacubes for each source.
         output_no_clobber(bool): Do not overwrite any existing output file with the same name.
 
     Raises:
         RuntimeError: Unable to initialize FITS output file.
     """
-    def __init__(self,survey,output_name,output_no_clobber):
+    def __init__(self,survey,output_name,no_stamps,no_catalog,output_no_clobber):
         self.survey = survey
         self.output_name = output_name
+        self.no_stamps = no_stamps
+        self.no_catalog = no_catalog
         self.output_no_clobber = output_no_clobber
         self.hdu_list = None
         if self.output_name:
@@ -176,15 +180,17 @@ class Writer(object):
         primary_hdu.data = results.survey.image.array
         for key,value in results.survey.args.iteritems():
             primary_hdu.header.set(key[:8],value)
-        # Save the analysis results table in HDU[1].
-        table = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
-        self.hdu_list.append(table)
-        # Save each stamp datacube.
-        for stamps,bounds in zip(results.stamps,results.bounds):
-            data_cube = astropy.io.fits.ImageHDU(data = stamps)
-            data_cube.header['X_MIN'] = bounds.xmin
-            data_cube.header['Y_MIN'] = bounds.ymin
-            self.hdu_list.append(data_cube)
+        if not self.no_catalog:
+            # Save the analysis results table in HDU[1].
+            table = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
+            self.hdu_list.append(table)
+        if not self.no_stamps:
+            # Save each stamp datacube.
+            for stamps,bounds in zip(results.stamps,results.bounds):
+                data_cube = astropy.io.fits.ImageHDU(data = stamps)
+                data_cube.header['X_MIN'] = bounds.xmin
+                data_cube.header['Y_MIN'] = bounds.ymin
+                self.hdu_list.append(data_cube)
         # Write and close our FITS file.
         self.hdu_list.close()
 
@@ -200,6 +206,10 @@ class Writer(object):
         """
         parser.add_argument('--output-name', default = None, metavar = 'FILE',
             help = 'Base name of FITS output files to write. The ".fits" extension can be omitted.')
+        parser.add_argument('--no-catalog', action = 'store_true',
+            help = 'Do not save the results catalog.')
+        parser.add_argument('--no-stamps', action = 'store_true',
+            help = 'Do not save postage stamp datacubes for each source.')
         parser.add_argument('--output-no-clobber', action = 'store_true',
             help = 'Do not overwrite any existing output file with the same name.')
 
