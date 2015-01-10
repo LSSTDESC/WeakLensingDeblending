@@ -33,15 +33,18 @@ class OverlapResults(object):
     def __init__(self,survey,table,stamps,bounds):
         self.survey = survey
         self.table = table
+        if self.table is not None:
+            self.num_objects = len(self.table)
+            self.locals = { name: self.table[name] for name in self.table.colnames }
         self.stamps = stamps
         self.bounds = bounds
-        self.num_objects = len(self.table)
-        self.num_slices = self.stamps[0].shape[0]
-        self.slice_labels = ['dflux','dx','dy','dscale','dg1','dg2']
-        if self.num_slices not in (1,len(self.slice_labels)):
-            raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
-                % self.num_slices)
-        self.locals = { name: self.table[name] for name in self.table.colnames }
+        if len(self.stamps) > 0:
+            self.num_slices = self.stamps[0].shape[0]
+            if self.num_slices not in (1,len(self.slice_labels)):
+                raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
+                    % self.num_slices)
+
+    slice_labels = ['dflux','dx','dy','dscale','dg1','dg2']
 
     def select(self,selector):
         """Select objects.

@@ -57,19 +57,23 @@ class Reader(object):
         # Load the simulated image into the survey object.
         image_data = self.hdu_list[0].data
         survey.image.array[:] = image_data
-        # Passing an HDUList to Table.read does not seem to be documented but works as expected.
-        table = astropy.table.Table.read(self.hdu_list,hdu=1)
-        # Load individual stamps and reconstruct the corresponding bounds objects.
+
+        table = None
+        stamp_hdu_offset = 1
+        if len(self.hdu_list) > 1 and type(self.hdu_list[1]) is astropy.io.fits.BinTableHDU:
+            # Passing an HDUList to Table.read does not seem to be documented but works as expected.
+            table = astropy.table.Table.read(self.hdu_list,hdu=1)
+            stamp_hdu_offset += 1
+
         stamps,bounds = [ ],[ ]
-        num_galaxies = len(table)
-        for index in range(num_galaxies):
-            # Stamp HDUs start after the full image HDU[0] and the analysis table HDU[1].
-            hdu = self.hdu_list[index+2]
-            datacube = np.copy(hdu.data)
-            stamps.append(datacube)
-            nstamps,height,width = datacube.shape
-            x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
-            bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
+        if len(self.hdu_list) > stamp_hdu_offset:
+            # Load individual stamps and reconstruct the corresponding bounds objects.
+            for hdu in self.hdu_list[stamp_hdu_offset:]:
+                datacube = np.copy(hdu.data)
+                stamps.append(datacube)
+                nstamps,height,width = datacube.shape
+                x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
+                bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
         # Save file contents as a results object.
         self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds)
         self.hdu_list.close()

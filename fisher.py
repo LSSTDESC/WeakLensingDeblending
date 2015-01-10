@@ -75,12 +75,17 @@ def main():
     try:
         reader = descwl.output.Reader.from_args(args)
         results = reader.results
-        labels = results.slice_labels
-        npartials = len(labels)
+        npartials = len(results.slice_labels)
         if args.verbose:
             print results.survey.description()
     except RuntimeError,e:
         print str(e)
+        return -1
+    if results.table is None:
+        print 'Input file is missing a results catalog.'
+        return -1
+    if results.stamps is None:
+        print 'Input file is missing stamp datacubes.'
         return -1
 
     # Look for the selected galaxy or group.
