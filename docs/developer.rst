@@ -38,7 +38,7 @@ Create a new documentation file `docs/src/descwl.xxx.rst` containing (replace `x
 Profiling
 ---------
 
-The `simulate` program has a `--memory-trace` option that displays the memory usage at frequent checkpoints during the execution.
+The `simulate` program has a `--memory-trace` option that displays the memory usage at frequent checkpoints during the execution, based on the :mod:`descwl.trace` module.
 
 Profile CPU usage with the `standard recipe <https://docs.python.org/2/library/profile.html#instant-user-s-manual>`_, for example::
 

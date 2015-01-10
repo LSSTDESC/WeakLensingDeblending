@@ -12,6 +12,7 @@ Submodules
    descwl.render
    descwl.analysis
    descwl.output
+   descwl.trace
 
 Module contents
 ---------------
