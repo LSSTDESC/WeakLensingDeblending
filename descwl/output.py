@@ -171,12 +171,15 @@ class Writer(object):
         """
         return 'Simulation output will be saved to %s' % self.output_name
 
-    def finalize(self,results):
+    def finalize(self,results,trace):
         """Save analysis results and close the output file, if any.
 
         Args:
             :class:`descwl.analysis.OverlapResults`: Overlap analysis results.
+            trace(callable): Function to call for tracing resource usage. Will be
+                called with a brief :type:`str` description of each checkpoint.
         """
+        trace('Writer.finalize begin')
         if self.hdu_list is None:
             return
         # Fill in the primary HDU image data and headers.
@@ -184,10 +187,12 @@ class Writer(object):
         primary_hdu.data = results.survey.image.array
         for key,value in results.survey.args.iteritems():
             primary_hdu.header.set(key[:8],value)
+        trace('wrote primary hdu')
         if not self.no_catalog:
             # Save the analysis results table in HDU[1].
             table = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
             self.hdu_list.append(table)
+            trace('wrote table')
         if not self.no_stamps:
             # Save each stamp datacube.
             for stamps,bounds in zip(results.stamps,results.bounds):
@@ -195,8 +200,10 @@ class Writer(object):
                 data_cube.header['X_MIN'] = bounds.xmin
                 data_cube.header['Y_MIN'] = bounds.ymin
                 self.hdu_list.append(data_cube)
+                trace('wrote datacube')
         # Write and close our FITS file.
         self.hdu_list.close()
+        trace('Writer.finalize end')
 
     @staticmethod
     def add_args(parser):

@@ -246,15 +246,18 @@ class OverlapAnalyzer(object):
         self.stamps.append(stamps)
         self.bounds.append(bounds)
 
-    def finalize(self,verbose):
+    def finalize(self,verbose,trace):
         """Finalize analysis of all added galaxies.
 
         Args:
             verbose(bool): Print a summary of analysis results.
+            trace(callable): Function to call for tracing resource usage. Will be
+                called with a brief :type:`str` description of each checkpoint.
 
         Returns:
             :class:`OverlapResults`: Overlap analysis results.
         """
+        trace('OverlapAnalyzer.finalize begin')
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
         data = np.empty(num_galaxies,dtype=[
@@ -286,6 +289,7 @@ class OverlapAnalyzer(object):
             ('snr_isof',np.float32),
             ('snr_grpf',np.float32),
             ])
+        trace('allocated table')
 
         # Initialize integer arrays of bounding box limits.
         xmin = np.empty(num_galaxies,np.int32)
@@ -312,6 +316,7 @@ class OverlapAnalyzer(object):
         # reset to be the db_id of each group's leader.
         data['grp_id'] = np.arange(num_galaxies)
         for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
+            trace('index %d' % index)
             data['db_id'][index] = model.identifier
             data['dx'][index] = model.dx_arcsecs
             data['dy'][index] = model.dy_arcsecs
@@ -373,6 +378,7 @@ class OverlapAnalyzer(object):
         sky = self.survey.mean_sky_level
         # Loop over groups to calculate pixel-level quantities.
         for grp_id in grp_id_set:
+            trace('grp_id %d' % grp_id)
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
@@ -419,4 +425,5 @@ class OverlapAnalyzer(object):
             group_leader = data['db_id'][sorted_indices[0]]
             data['grp_id'][grp_members] = group_leader
 
+        trace('OverlapAnalyzer.finalize end')
         return results

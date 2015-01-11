@@ -74,11 +74,8 @@ def main():
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
 
-        trace('begin analyze')
-        results = analyzer.finalize(args.verbose)
-        trace('analyzer.finalize')
-        output.finalize(results)
-        trace('output.finalize')
+        results = analyzer.finalize(args.verbose,trace)
+        output.finalize(results,trace)
 
     except RuntimeError,e:
         print str(e)
