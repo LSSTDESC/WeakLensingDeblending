@@ -105,13 +105,16 @@ def main():
     # Sort selected galaxies in increasing rank order.
     sort_order = np.argsort(results.table['grp_rank'][selected])
     selected = selected[sort_order]
+    num_selected = len(selected)
+    npar = npartials*num_selected
+    nrows,ncols = npar,npar
 
-    # Get the Fisher-matrix images for the selcted objects.
-    fisher_images = results.get_fisher_images(selected)
-    nrows,ncols,height,width = fisher_images.shape
+    # Get the background image for these galaxies.
+    background = results.get_subimage(selected)
+    height,width = background.array.shape
 
     # Calculate matrix elements.
-    fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
+    fisher,covariance,variance,correlation = results.get_matrices(selected)
     show_matrix = args.matrix or args.covariance or args.correlation
     if show_matrix:
         if args.matrix:
@@ -206,13 +209,23 @@ def main():
                         draw_param_label(index=row,row=row,col=col)
     else:
         # Draw Fisher-matrix images.
-        for row in range(nrows):
-            for col in range(row+1):
-                fisher_image = fisher_images[row,col]
-                if np.count_nonzero(fisher_image) > 0:
-                    draw(row,col,fisher_image)
-                if row == col and not args.no_labels:
-                    draw_param_label(index=row,row=row,col=col)
+        stamp = background.copy()
+        for row,index1 in enumerate(selected):
+            for col,index2 in enumerate(selected[:row+1]):
+                images,overlap = results.get_fisher_images(index1,index2,background)
+                if overlap is None:
+                    continue
+                for par1 in range(npartials):
+                    fisher_row = npartials*row+par1
+                    for par2 in range(npartials):
+                        fisher_col = npartials*col+par2
+                        if fisher_col > fisher_row:
+                            continue
+                        stamp.array[:] = 0.
+                        stamp[overlap].array[:] = images[par1,par2]
+                        draw(fisher_row,fisher_col,stamp.array)
+                        if fisher_row == fisher_col and not args.no_labels:
+                            draw_param_label(index = fisher_row,row = fisher_row,col = fisher_col)
 
     if args.output_name:
         figure.savefig(args.output_name)

@@ -84,7 +84,8 @@ class OverlapResults(object):
             datacube_index(int): Which slice of the datacube to return.
 
         Returns:
-            galsim.ImageView: A GalSim image for the requested galaxy.
+            galsim.ImageView: A GalSim image for the requested galaxy. Note that the
+                return value is a read-only view of our internal stamps array.
 
         Raises:
             RuntimeError: No such galaxy in the results.
@@ -124,8 +125,8 @@ class OverlapResults(object):
             subimage[overlap] += stamp[overlap]
         return subimage
 
-    def get_fisher_images(self,indices):
-        """Return Fisher-matrix images for a set of objects.
+    def get_fisher_images(self,index1,index2,background):
+        """Return Fisher-matrix images for a pair of galaxies.
 
         Fisher matrix images are derived from the partial derivatives with respect to
         six parameters: total flux in detected electrons, centroid positions in x and y
@@ -134,56 +135,59 @@ class OverlapResults(object):
         matrix images.
 
         Args:
-            indices(iterable): Indices of the objects to include in the subimage.
+            index1(int): Index of the first galaxy to use.
+            index2(int): Index of the second galaxy to use, which might the same as index1.
+            background(galsim.Image): Background image that combines all sources that overlap
+                the two galaxies and completely contains them.
 
         Returns:
-            numpy.ndarray: Array with shape (npar,npar,height,width) where npar = 6*len(indices)
-                is the number of floating parameters used for the calculation, and (height,width)
-                are the dimensions of the subimage containing the requested objects.
-                The returned array is symmetric in its first two indices. Returns None if
-                indices is empty.
+            tuple: Tuple (images,overlap) where images is a :type:`numpy.ndarray` with shape
+                (npar,npar,height,width), where npar=6 and (height,width) are the dimensions
+                of the overlap between the two galaxies, and overlap gives the bounding box of the
+                overlap in the full survey image. Returns None,None if the two galaxies do not overlap.
 
         Raises:
-            RuntimeError: An index is out of range.
+            RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
+                background image, or no partial derivative images are available.
         """
-        nselected = len(indices)
-        npartials = self.num_slices
-        npar = nselected*npartials
-        background = self.get_subimage(indices)
-        if nselected == 0 or background is None:
-            return None
-        height,width = background.array.shape
-        # Calculate the variance normalization for each pixel.
-        mu0 = background.array + self.survey.mean_sky_level
+        npar = self.num_slices
+        if npar != len(self.slice_labels):
+            raise RuntimeError('No partial derivative images are available.')
+        # Calculate the overlap bounds.
+        try:
+            overlap = self.bounds[index1] & self.bounds[index2]
+        except IndexError:
+            raise RuntimeError('Invalid index1=%d or index2=%d.' % (index1,index2))
+        # Check that the background image contains each galaxy.
+        if not background.bounds.includes(self.bounds[index1]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index1)
+        if not background.bounds.includes(self.bounds[index2]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index2)
+        # Is there any overlap between the two galaxies?
+        if overlap.area() == 0:
+            return None,None
+        product = self.get_stamp(index1,0)[overlap]*self.get_stamp(index2,0)[overlap]
+        if not np.any(product.array):
+            return None,None
+        # Fill arrays of partial derivatives within the overlap region.
+        width = overlap.xmax - overlap.xmin + 1
+        height = overlap.ymax - overlap.ymin + 1
+        partials1 = np.empty((npar,height,width),dtype = np.float32)
+        partials2 = np.empty((npar,height,width),dtype = np.float32)
+        for islice in range(npar):
+            partials1[islice] = self.get_stamp(index1,islice)[overlap].array
+            partials2[islice] = self.get_stamp(index2,islice)[overlap].array
+        partials1[0] /= self.table['flux'][index1]
+        partials2[0] /= self.table['flux'][index2]
+        # Normalize the Fisher images.
+        mu0 = background[overlap].array + self.survey.mean_sky_level
         fisher_norm = mu0**-1 + 0.5*mu0**-2
+        # Calculate the Fisher images as the outer product of the partial-derivative images.
+        images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
+        return images,overlap
 
-        fisher_images = np.empty((npar,npar,height,width))
-        stamp1 = background.copy()
-        stamp2 = background.copy()
-
-        for index1 in range(npar):
-            galaxy1 = indices[index1//npartials]
-            slice1 = index1%npartials
-            stamp1.array[:] = 0.
-            stamp1[self.bounds[galaxy1]] = self.get_stamp(galaxy1,slice1)
-            if slice1 == 0:
-                # Normalize to give partial with respect to added flux in electrons.
-                stamp1 /= self.table['flux'][galaxy1]
-            for index2 in range(index1+1):
-                galaxy2 = indices[index2//npartials]
-                slice2 = index2%npartials
-                stamp2.array[:] = 0.
-                stamp2[self.bounds[galaxy2]] = self.get_stamp(galaxy2,slice2)
-                if slice2 == 0:
-                    # Normalize to give partial with respect to added flux in electrons.
-                    stamp2 /= self.table['flux'][galaxy2]
-                fisher_images[index1,index2] = fisher_norm*stamp1.array*stamp2.array
-                if index2 < index1:
-                    fisher_images[index2,index1] = fisher_images[index1,index2]
-        return fisher_images
-
-    def get_matrices(self,fisher_images):
-        """Return matrices derived from Fisher-matrix images.
+    def get_matrices(self,selected):
+        """Return matrices derived the from Fisher-matrix images for a set of sources.
 
         If the Fisher matrix is not invertible, `covariance`, `variance` and `correlation`
         will be returned as None.  If any variances are <= 0, `correlation` will be
@@ -192,24 +196,29 @@ class OverlapResults(object):
         visualize matrix elements and to analyze cases where some arrays are returned as None.
 
         Args:
-            fisher_images(numpy.ndarray): Fisher-matrix images returned by
-                :meth:`get_fisher_images`. These are assumed to be symmetric in the
-                first two indices, but this is not checked.
+            selected(iterable): Array of integer indices for the sources to include in the
+                calculated matrices.
 
         Returns:
             tuple: Tuple `(fisher,covariance,variance,correlation)` of :class:`numpy.ndarray`
                 where `variance` has shape (npar,) and all other arrays are symmetric with
-                shape (npar,npar).  If any array cannot be calculated, it will be returned
-                as None.
-
-        Raises:
-            RuntimeError: `fisher_images` has unexpected shape.
+                shape (npar,npar), where npar = 6*len(selected). If any array cannot be
+                calculated, it will be returned as None.
         """
-        shape = fisher_images.shape
-        if len(shape) != 4 or shape[0] != shape[1]:
-            raise RuntimeError('Fisher images have unexpected shape %r' % shape)
+        background = self.get_subimage(selected)
+        npar = self.num_slices
+        nfisher = len(selected)*npar
+        fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
+        for row,index1 in enumerate(selected):
+            for col,index2 in enumerate(selected[:row+1]):
+                images,overlap = self.get_fisher_images(index1,index2,background)
+                if overlap is None:
+                    continue
+                fisher_sums = np.sum(images,axis=(2,3),dtype = np.float64)
+                fisher[npar*row:npar*(row+1),npar*col:npar*(col+1)] = fisher_sums
+                if row != col:
+                    fisher[npar*col:npar*(col+1),npar*row:npar*(row+1)] = fisher_sums.T
 
-        fisher = np.sum(fisher_images,axis=(2,3))
         covariance,variance,correlation = None,None,None
         try:
             covariance = np.linalg.inv(fisher)
@@ -289,7 +298,7 @@ class OverlapAnalyzer(object):
             ('snr_isof',np.float32),
             ('snr_grpf',np.float32),
             ])
-        trace('allocated table')
+        trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
         # Initialize integer arrays of bounding box limits.
         xmin = np.empty(num_galaxies,np.int32)
@@ -315,8 +324,9 @@ class OverlapAnalyzer(object):
         # At this stage, we use small integers for grp_id values, but these are later
         # reset to be the db_id of each group's leader.
         data['grp_id'] = np.arange(num_galaxies)
-        for index,(model,stamps,bounds) in enumerate(zip(self.models,self.stamps,self.bounds)):
+        for index in range(num_galaxies):
             trace('index %d' % index)
+            model,stamps,bounds = self.models[index],self.stamps[index],self.bounds[index]
             data['db_id'][index] = model.identifier
             data['dx'][index] = model.dx_arcsecs
             data['dy'][index] = model.dy_arcsecs
@@ -377,17 +387,14 @@ class OverlapAnalyzer(object):
 
         sky = self.survey.mean_sky_level
         # Loop over groups to calculate pixel-level quantities.
-        for grp_id in grp_id_set:
-            trace('grp_id %d' % grp_id)
+        for i,grp_id in enumerate(grp_id_set):
+            trace('grp_id %d is %d of %d' % (grp_id,i,len(grp_id_set)))
             grp_members = (data['grp_id'] == grp_id)
             grp_size = np.count_nonzero(grp_members)
             data['grp_size'][grp_members] = grp_size
             group_indices = np.arange(num_galaxies)[grp_members]
-
             group_image = results.get_subimage(group_indices)
-            fisher_images = results.get_fisher_images(group_indices)
-            fisher,covariance,variance,correlation = results.get_matrices(fisher_images)
-
+            fisher,covariance,variance,correlation = results.get_matrices(group_indices)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
@@ -409,9 +416,8 @@ class OverlapAnalyzer(object):
                     data['snr_iso'][galaxy] = data['snr_iso2'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
                 else:
-                    iso_fisher_images = results.get_fisher_images([galaxy])
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
-                        results.get_matrices(iso_fisher_images))
+                        results.get_matrices([galaxy]))
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[0,0])
                     if iso_correlation is not None:
                         data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[0])
