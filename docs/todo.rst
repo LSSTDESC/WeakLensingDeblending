@@ -9,6 +9,7 @@ To Do List
 * Is the optical PSF making any difference? How much does it slow down simulate?
 * Implement a 'exposure-time calculator' to calculate quantities for a profile specified on the command line (idea from Josh).
 * Include a prior on dilation scale parameter for error estimation?
+* Add ra,dec pointing and WCS to FITS primary HDU written by simulate.
 
 Longer-Term Projects
 --------------------
