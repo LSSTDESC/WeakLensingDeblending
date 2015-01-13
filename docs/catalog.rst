@@ -6,9 +6,9 @@ Galaxy Catalog Format
 
 The input catalog is a text file consisting of an initial header line and followed by one line of numbers per catalog object, for example a catalog with two objects might look like this::
 
-	id ra dec redshift fluxnorm_bulge fluxnorm_disk fluxnorm_agn a_b a_d b_b b_d pa_bulge pa_disk u_ab g_ab r_ab i_ab z_ab y_ab
-	11962286 0.593881845474 0.000286099995719 2.02162647247 0.0 5.9757610912e-19 0.0 0.0 0.132357493043 0.0 0.130808100104 0.0 144.235595703 26.9993686676 26.9311523438 26.9816989899 27.0538825989 27.0064048767 26.9156532288
-	12663653 0.594969153404 0.00124180002604 0.459954589605 0.0 3.85022202105e-19 0.0 0.0 0.46328830719 0.0 0.430979907513 0.0 325.863311768 29.0297031403 28.4987335205 27.4711303711 27.1866264343 27.030462265 26.9395713806
+	galtileid ra dec redshift fluxnorm_bulge fluxnorm_disk fluxnorm_agn a_b a_d b_b b_d pa_bulge pa_disk u_ab g_ab r_ab i_ab z_ab y_ab
+	2200871446 0.418319702147 -0.000148399994941 0.496377289295 0.0 1.4144730572e-17 0.0 0.0 0.278649687767 0.0 0.221303001046 0.0 307.344329834 25.9418621063 25.129743576 23.9588813782 23.3607368469 23.0723800659 22.9095973969
+	2205921112 0.420028448104 -0.00100259995088 1.89508104324 0.0 1.91501907101e-18 0.0 0.0 0.358063697815 0.0 0.313674807549 0.0 137.791702271 25.848903656 25.867565155 25.9179477692 25.9851398468 25.8779563904 25.7642536163
 
 The header line specifies a list of names, separated by white space, associated with each catalog parameter. Each catalog entry is represented by a a list of numbers, separated by white space, giving the corresponding parameter values.
 
@@ -70,7 +70,7 @@ The query uses a `custom stored procedure <https://listserv.lsstcorp.org/mailman
 
 	galtileid = TTTTGGGGGGGG
 
-is a 64-bit integer that combines the tile number `TTTT` (0-4049) with the unique galaxy ID `GGGGGGGG` (0-17,428,283).  The ID that `dbquery` writes to its output file is `galtileid`. For the `OneDegSq.dat` example above, all galaxies are unique and located in `tileid = ?`.  The stored procedure actually performs a circular search with a specified center and radius, but does not handle the wrap-around of RA values below zero correctly: this is the reason why the example above uses the RA range 0-1.
+is a 64-bit integer that combines the tile number `TTTT` (0-4049) with the unique galaxy ID `GGGGGGGG` (0-17,428,283).  The ID that `dbquery` writes to its output file is `galtileid`. For the `OneDegSq.dat` example above, all galaxies are unique and located in tileid = 22 or 4027.
 
 Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block outbound packets to these ports from internal IP addresses. In addition, the UW hosts of the database only allow inbound packets to their SQL server from IP address ranges included in their whitelist. Therefore, if you are unable to connect, the most likely reason is packet filtering on one or both ends of your connection. One option is to use a host that has already been configured for access to the LSST catalog database (on the NCSA cluster, for example).
 
