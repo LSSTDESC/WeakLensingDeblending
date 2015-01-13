@@ -32,7 +32,7 @@ class Reader(object):
     Raises:
         RuntimeError: Missing required catalog_name arg.
     """
-    def __init__(self,catalog_name,ra_center = 0.5,dec_center = 0.0,only_id = [],skip_id = []):
+    def __init__(self,catalog_name,ra_center = 0.0,dec_center = 0.0,only_id = [],skip_id = []):
         if not catalog_name:
             raise RuntimeError('Missing required catalog_name arg.')
         self.catalog_name = catalog_name
@@ -54,6 +54,10 @@ class Reader(object):
         entries might not be actually visible, for example, if they are too faint.
         If only_id has any entries, then only the specified ids will be considered. Otherwise,
         all ids are considered. Any ids in skip_id will be silently ignored.
+
+        Filtering on (ra,dec) to determine visibility is currently not very robust and assumes
+        that ra_center is close to zero and that subtracting 360 from any ra > 180 is sufficient
+        for interval tests.
 
         Args:
             survey(:class:`descwl.survey.Survey`): Survey parameters used to determine which
@@ -85,6 +89,8 @@ class Reader(object):
             if self.skip_id and entry['id'] in self.skip_id:
                 continue
             ra,dec = entry['ra'],entry['dec']
+            if ra > 180:
+                ra -= 360.
             if ra < ra_min or ra > ra_max or dec < dec_min or dec > dec_max:
                 continue
             # If we get this far, the entry is visible.
@@ -106,7 +112,7 @@ class Reader(object):
         """
         parser.add_argument('--catalog-name', type = str, default = None, metavar = 'NAME',
             help = 'Name of catalog file, which must exist and be readable.')
-        parser.add_argument('--ra-center', type = float, default = 0.5, metavar = 'RA',
+        parser.add_argument('--ra-center', type = float, default = 0.0, metavar = 'RA',
             help = 'Right ascension of image center in degrees.')
         parser.add_argument('--dec-center', type = float, default = 0.0, metavar = 'DEC',
             help = 'Declination of image center in degrees.')

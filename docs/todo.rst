@@ -3,13 +3,14 @@ To Do List
 
 * Formatted survey options printout.
 * Use better 8-char names and add comments to FITS headers.
-* Use galtileid instead of id in dbquery (int32 -> int64).
 * Use transparency for selected objects in display.
 * Add f/df,dg1,dg2 Fisher-matrix errors using isolated/blended assumption to output catalog.
 * Is the optical PSF making any difference? How much does it slow down simulate?
 * Implement a 'exposure-time calculator' to calculate quantities for a profile specified on the command line (idea from Josh).
 * Include a prior on dilation scale parameter for error estimation?
 * Add ra,dec pointing and WCS to FITS primary HDU written by simulate.
+* More flexible handling of the ra,dec catalog query window (we currently assume the query is centered near the origin).
+* Use print,div imports from future for python3.
 
 Longer-Term Projects
 --------------------

@@ -39,7 +39,7 @@ def main():
         print str(e)
         return -2
 
-    # The ra,dec window to retrieve
+    # The ra,dec window to retrieve.
     window = { 'RAmin':args.ra_min, 'RAmax':args.ra_max, 'DECmin':args.dec_min, 'DECmax':args.dec_max }
     if args.ra_min >= args.ra_max or args.dec_min >= args.dec_max:
         print 'Invalid RA-DEC window %r' % window
@@ -51,23 +51,30 @@ def main():
             text += ',' + ','.join([p%t for t in types])
         return text
 
-    # Specify the header columns we need
-    columns = 'id,ra,dec,redshift'
+    # Specify the header columns we will fetch. The stored proceedure adds some additional header columns
+    # that we will record, but do not include in @ColumnNames below.
+    columns = 'galtileid,ra,dec,redshift'
 
-    # Add bulge and disk specific columns
+    # Add bulge and disk specific columns.
     columns += addColumns(('fluxnorm_%s',),('bulge','disk','agn'))
     columns += addColumns(('a_%s','b_%s'),('b','d'))
     columns += addColumns(('pa_%s',),('bulge','disk'))
 
-    # Add filter-specific columns
+    # Add filter-specific columns.
     columns += addColumns(('%s_ab',),"ugrizy")
 
-    # calculate the radius in arcmins of a circle enclosing our search box
+    # Calculate the radius in arcmins of a circle enclosing our search box.
     radius = 60*0.5*math.sqrt((args.ra_max-args.ra_min)**2 + (args.dec_max-args.dec_min)**2)
-    # use the stored procedure described at
+
+    # Filter out columns that are synthesized by the stored procedure, since these should not be
+    # included in @ColumnNames below. Although 'ra' and 'rec' are synthesized, they are also columns
+    # in the galaxy table and it seems that they should not be filtered out here.
+    column_names = columns.replace('galtileid,','')
+
+    # Use the stored procedure described at
     # http://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html
     query = "GalaxySearchSpecColsConstraint2013 @RaSearch = %f, @DecSearch = %f, @apertureRadius = %f, @ColumnNames = '%s', @WhereClause = ''" % (
-        0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,columns)
+        0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,column_names)
 
     if args.verbose:
         print 'using query: "%s"' % query
@@ -94,6 +101,8 @@ def main():
                     row[col] = args.null_sub
             # Skip any objects outside the requested bounding box
             ra = row['ra']
+            if ra > 180.:
+                ra -= 360.
             dec = row['dec']
             if ra < args.ra_min or ra > args.ra_max or dec < args.dec_min or dec > args.dec_max:
                 clipCount += 1

@@ -267,7 +267,7 @@ class GalaxyBuilder(object):
         else:
             bulge_hlr_arcsecs,bulge_q = None,None
         # Look up extra catalog metadata.
-        identifier = entry['id']
+        identifier = entry['galtileid']
         redshift = entry['redshift']
         if self.verbose_model:
             print 'Building galaxy model for id=%d with z=%.3f' % (identifier,redshift)

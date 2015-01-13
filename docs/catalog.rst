@@ -17,7 +17,7 @@ The parameter names below are required by the :ref:`prog-simulate` program, but 
 ==================== ===========
 Name                 Description
 ==================== ===========
-id                   Unique integer identifier for this object (the primary key for objects in the LSST db)
+id                   Unique integer identifier for this object (stored procedure `galtileid`)
 ra                   Object centroid right ascension (degrees)
 dec                  Object centroid declination (degrees)
 redshift             Object cosmological redshift
@@ -43,7 +43,7 @@ The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (crea
 Convert ASCII Catalog to FITS Table
 -----------------------------------
 
-The catalog file can also be read as a FITS file containing a single table. A catalog in text format can be converted to a FITS file using, for example::
+The catalog file can also be read as a FITS file containing a single table. A catalog in text format can be converted to a FITS file using, for example (this will not overwrite an existing output file)::
 
 	import astropy.table
 	catalog = astropy.table.Table.read('OneDegSq.dat',format='ascii.basic')
@@ -62,9 +62,15 @@ The `dbquery.py` program automates the process of connecting to the database, ex
 
 The `OneDegSq.dat` catalog file was created using::
 
-	dbquery.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min 0.0 --ra-max 1.0 --verbose
+	dbquery.py -o OneDegSq.dat --dec-min -0.5 --dec-max +0.5 --ra-min -0.5 --ra-max +0.5 --verbose
 
-with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about ? seconds to run. The set of 
+with FreeTDS v0.91, Cython v0.21, pymsql v2.1.1 under OS-X 10.10.1.  The program takes about 2 minutes to run and saves 858502 rows to the 200 Mbyte output text file. The set of rows returned by a query is invariant, but they are returned in an arbitrary order so the output files obtained by running this program twice can be different (but only by a permutation of lines). Note that the "1 sq.deg." here is defined by RA and DEC intervals of 1 degree centered on (RA,DEC) = (0,0), which is not exactly 1 sq.deg. of 2D imaging because of projection effects.
+
+The query uses a `custom stored procedure <https://listserv.lsstcorp.org/mailman/private/lsst-imsim/2013-July/42.html>`_ that tiles the full sky by repeating the same 4deg x 4deg patch of about 14M galaxies (the catalog actually contains a 4.5deg x 4.5deg patch, but only the smaller patch is tiled). The stored routine synthesizes the returned `ra`, `dec`, and `galtileid` values, where::
+
+	galtileid = TTTTGGGGGGGG
+
+is a 64-bit integer that combines the tile number `TTTT` (0-4049) with the unique galaxy ID `GGGGGGGG` (0-17,428,283).  The ID that `dbquery` writes to its output file is `galtileid`. For the `OneDegSq.dat` example above, all galaxies are unique and located in `tileid = ?`.  The stored procedure actually performs a circular search with a specified center and radius, but does not handle the wrap-around of RA values below zero correctly: this is the reason why the example above uses the RA range 0-1.
 
 Note that the LSST database uses standard port assignments for its Microsoft SQL Server. However, since these ports are frequently targets of network attacks, many organizations block outbound packets to these ports from internal IP addresses. In addition, the UW hosts of the database only allow inbound packets to their SQL server from IP address ranges included in their whitelist. Therefore, if you are unable to connect, the most likely reason is packet filtering on one or both ends of your connection. One option is to use a host that has already been configured for access to the LSST catalog database (on the NCSA cluster, for example).
 

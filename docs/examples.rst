@@ -22,7 +22,7 @@ Run i-band calculation for LSST with a small field and verbose output::
 
 	./simulate.py --catalog-name OneDegSq.fits --image-width 512 --image-height 512 --survey-name LSST --filter-band i --output-name demo --verbose --verbose-model --verbose-render
 
-Make a finder chart for overlapping groups:
+Make a finder chart for overlapping groups::
 
 	./display.py --input-name demo --annotate --annotate-format '%(grp_id)ld' --select 'grp_size>1' --select 'grp_rank==0' --magnification 2 --output-name finder.png
 
