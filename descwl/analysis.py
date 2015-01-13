@@ -141,7 +141,7 @@ class OverlapResults(object):
                 the two galaxies and completely contains them.
 
         Returns:
-            tuple: Tuple (images,overlap) where images is a :type:`numpy.ndarray` with shape
+            tuple: Tuple (images,overlap) where images is a :class:`numpy.ndarray` with shape
                 (npar,npar,height,width), where npar=6 and (height,width) are the dimensions
                 of the overlap between the two galaxies, and overlap gives the bounding box of the
                 overlap in the full survey image. Returns None,None if the two galaxies do not overlap.
@@ -261,7 +261,7 @@ class OverlapAnalyzer(object):
         Args:
             verbose(bool): Print a summary of analysis results.
             trace(callable): Function to call for tracing resource usage. Will be
-                called with a brief :type:`str` description of each checkpoint.
+                called with a brief :class:`str` description of each checkpoint.
 
         Returns:
             :class:`OverlapResults`: Overlap analysis results.

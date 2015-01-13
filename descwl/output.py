@@ -177,7 +177,7 @@ class Writer(object):
         Args:
             :class:`descwl.analysis.OverlapResults`: Overlap analysis results.
             trace(callable): Function to call for tracing resource usage. Will be
-                called with a brief :type:`str` description of each checkpoint.
+                called with a brief :class:`str` description of each checkpoint.
         """
         trace('Writer.finalize begin')
         if self.hdu_list is None:
