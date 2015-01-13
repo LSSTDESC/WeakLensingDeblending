@@ -297,6 +297,12 @@ class OverlapAnalyzer(object):
             ('snr_iso2',np.float32),
             ('snr_isof',np.float32),
             ('snr_grpf',np.float32),
+            ('ds',np.float32),
+            ('dg1',np.float32),
+            ('dg2',np.float32),
+            ('ds_grp',np.float32),
+            ('dg1_grp',np.float32),
+            ('dg2_grp',np.float32),
             ])
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
@@ -386,6 +392,10 @@ class OverlapAnalyzer(object):
             'Datacubes have wrong num_slices = %d' % npartials)
 
         sky = self.survey.mean_sky_level
+        dflux_index = results.slice_labels.index('dflux')
+        dscale_index = results.slice_labels.index('dscale')
+        dg1_index = results.slice_labels.index('dg1')
+        dg2_index = results.slice_labels.index('dg2')
         # Loop over groups to calculate pixel-level quantities.
         for i,grp_id in enumerate(grp_id_set):
             trace('grp_id %d is %d of %d' % (grp_id,i,len(grp_id_set)))
@@ -406,23 +416,39 @@ class OverlapAnalyzer(object):
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
-                flux_index = index*npartials
-                data['snr_iso2'][galaxy] = flux*np.sqrt(fisher[flux_index,flux_index])
+                base = index*npartials
+                data['snr_iso2'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 if correlation is not None:
-                    data['snr_grpf'][galaxy] = flux/np.sqrt(variance[flux_index])
+                    data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
+                    data['ds_grp'][galaxy] = np.sqrt(variance[base+dscale_index])
+                    data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
+                    data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                 else:
                     data['snr_grpf'][galaxy] = -1.
+                    data['ds_grp'][galaxy] = -1.
+                    data['dg1_grp'][galaxy] = -1.
+                    data['dg2_grp'][galaxy] = -1.
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_iso2'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
+                    data['ds'][galaxy] = data['ds_grp'][galaxy]
+                    data['dg1'][galaxy] = data['dg1_grp'][galaxy]
+                    data['dg2'][galaxy] = data['dg2_grp'][galaxy]
                 else:
+                    # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
                         results.get_matrices([galaxy]))
-                    data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[0,0])
+                    data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
                     if iso_correlation is not None:
-                        data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[0])
+                        data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
+                        data['ds'][galaxy] = np.sqrt(iso_variance[dscale_index])
+                        data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
+                        data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
                     else:
                         data['snr_isof'][galaxy] = -1.
+                        data['ds'][galaxy] = -1.
+                        data['dg1'][galaxy] = -1.
+                        data['dg2'][galaxy] = -1.
 
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]

@@ -66,10 +66,18 @@ beta     float32 Position angle of second-moment ellipse in radians, or zero whe
 purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
 snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
-snr_grp  float32 S/N ratio for this source within its group (equals snr_iso when grp_size is 1)
-snr_isof float32 Similar to `snr_iso` but including correlations with all fit parameters.
-snr_grpf float32 Similar to `snr_grp` but including correlations with all fit parameters.
+snr_iso2 float32 S/N ratio calculated by ignoring any overlaps and including signal+overlap variance
+snr_isof float32 Similar to `snr_iso` but including correlations with all fit parameters
+snr_grpf float32 Similar to `snr_grp` but including correlations with all fit parameters
+ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2
+dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g1
+dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g2
+ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources
+dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources
+dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources
 ======== ======= ====================================================================================
+
+Values of -1 are possible for some of the pixel-level properties and indicate that a Fisher matrix inversion failed. This should normally open occur for the lowest signal-to-noise sources.
 
 You can load just the analysis results from the output file using, e.g.::
 
