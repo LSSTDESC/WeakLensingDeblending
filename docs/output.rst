@@ -64,18 +64,22 @@ beta     float32 Position angle of second-moment ellipse in radians, or zero whe
 **Pixel-Level Properties**
 -----------------------------------------------------------------------------------------------------
 purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
-snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit
-snr_iso  float32 S/N ratio calculated by ignoring any overlaps and including signal variance
-snr_iso2 float32 S/N ratio calculated by ignoring any overlaps and including signal+overlap variance
-snr_isof float32 Similar to `snr_iso` but including correlations with all fit parameters
-snr_grpf float32 Similar to `snr_grp` but including correlations with all fit parameters
-ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2
-dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g1
-dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g2
-ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources
-dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources
-dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources
+snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit (a)
+snr_iso  float32 Same as snr_sky but including signal variance (b)
+snr_iso2 float32 Same as snr_sky but including signal+overlap variance (c)
+snr_isof float32 Same as snr_iso2 but including correlations with all isolated fit parameters (d)
+snr_grpf float32 Same as snr_iso2 but including correlations with all fit parameters (e)
+ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
+dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g1 (d)
+dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g2 (d)
+ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
+dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
+dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
 ======== ======= ====================================================================================
+
+The figure below illustrates the different Fisher-matrix error-estimation models (a-e) used to define the pixel-level properties and referred to in the table above. The green bands show the variance used in the Fisher-matrix denominator and the arrows indicate the parameters that are considered floating for calculating marginalized parameter errors. Vertical arrows denote flux parameters and horizontal arrows denote the size and shape parameters (dx,dy,ds,dg1,dg2).
+
+.. image:: img/error_models.*
 
 Values of -1 are possible for some of the pixel-level properties and indicate that a Fisher matrix inversion failed. This should normally open occur for the lowest signal-to-noise sources.
 
