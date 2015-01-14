@@ -40,17 +40,6 @@ y_ab                 Apparent AB magnitude in the LSST y-band, including extinct
 
 The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (created with default options) so can be embellished with comments and blank lines for readability, as supported by that class.
 
-Convert ASCII Catalog to FITS Table
------------------------------------
-
-The catalog file can also be read as a FITS file containing a single table. A catalog in text format can be converted to a FITS file using, for example (this will not overwrite an existing output file)::
-
-	import astropy.table
-	catalog = astropy.table.Table.read('OneDegSq.dat',format='ascii.basic')
-	catalog.write('OneDegSq.fits')
-
-The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the :ref:`prog-simulate` program to read, but may be less convenient for other programs to read or generate.
-
 .. _catalog-create:
 
 Create Galaxy Catalog From LSST Catalog Database
@@ -89,3 +78,14 @@ You might find the following interactive python snippet useful for debugging con
 The second line will fail with a connection error after about 30 seconds if your packets are being filtered on either end::
 
 	MSSQLDatabaseException: (20009, 'DB-Lib error message 20009, severity 9:\nUnable to connect: Adaptive Server is unavailable or does not exist\nNet-Lib error during Operation now in progress (36)\n')
+
+Convert ASCII Catalog to FITS Table
+-----------------------------------
+
+The catalog file can also be read as a FITS file containing a single table. A catalog in text format can be converted to a FITS file using, for example (this will not overwrite an existing output file)::
+
+	import astropy.table
+	catalog = astropy.table.Table.read('OneDegSq.dat',format='ascii.basic')
+	catalog.write('OneDegSq.fits')
+
+The resulting FITS file will be somewhat smaller (by about 30%) than the text original and significantly faster for the :ref:`prog-simulate` program to read, but may be less convenient for other programs to read or generate.

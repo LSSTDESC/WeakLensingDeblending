@@ -7,6 +7,8 @@ Command-line Options
 Print out usage info for command-line options::
 
 	./simulate.py --help
+	./display.py --help
+	./fisher.py --help
 
 Survey Parameters
 -----------------
@@ -15,34 +17,30 @@ Print default camera and observing condition parameters for each supported (surv
 
 	./simulate.py --survey-defaults
 
-Quick Demo
-----------
+Quick Simulation Demo
+---------------------
 
-Run i-band calculation for LSST with a small field and verbose output::
+Simulate an LSST i-band stack for a small (512x512) field::
 
-	./simulate.py --catalog-name OneDegSq.fits --image-width 512 --image-height 512 --survey-name LSST --filter-band i --output-name demo --verbose --verbose-model --verbose-render
+	./simulate.py --catalog-name OneDegSq.fits --image-width 512 --image-height 512 --survey-name LSST --filter-band i --output-name demo --verbose
 
 Make a finder chart for overlapping groups::
 
 	./display.py --input-name demo --annotate --annotate-format '%(grp_id)ld' --select 'grp_size>1' --select 'grp_rank==0' --magnification 2 --output-name finder.png
 
+Display a single blended group::
+
 	./display.py --input-name demo --annotate --crop --group 402700184222 --magnification 16 --annotate-size x-large
+
+Plot the Fisher matrix calculations for this group::
+
 	./fisher.py --input-name demo --galaxy 402700184222
 	./fisher.py --input-name demo --group 402700184222
 	./fisher.py --input-name demo --group 402700184222 --correlation
 
-Calculate Blending Statistics for CFHT, DES, LSST
--------------------------------------------------
+Data Products Demo
+------------------
 
-Run simulations to generate the :doc:`products` available for download from SLAC::
+Download the `LSST_i.fits` :doc:`data product <products>`, then display the location of galaxies that are unresolved due to blending::
 
-	./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --filter-band i --output-name LSST_i
-	./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --filter-band r --output-name LSST_r
-	./simulate.py --catalog-name OneDegSq.fits --survey-name DES --filter-band i --output-name DES_i
-	./simulate.py --catalog-name OneDegSq.fits --survey-name DES --filter-band r --output-name DES_r
-
-Each simulation takes about 30 minutes on a 2.5GHz i7 laptop and uses up to 5 Gb of memory.
-
-Display a reduced simulated image::
-
-	./display.py --input-name LSST_i --magnification 0.5 --output-name LSST_i.png
+	./display.py --input-name LSST_i --magnification 0.25 --select 'snr_grpf<5' --select 'snr_sky>10' --crosshair-color red
