@@ -16,6 +16,7 @@ The code is hosted on `github <https://github.com/DarkEnergyScienceCollaboration
    examples
    programs
    output
+   products
    notebooks
    todo
    developer
