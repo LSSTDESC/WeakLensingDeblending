@@ -124,7 +124,7 @@ def main():
     if args.verbose:
         print 'Selected IDs:\n%s' % np.array(results.table['db_id'][selected_indices])
 
-    # Build the image of selected objects.
+    # Build the image of selected objects (might be None).
     selected_image = results.get_subimage(selected_indices)
 
     # Prepare the z scaling.
@@ -171,13 +171,15 @@ def main():
     figure.add_axes(axes)
 
     # Get the background and highlighted images to display, sized to our view.
-    background = galsim.Image(bounds = view_bounds,dtype = np.float32,scale = selected_image.scale)
+    background = galsim.Image(bounds = view_bounds,dtype = np.float32,
+        scale = results.survey.image.scale)
     highlighted = background.copy()
     if not args.hide_background:
         overlap = results.survey.image.bounds & view_bounds
         background[overlap] = results.survey.image[overlap]
-    overlap = selected_image.bounds & view_bounds
-    highlighted[overlap] = selected_image[overlap]
+    if selected_image is not None:
+        overlap = selected_image.bounds & view_bounds
+        highlighted[overlap] = selected_image[overlap]
 
     # Apply clipping and z-scaling to normalize pixel values to [0,1].
     background_z = zscale(background.array)
