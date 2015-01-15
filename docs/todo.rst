@@ -8,7 +8,9 @@ To Do List
 * Include a prior on dilation scale parameter for error estimation?
 * Add ra,dec pointing and WCS to FITS primary HDU written by simulate.
 * More flexible handling of the ra,dec catalog query window (we currently assume the query is centered near the origin).
-* Use print,div imports from future for python3.
+* python 2-to-3 migration: from __future__ import absolute_import, division, print_function, unicode_literals
+* Add zscale color gradient and angular scale legend options to display.py
+* Add option to specify display view bounds independently of selected objects.
 
 Longer-Term Projects
 --------------------
