@@ -4,7 +4,7 @@ Source Catalogs
 Galaxy Catalog Format
 ---------------------
 
-The input catalog is a text file consisting of an initial header line and followed by one line of numbers per catalog object, for example a catalog with two objects might look like this::
+The input catalog is a text file (or an :ref:`equivalent FITS table <catalog-to-fits>`) consisting of an initial header line and followed by one line of numbers per catalog object, for example a catalog with two objects might look like this::
 
 	galtileid ra dec redshift fluxnorm_bulge fluxnorm_disk fluxnorm_agn a_b a_d b_b b_d pa_bulge pa_disk u_ab g_ab r_ab i_ab z_ab y_ab
 	2200871446 0.418319702147 -0.000148399994941 0.496377289295 0.0 1.4144730572e-17 0.0 0.0 0.278649687767 0.0 0.221303001046 0.0 307.344329834 25.9418621063 25.129743576 23.9588813782 23.3607368469 23.0723800659 22.9095973969
@@ -14,9 +14,9 @@ The header line specifies a list of names, separated by white space, associated 
 
 The parameter names below are required by the :ref:`prog-simulate` program, but other parameters may also be present in the file. Parameters can be listed in any order as long as the order of values matches the header line. The names in the table below are a bit idiosyncratic (e.g., mixing under_scores with CamelCase and using different schemes to denote bulge vs. disk) but are chosen to match the names used in the `LSST DM galaxy catalog schema <https://confluence.lsstcorp.org/display/SIM/Database+Schema>`_.
 
-==================== ===========
+==================== ==========================================================================
 Name                 Description
-==================== ===========
+==================== ==========================================================================
 id                   Unique integer identifier for this object (stored procedure `galtileid`)
 ra                   Object centroid right ascension (degrees)
 dec                  Object centroid declination (degrees)
@@ -36,7 +36,7 @@ r_ab                 Apparent AB magnitude in the LSST r-band, including extinct
 i_ab                 Apparent AB magnitude in the LSST i-band, including extinction effects 
 z_ab                 Apparent AB magnitude in the LSST z-band, including extinction effects 
 y_ab                 Apparent AB magnitude in the LSST y-band, including extinction effects 
-==================== ===========
+==================== ==========================================================================
 
 The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (created with default options) so can be embellished with comments and blank lines for readability, as supported by that class.
 
@@ -45,7 +45,10 @@ The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (crea
 Create Galaxy Catalog From LSST Catalog Database
 ------------------------------------------------
 
-This section documents the process for creating a galaxy catalog from the LSST Data Management database. This is not something you will normally need (or want) to do since suitable catalogs are already provided. However, if you want to know exactly how the provided catalogs were created or do need to create your own, read on.
+This section documents the process for creating an input catalog derived from the `LSST Data Management <http://dm.lsst.org>`_ (DM) simulation database, described in `these SPIE proceedings <http://dx.doi.org/10.1117/12.2054953>`_ and being `documented here <https://confluence.lsstcorp.org/display/SIM/Catalog+Simulations+Documentation>`_. This is not something you will normally need (or want) to do since the resulting catalog is already :doc:`available to download</products>`. However, if you want to know exactly how the catalog was created or want to create your own, read on.
+
+.. warning::
+	In case you are using the DM galaxy database directly, you should **avoid using the DiskHalfLightRadius and BulgeHalfLightRadius columns** since these do not have the usual definition where `hlr == sqrt(a*b)` and instead satisfy `hlr == a`. To avoid this confusion, use the `a,b` parameters directly and calculate `hlr == sqrt(a*b)`.
 
 The `dbquery.py` program automates the process of connecting to the database, extracting the relevant data, and writing a catalog file.  The program uses the `pymsql <http://pymssql.org/en/stable/>`_ python interface to Microsoft SQL Server (which LSST DM uses), so you will need to install that and its dependencies (`FreeTDS <http://www.freetds.org>`_ and `Cython <http://cython.org>`_) in order to run `dbquery.py`.
 
@@ -78,6 +81,8 @@ You might find the following interactive python snippet useful for debugging con
 The second line will fail with a connection error after about 30 seconds if your packets are being filtered on either end::
 
 	MSSQLDatabaseException: (20009, 'DB-Lib error message 20009, severity 9:\nUnable to connect: Adaptive Server is unavailable or does not exist\nNet-Lib error during Operation now in progress (36)\n')
+
+.. _catalog-to-fits:
 
 Convert ASCII Catalog to FITS Table
 -----------------------------------
