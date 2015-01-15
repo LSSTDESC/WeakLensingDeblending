@@ -14,4 +14,5 @@ v0.?
 
 v0.1
 ----
+- Download from `here <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/releases/tag/v0.1>`_.
 - Version used to prepare results for the `Dec 2013 LSST DESC meeting <https://indico.bnl.gov/conferenceDisplay.py?confId=691>`_ in Pittsburgh.
