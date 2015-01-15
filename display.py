@@ -8,6 +8,10 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.collections
+import matplotlib.colors
+import matplotlib.cm
+
+import galsim
 
 import descwl
 
@@ -57,11 +61,11 @@ def main():
         default = 2048, metavar = 'SIZE',
         help = 'Maximum allowed pixel dimensions of displayed image.')
     display_group.add_argument('--colormap', type = str,
-        default = 'Blues', metavar = 'CMAP',
+        default = 'YlGnBu', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for background pixel values.')
     display_group.add_argument('--highlight', type = str,
-        default = 'hot_r', metavar = 'CMAP',
-        help = 'Matplotlib colormap name to use for highlighted pixel values.')
+        default = 'red', metavar = 'COL',
+        help = 'Matplotlib color name to use for highlighted pixel values.')
     display_group.add_argument('--crosshair-color', type = str,
         default = 'greenyellow', metavar = 'COL',
         help = 'Matplotlib color name to use for crosshairs.')
@@ -147,6 +151,7 @@ def main():
         view_bounds = selected_image.bounds
     else:
         view_bounds = results.survey.image.bounds
+    extent = (view_bounds.xmin,view_bounds.xmax+1,view_bounds.ymin,view_bounds.ymax+1)
 
     # Initialize a matplotlib figure to display our view bounds.
     view_width = view_bounds.xmax - view_bounds.xmin + 1
@@ -165,27 +170,31 @@ def main():
     axes.set_axis_off()
     figure.add_axes(axes)
 
-    def show_image(image,masked,**kwargs):
-        overlap = image.bounds & view_bounds
-        xlo = overlap.xmin
-        xhi = overlap.xmax + 1
-        ylo = overlap.ymin
-        yhi = overlap.ymax + 1
-        overlap_pixels = image[overlap].array
-        z = zscale(overlap_pixels)
-        if masked:
-            # Only show non-zero pixels.
-            z = np.ma.masked_where(overlap_pixels == 0,z)
-        axes.imshow(z,extent = (xlo,xhi,ylo,yhi),
-            aspect = 'equal',origin = 'lower',interpolation = 'nearest',**kwargs)
-
-    # Plot the full simulated image using the background colormap.
+    # Get the background and highlighted images to display, sized to our view.
+    background = galsim.Image(bounds = view_bounds,dtype = np.float32,scale = selected_image.scale)
+    highlighted = background.copy()
     if not args.hide_background:
-        show_image(results.survey.image,masked = False,cmap = args.colormap)
+        overlap = results.survey.image.bounds & view_bounds
+        background[overlap] = results.survey.image[overlap]
+    overlap = selected_image.bounds & view_bounds
+    highlighted[overlap] = selected_image[overlap]
 
-    # Overplot the selected objects showing only non-zero pixels.
-    if selected_image:
-        show_image(selected_image,masked = True,cmap = args.highlight)
+    # Apply clipping and z-scaling to normalize pixel values to [0,1].
+    background_z = zscale(background.array)
+    highlighted_z = zscale(highlighted.array)
+
+    # Convert the background image to RGBA using the requested colormap.
+    cmap = matplotlib.cm.get_cmap(args.colormap)
+    background_rgb = cmap(background_z)[:,:,:3] # Drop the alpha channel.
+
+    # Convert the hightlighted image to RGBA using the requested colormap.
+    color = np.array(matplotlib.colors.colorConverter.to_rgb(args.highlight))
+
+    # Overlay the highlighted image using alpha compositing.
+    alpha = highlighted_z[:,:,np.newaxis]
+    final_rgb = alpha*color + background_rgb*(1.-alpha)
+    axes.imshow(final_rgb,extent = extent,aspect = 'equal',origin = 'lower',
+        interpolation = 'nearest')
 
     # The argparse module escapes any \n or \t in string args, but we need these
     # to be unescaped in the annotation format string.
