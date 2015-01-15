@@ -75,12 +75,12 @@ def main():
     display_group.add_argument('--annotate-color', type = str,
         default = 'green', metavar = 'COL',
         help = 'Matplotlib color name to use for annotation text.')
-    display_group.add_argument('--clip-lo-percentile', type = float,
-        default = 0.0, metavar = 'PCT',
-        help = 'Clip pixels with values below this percentile for the image.')
+    display_group.add_argument('--clip-lo-noise-fraction', type = float,
+        default = 0.2, metavar = 'PCT',
+        help = 'Clip pixels with values below this fraction of the mean sky noise.')
     display_group.add_argument('--clip-hi-percentile', type = float,
         default = 90.0, metavar = 'PCT',
-        help = 'Clip pixels with values above this percentile for the image.')
+        help = 'Clip pixels with non-zero values above this percentile for the selected image.')
     display_group.add_argument('--hide-background', action = 'store_true',
         help = 'Do not display background pixels.')
 
@@ -135,9 +135,13 @@ def main():
                 selected_image.bounds.area())
         else:
             zscale_pixels = selected_image.array
+    # Clip large fluxes to a fixed percentile of the non-zero selected pixel values.
     non_zero_pixels = (zscale_pixels != 0)
-    vmin,vmax = np.percentile(zscale_pixels[non_zero_pixels],
-        q = (args.clip_lo_percentile,args.clip_hi_percentile))
+    vmax = np.percentile(zscale_pixels[non_zero_pixels],q = (args.clip_hi_percentile))
+    # Clip small fluxes to a fixed fraction of the mean sky noise.
+    vmin = args.clip_lo_noise_fraction*np.sqrt(results.survey.mean_sky_level)
+    if args.verbose:
+        print 'Clipping pixel values to [%.1f,%.1f] detected electrons.' % (vmin,vmax)
 
     def znorm(pixels):
         return (np.clip(pixels,vmin,vmax) - vmin)/(vmax-vmin)
@@ -185,15 +189,15 @@ def main():
     background_z = zscale(background.array)
     highlighted_z = zscale(highlighted.array)
 
-    # Convert the background image to RGBA using the requested colormap.
+    # Convert the background image to RGB using the requested colormap.
+    # Drop the alpha channel [3], which is all ones anyway.
     cmap = matplotlib.cm.get_cmap(args.colormap)
-    background_rgb = cmap(background_z)[:,:,:3] # Drop the alpha channel.
+    background_rgb = cmap(background_z)[:,:,:3]
 
-    # Convert the hightlighted image to RGBA using the requested colormap.
-    color = np.array(matplotlib.colors.colorConverter.to_rgb(args.highlight))
-
-    # Overlay the highlighted image using alpha compositing.
+    # Overlay the highlighted image using alpha blending.
+    # http://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
     alpha = highlighted_z[:,:,np.newaxis]
+    color = np.array(matplotlib.colors.colorConverter.to_rgb(args.highlight))
     final_rgb = alpha*color + background_rgb*(1.-alpha)
     axes.imshow(final_rgb,extent = extent,aspect = 'equal',origin = 'lower',
         interpolation = 'nearest')
