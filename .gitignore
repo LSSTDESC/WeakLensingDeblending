@@ -1,14 +1,12 @@
-*.o
 *.pyc
 *.dat
+*.cat
 *.fits
 *.tgz
 *.gz
 *.png
 *.log
 *.pdf
-*.root
-catalogAnalysis
 
 # Sphinx documentation
 docs/_build/
