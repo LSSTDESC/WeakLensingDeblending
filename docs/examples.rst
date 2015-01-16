@@ -30,13 +30,13 @@ Make a finder chart for overlapping groups::
 
 Display a single blended group::
 
-	./display.py --input-name demo --annotate --crop --group 402700184222 --magnification 16 --annotate-size x-large
+	./display.py --input-name demo --annotate --crop --group 2202242785 --magnification 16 --annotate-size x-large
 
 Plot the Fisher matrix calculations for this group::
 
-	./fisher.py --input-name demo --galaxy 402700184222
-	./fisher.py --input-name demo --group 402700184222
-	./fisher.py --input-name demo --group 402700184222 --correlation
+	./fisher.py --input-name demo --galaxy 2202242785 --verbose
+	./fisher.py --input-name demo --group 2202242785 --verbose
+	./fisher.py --input-name demo --group 2202242785 --correlation
 
 Data Products Demo
 ------------------
