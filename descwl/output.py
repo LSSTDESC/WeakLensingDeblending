@@ -75,18 +75,19 @@ class Reader(object):
         print 'stamps'
         stamps,bounds = [ ],[ ]
         if len(self.fits) > stamp_hdu_offset:
+            if table is None:
+                raise RuntimeError('Missing required table for reconstructing bounding boxes.')
             # Load individual stamps and reconstruct the corresponding bounds objects.
             for hdu_index in range(stamp_hdu_offset,len(self.fits)):
-                hdu = self.fits[hdu_index]
+                # Reconstruct the stamp bounds from the corresponding row of the table.
+                row = table[hdu_index - stamp_hdu_offset]
+                bounds.append(galsim.BoundsI(row['xmin'],row['xmax'],row['ymin'],row['ymax']))
+                # Load the stamp datacube, now or later.
                 if defer_stamp_loading:
                     # Make sure we bind the current value of hdu_index, not the variable itself.
                     stamps.append(lambda index=hdu_index: self.fits[index].read())
                 else:
                     stamps.append(self.fits[hdu_index].read())
-                header = hdu.read_header()
-                height,width = header['NAXIS2'],header['NAXIS1']
-                x_min,y_min = header['X_MIN'],header['Y_MIN']
-                bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
         # Save file contents as a results object.
         self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds,num_slices)
         if not defer_stamp_loading:
