@@ -207,11 +207,8 @@ class Writer(object):
             trace('wrote table')
         if not self.no_stamps:
             # Save each stamp datacube.
-            header = {'X_MIN':0,'Y_MIN':0}
             for stamps,bounds in zip(results.stamps,results.bounds):
-                header['X_MIN'] = bounds.xmin
-                header['Y_MIN'] = bounds.ymin
-                self.fits.write(stamps,header = header)
+                self.fits.write(stamps)
                 trace('wrote datacube')
         # Write and close our FITS file.
         self.fits.close()
