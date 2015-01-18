@@ -19,7 +19,7 @@ DES_r_trimmed.fits         44.3 Trimmed simulation results without per-object da
 
 Details on how to download these files will be available soon.
 
-The commands used to generate the `OneDegSq.fits` catalog are :ref:`described here <catalog-create>`. The following commands were used to run the LSST and DES simulations:
+The commands used to generate the `OneDegSq.fits` catalog are :ref:`described here <catalog-create>`. The following commands were used to run the LSST and DES simulations::
 
 	nohup ./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --filter-band i --output-name LSST_i > LSST_i.log &
 	nohup ./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --filter-band r --output-name LSST_r > LSST_r.log &
