@@ -81,9 +81,9 @@ class Reader(object):
                 hdu = self.fits[hdu_index]
                 if defer_stamp_loading:
                     # Make sure we bind the current value of hdu_index, not the variable itself.
-                    stamps.append(lambda index=hdu_index: self._load_stamp(index))
+                    stamps.append(lambda index=hdu_index: self.fits[index].read())
                 else:
-                    stamps.append(_load_stamp(hdu_index))
+                    stamps.append(self.fits[hdu_index].read())
                 header = hdu.read_header()
                 num_slices,height,width = header['NAXIS3'],header['NAXIS2'],header['NAXIS1']
                 x_min,y_min = header['X_MIN'],header['Y_MIN']
@@ -93,10 +93,6 @@ class Reader(object):
         if not defer_stamp_loading:
             self.fits.close()
         print 'done'
-
-    def _load_stamp(self,hdu_index):
-        print 'loading',hdu_index
-        return self.fits[hdu_index].read()
 
     @staticmethod
     def add_args(parser):
