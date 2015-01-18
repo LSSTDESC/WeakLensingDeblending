@@ -54,6 +54,7 @@ class Reader(object):
         # Reconstruct the survey object for these results.
         print 'primary'
         header = self.fits[0].read_header()
+        num_slices = header['NSLICES']
         survey_args = { }
         for parameter_name in descwl.survey.Survey._parameter_names:
             # Fits header keyword names are truncated at length 8.
@@ -72,7 +73,6 @@ class Reader(object):
             stamp_hdu_offset += 1
 
         print 'stamps'
-        num_slices = 0
         stamps,bounds = [ ],[ ]
         if len(self.fits) > stamp_hdu_offset:
             # Load individual stamps and reconstruct the corresponding bounds objects.
@@ -84,7 +84,7 @@ class Reader(object):
                 else:
                     stamps.append(self.fits[hdu_index].read())
                 header = hdu.read_header()
-                num_slices,height,width = header['NAXIS3'],header['NAXIS2'],header['NAXIS1']
+                height,width = header['NAXIS2'],header['NAXIS1']
                 x_min,y_min = header['X_MIN'],header['Y_MIN']
                 bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
         # Save file contents as a results object.
@@ -192,7 +192,7 @@ class Writer(object):
         if self.fits is None:
             return
         # Copy our Survey ctor args into the primary HDU header.
-        header = { }
+        header = { 'NSLICES': results.num_slices }
         for key,value in results.survey.args.iteritems():
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
