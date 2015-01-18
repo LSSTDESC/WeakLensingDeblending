@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import scipy.spatial
 
 import astropy.table
 
@@ -234,6 +235,45 @@ class OverlapResults(object):
             pass
 
         return fisher,covariance,variance,correlation
+
+    def match_sextractor(self,catalog_name):
+        """Match detected objects to simulated sources.
+
+        Args:
+            catalog_name(str): Name of an ASCII catalog in SExtractor-compatible format, and containing
+                X_IMAGE, Y_IMAGE columns and `num_found` rows.
+
+        Returns:
+            tuple: Tuple `detected,matched,indices,distance` where `detected` is the detected catalog as
+                a :class:`astropy.table.Table`, `matched` is an array of `num_found` booleans
+                indicating whether each object was matched with a simulated object, `indices` is an array
+                of `num_matched = np.count_nonzero(matched)` integers giving row numbers in our `table`
+                attribute for each simulated match, and `distance` is an array of `num_matched` separation
+                distances between matched and simulated objects.
+        """
+        # Read the catalog of detected objects.
+        detected = astropy.table.Table.read(catalog_name,format='ascii')
+        assert 'X_IMAGE' in detected.colnames, 'Missing required column X_IMAGE'
+        assert 'Y_IMAGE' in detected.colnames, 'Missing required column Y_IMAGE'
+        # Build a KD tree for the simulated source positions (in arcsecs) relative to the image center.
+        num_truth = len(self.table)
+        xy_truth = np.empty((num_truth,2))
+        xy_truth[:,0] = self.table['dx']
+        xy_truth[:,1] = self.table['dy']
+        kdtree = scipy.spatial.cKDTree(xy_truth)
+        # Convert detected object centroids from pixels relative to bottom-left corner to arcsecs
+        # into arcsecs relative to the image center.
+        num_found = len(detected)
+        xy_found = np.empty((num_found,2))
+        width,height = self.survey.image_width,self.survey.image_height
+        xy_found[:,0] = (detected['X_IMAGE'] - 0.5*width - 0.5)*self.survey.pixel_scale
+        xy_found[:,1] = (detected['Y_IMAGE'] - 0.5*height - 0.5)*self.survey.pixel_scale
+        # Find nearest simulated source to each detected source.
+        min_distance,truth_indices = kdtree.query(xy_found)
+        matched = (truth_indices < num_truth)
+        indices = truth_indices[matched]
+        distance = min_distance[matched]
+        return detected,matched,indices,distance
 
 class OverlapAnalyzer(object):
     """Analyze impact of overlapping sources on weak lensing.
