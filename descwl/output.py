@@ -48,55 +48,55 @@ class Reader(object):
             self.input_name += '.fits'
         elif extension.lower() != '.fits':
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
-        # Without memmap=False, reading all the postage stamp HDUs crashes with
-        # "OSError: [Errno 24] Too many open files" since each access to hdu_list[n].data
-        # adds a new open file descriptor.
         try:
-            self.hdu_list = astropy.io.fits.open(self.input_name,mode='readonly',memmap=False)
-        except IOError,e:
+            self.fits = fitsio.FITS(self.input_name,mode='r')
+        except ValueError,e:
             raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
-        header = self.hdu_list[0].header
+        print 'primary'
+        header = self.fits[0].read_header()
         survey_args = { }
         for parameter_name in descwl.survey.Survey._parameter_names:
             # Fits header keyword names are truncated at length 8.
-            survey_args[parameter_name] = header[parameter_name[:8].upper()]
+            value = header[parameter_name[:8].upper()]
+            # String values are padded on the right with spaces.
+            survey_args[parameter_name] = value.rstrip() if type(value) is str else value
         survey = descwl.survey.Survey(**survey_args)
         # Load the simulated image into the survey object.
-        image_data = self.hdu_list[0].data
-        survey.image.array[:] = image_data
+        survey.image.array[:] = self.fits[0].read()
 
+        print 'table'
         table = None
         stamp_hdu_offset = 1
-        if len(self.hdu_list) > 1 and type(self.hdu_list[1]) is astropy.io.fits.BinTableHDU:
-            # Passing an HDUList to Table.read does not seem to be documented but works as expected.
-            table = astropy.table.Table.read(self.hdu_list,hdu=1)
+        if len(self.fits) > 1 and type(self.fits[1]) is fitsio.fitslib.TableHDU:
+            table = astropy.table.Table(self.fits[1].read(),copy = False)
             stamp_hdu_offset += 1
 
+        print 'stamps'
         num_slices = 0
         stamps,bounds = [ ],[ ]
-        if len(self.hdu_list) > stamp_hdu_offset:
+        if len(self.fits) > stamp_hdu_offset:
             # Load individual stamps and reconstruct the corresponding bounds objects.
-            for hdu_index in range(stamp_hdu_offset,len(self.hdu_list)):
-                hdu = self.hdu_list[hdu_index]
+            for hdu_index in range(stamp_hdu_offset,len(self.fits)):
+                hdu = self.fits[hdu_index]
                 if defer_stamp_loading:
                     # Make sure we bind the current value of hdu_index, not the variable itself.
                     stamps.append(lambda index=hdu_index: self._load_stamp(index))
                 else:
                     stamps.append(_load_stamp(hdu_index))
-                # The next 2 lines are equivalent and seem to give about the same performance.
-                num_slices,height,width = hdu.data.shape
-                ##num_slices,height,width = hdu.header['NAXIS3'],hdu.header['NAXIS2'],hdu.header['NAXIS1']
-                x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
+                header = hdu.read_header()
+                num_slices,height,width = header['NAXIS3'],header['NAXIS2'],header['NAXIS1']
+                x_min,y_min = header['X_MIN'],header['Y_MIN']
                 bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
         # Save file contents as a results object.
         self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds,num_slices)
-        self.hdu_list.close()
+        if not defer_stamp_loading:
+            self.fits.close()
+        print 'done'
 
     def _load_stamp(self,hdu_index):
-        data = self.hdu_list[hdu_index].data
-        stamp = np.copy(data)
-        return stamp
+        print 'loading',hdu_index
+        return self.fits[hdu_index].read()
 
     @staticmethod
     def add_args(parser):
