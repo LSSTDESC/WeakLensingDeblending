@@ -37,6 +37,8 @@ MOCK_MODULES = [
     'numpy',
     'numpy.ma',
     'numpy.linalg',
+    'scipy',
+    'scipy.spatial',
     'astropy',
     'astropy.table',
     'astropy.io',
