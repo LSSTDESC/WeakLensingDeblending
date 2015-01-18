@@ -71,6 +71,7 @@ class Reader(object):
             table = astropy.table.Table.read(self.hdu_list,hdu=1)
             stamp_hdu_offset += 1
 
+        num_slices = 0
         stamps,bounds = [ ],[ ]
         if len(self.hdu_list) > stamp_hdu_offset:
             # Load individual stamps and reconstruct the corresponding bounds objects.
