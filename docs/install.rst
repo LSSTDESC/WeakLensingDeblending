@@ -35,9 +35,10 @@ The following python packages are required by this package:
 
 * numpy (version >= 1.9)
 * astropy (version >= 0.4)
+* `fitsio <https://github.com/esheldon/fitsio>`_ (version >= 0.9.6)
 * `galsim <https://github.com/GalSim-developers/GalSim>`_ (version >= 1.2)
 
-Note that, except for GalSim, these packages are all available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. Installing GalSim is a more involved process, but well worth the effort.
+Note that `numpy` and `astropy` are both available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. The `fitsio` package is required for performance reasons, although it overlaps the functionality of the pure-python `astropy.io.fits` module. Installing GalSim is a more involved process, but well worth the effort.
 
 You can check your astropy version using::
 

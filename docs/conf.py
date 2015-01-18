@@ -43,6 +43,7 @@ MOCK_MODULES = [
     'astropy.table',
     'astropy.io',
     'astropy.io.fits',
+    'fitsio',
     'galsim',
 ]
 if on_rtd:

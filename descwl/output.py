@@ -13,6 +13,8 @@ import numpy as np
 import astropy.io.fits
 import astropy.table
 
+import fitsio
+
 import galsim
 
 import descwl.survey
