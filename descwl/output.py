@@ -10,7 +10,6 @@ import inspect
 
 import numpy as np
 
-import astropy.io.fits
 import astropy.table
 
 import fitsio
@@ -49,7 +48,7 @@ class Reader(object):
         elif extension.lower() != '.fits':
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
         try:
-            self.fits = fitsio.FITS(self.input_name,mode='r')
+            self.fits = fitsio.FITS(self.input_name,mode = fitsio.READONLY)
         except ValueError,e:
             raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
@@ -154,7 +153,7 @@ class Writer(object):
         self.no_stamps = no_stamps
         self.no_catalog = no_catalog
         self.output_no_clobber = output_no_clobber
-        self.hdu_list = None
+        self.fits = None
         if self.output_name:
             name,extension = os.path.splitext(self.output_name)
             if not extension:
@@ -169,19 +168,9 @@ class Writer(object):
                             self.output_name)
             except IOError:
                 pass
-            # Try to open an empty file, deleting any previous contents.
-            try:
-                with open(self.output_name,'wb') as file:
-                    pass
-            except IOError:
-                raise RuntimeError('File is not writeable %r' % args.output_name)
-            # Open the now-empty file as a FITS file.
-            self.hdu_list = astropy.io.fits.open(self.output_name, mode = 'update',
-                memmap = False)
-            assert len(self.hdu_list) == 0, 'Expected new FITS file to be empty.'
-            # Add an empty primary HDU for now.
-            primary_hdu = astropy.io.fits.PrimaryHDU()
-            self.hdu_list.append(primary_hdu)
+            # Open the new file.
+            self.fits = fitsio.FITS(self.output_name,mode = fitsio.READWRITE,
+                clobber = not self.output_no_clobber)
 
     def description(self):
         """Describe our output configuration.
@@ -200,31 +189,31 @@ class Writer(object):
                 called with a brief :class:`str` description of each checkpoint.
         """
         trace('Writer.finalize begin')
-        if self.hdu_list is None:
+        if self.fits is None:
             return
-        # Fill in the primary HDU image data and headers.
-        primary_hdu = self.hdu_list[0]
-        primary_hdu.data = results.survey.image.array
+        # Copy our Survey ctor args into the primary HDU header.
+        header = { }
         for key,value in results.survey.args.iteritems():
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
-            primary_hdu.header.set(key[-8:],value)
+            header[key[-8:]] = value
+        # Write survey image into the primary HDU.
+        self.fits.write(results.survey.image.array,header = header)
         trace('wrote primary hdu')
         if not self.no_catalog:
             # Save the analysis results table in HDU[1].
-            table = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
-            self.hdu_list.append(table)
+            self.fits.write(np.array(results.table))
             trace('wrote table')
         if not self.no_stamps:
             # Save each stamp datacube.
+            header = {'X_MIN':0,'Y_MIN':0}
             for stamps,bounds in zip(results.stamps,results.bounds):
-                data_cube = astropy.io.fits.ImageHDU(data = stamps)
-                data_cube.header['X_MIN'] = bounds.xmin
-                data_cube.header['Y_MIN'] = bounds.ymin
-                self.hdu_list.append(data_cube)
+                header['X_MIN'] = bounds.xmin
+                header['Y_MIN'] = bounds.ymin
+                self.fits.write(stamps,header = header)
                 trace('wrote datacube')
         # Write and close our FITS file.
-        self.hdu_list.close()
+        self.fits.close()
         trace('Writer.finalize end')
 
     @staticmethod
