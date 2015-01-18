@@ -80,19 +80,19 @@ class Reader(object):
                     # Make sure we bind the current value of hdu_index, not the variable itself.
                     stamps.append(lambda index=hdu_index: self._load_stamp(index))
                 else:
-                    stamps.append(np.copy(hdu.data))
+                    stamps.append(_load_stamp(hdu_index))
+                # The next 2 lines are equivalent and seem to give about the same performance.
                 num_slices,height,width = hdu.data.shape
+                ##num_slices,height,width = hdu.header['NAXIS3'],hdu.header['NAXIS2'],hdu.header['NAXIS1']
                 x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
                 bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
-                del hdu
         # Save file contents as a results object.
         self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds,num_slices)
         self.hdu_list.close()
 
     def _load_stamp(self,hdu_index):
-        hdu = self.hdu_list[hdu_index]
-        stamp = np.copy(hdu.data)
-        del hdu
+        data = self.hdu_list[hdu_index].data
+        stamp = np.copy(data)
         return stamp
 
     @staticmethod
