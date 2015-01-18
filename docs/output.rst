@@ -7,11 +7,11 @@ The output consists of a `FITS file <http://fits.gsfc.nasa.gov/fits_primer.html>
 
 You can inspect an output file's contents from an interactive python session, e.g.::
 
-	from astropy.io import fits
-	hdulist = fits.open('demo.fits')
-	hdulist.info()
-	hdulist[0].header
-	hdulist.close()
+	import fitso
+	fits = fitsio.FITS('demo.fits')
+	print fits[0] # simulated survey image
+	print fits[1] # analysis results
+	fits.close()
 
 Simulated Survey Image
 ----------------------
