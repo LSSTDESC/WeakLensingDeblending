@@ -73,7 +73,7 @@ def main():
 
     # Load the analysis results file we will get partial derivative images from.
     try:
-        reader = descwl.output.Reader.from_args(args)
+        reader = descwl.output.Reader.from_args(defer_stamp_loading = True,args = args)
         results = reader.results
         npartials = len(results.slice_labels)
         if args.verbose:

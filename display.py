@@ -91,7 +91,7 @@ def main():
 
     # Load the analysis results file we will display from.
     try:
-        reader = descwl.output.Reader.from_args(args)
+        reader = descwl.output.Reader.from_args(defer_stamp_loading = True,args = args)
         results = reader.results
         if args.verbose:
             print results.survey.description()

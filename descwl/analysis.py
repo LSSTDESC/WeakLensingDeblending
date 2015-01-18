@@ -23,14 +23,15 @@ class OverlapResults(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey that results are based on.
         table(astropy.table.Table): Table of analysis results with one row per galaxy.
-        stamps(array): Array of :class:`numpy.ndarray` postage-stamp datacubes.
+        stamps(array): Array of :class:`numpy.ndarray` postage-stamp datacubes. Might be None.
         bounds(array): Array of galsim.BoundsI objects giving pixel coordinates of
-            each datacube in the full simulated image.
+            each datacube in the full simulated image. Might be None.
+        num_slices(int): Number of datacube slices for each stamp. Ignored if stamps is None.
 
     Raises:
         RuntimeError: Image datacubes have unexpected number of slices.
     """
-    def __init__(self,survey,table,stamps,bounds):
+    def __init__(self,survey,table,stamps,bounds,num_slices):
         self.survey = survey
         self.table = table
         if self.table is not None:
@@ -38,8 +39,8 @@ class OverlapResults(object):
             self.locals = { name: self.table[name] for name in self.table.colnames }
         self.stamps = stamps
         self.bounds = bounds
+        self.num_slices = num_slices
         if len(self.stamps) > 0:
-            self.num_slices = self.stamps[0].shape[0]
             if self.num_slices not in (1,len(self.slice_labels)):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
@@ -93,7 +94,11 @@ class OverlapResults(object):
         if index < 0 or index >= len(self.stamps):
             raise RuntimeError('No such galaxy with index=%d.' % index)
         bounds = self.bounds[index]
-        image = galsim.Image(self.stamps[index][datacube_index],
+        datacube = self.stamps[index]
+        if callable(datacube):
+            datacube = datacube()
+            self.stamps[index] = datacube
+        image = galsim.Image(datacube[datacube_index],
             xmin = bounds.xmin,ymin = bounds.ymin,
             scale = self.survey.pixel_scale,make_const = True)
         return image
@@ -386,10 +391,12 @@ class OverlapAnalyzer(object):
         # Initialize our results object so we can use its methods (but be careful not
         # to use a method that needs something in table that we have not filled in yet).
         table = astropy.table.Table(data,copy = False)
-        results = OverlapResults(self.survey,table,self.stamps,self.bounds)
-        npartials = results.num_slices
-        assert npartials == len(results.slice_labels), (
-            'Datacubes have wrong num_slices = %d' % npartials)
+        num_slices,h,w = self.stamps[0].shape
+        results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
+
+        # Check that we have partial derivatives available.
+        if num_slices != len(results.slice_labels):
+            raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
         sky = self.survey.mean_sky_level
         dflux_index = results.slice_labels.index('dflux')
@@ -416,7 +423,7 @@ class OverlapAnalyzer(object):
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
-                base = index*npartials
+                base = index*num_slices
                 data['snr_iso2'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 if correlation is not None:
                     data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])

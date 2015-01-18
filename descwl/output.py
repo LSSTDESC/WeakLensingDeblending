@@ -21,17 +21,23 @@ import descwl.analysis
 class Reader(object):
     """Simulation output reader.
 
-    The reader loads the files contents into memory in the constructor and makes them
-    available via a `results` data member of type :class:`descwl.analysis.OverlapResults`.
+    The reader loads the file's contents into memory in the constructor and makes them available
+    via a `results` data member of type :class:`descwl.analysis.OverlapResults`. Loading of stamp
+    datacubes can be defered until stamps are acutally accessed using the defer_stamp_loading
+    argument below.
 
     Args:
         input_name(str): Base name of FITS output files to write. The ".fits" extension
             can be omitted.
+        defer_stamp_loading(bool): Defer the loading of stamp datacubes until they are actually
+            accessed via :func:`descwl.OverlapResults.get_stamp` of our `results` data
+            member. This speeds up the constructor substantially and reduces memory
+            requirements when relatively few stamps are actually needed.
 
     Raises:
         RuntimeError: Unable to initialize FITS input file.
     """
-    def __init__(self,input_name):
+    def __init__(self,input_name,defer_stamp_loading):
         if not input_name:
             raise RuntimeError('Missing required input-name parameter.')
         self.input_name = input_name
@@ -68,21 +74,33 @@ class Reader(object):
         stamps,bounds = [ ],[ ]
         if len(self.hdu_list) > stamp_hdu_offset:
             # Load individual stamps and reconstruct the corresponding bounds objects.
-            for hdu in self.hdu_list[stamp_hdu_offset:]:
-                datacube = np.copy(hdu.data)
-                stamps.append(datacube)
-                nstamps,height,width = datacube.shape
+            for hdu_index in range(stamp_hdu_offset,len(self.hdu_list)):
+                hdu = self.hdu_list[hdu_index]
+                if defer_stamp_loading:
+                    # Make sure we bind the current value of hdu_index, not the variable itself.
+                    stamps.append(lambda index=hdu_index: self._load_stamp(index))
+                else:
+                    stamps.append(np.copy(hdu.data))
+                num_slices,height,width = hdu.data.shape
                 x_min,y_min = hdu.header['X_MIN'],hdu.header['Y_MIN']
                 bounds.append(galsim.BoundsI(x_min,x_min+width-1,y_min,y_min+height-1))
+                del hdu
         # Save file contents as a results object.
-        self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds)
+        self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds,num_slices)
         self.hdu_list.close()
+
+    def _load_stamp(self,hdu_index):
+        hdu = self.hdu_list[hdu_index]
+        stamp = np.copy(hdu.data)
+        del hdu
+        return stamp
 
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Reader`.
 
-        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+        The added arguments are our constructor arguments with '_' replaced by '-' in the names.
+        The defer_stamp_loading constructor argument is not added here.
 
         Args:
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
@@ -92,11 +110,14 @@ class Reader(object):
             help = 'Base name of FITS output files to read. The ".fits" extension can be omitted.')
 
     @classmethod
-    def from_args(cls,args):
+    def from_args(cls,defer_stamp_loading,args):
         """Create a new :class:`Reader` object from a set of arguments.
 
         Args:
-            survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
+            defer_stamp_loading(bool): Defer the loading of stamp datacubes until they are actually
+                accessed via :func:`descwl.OverlapResults.get_stamp` of our `results` data
+                member. This speeds up the constructor substantially and reduces memory
+                requirements when relatively few stamps are actually needed.
             args(object): A set of arguments accessed as a :py:class:`dict` using the
                 built-in :py:func:`vars` function. Any extra arguments beyond those defined
                 in :func:`add_args` will be silently ignored.
@@ -110,7 +131,7 @@ class Reader(object):
         args_dict = vars(args)
         # Filter the dictionary to only include constructor parameters.
         filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
-        return cls(**filtered_dict)
+        return cls(defer_stamp_loading = defer_stamp_loading,**filtered_dict)
 
 class Writer(object):
     """Simulation output writer.
