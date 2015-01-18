@@ -58,7 +58,7 @@ class Reader(object):
         survey_args = { }
         for parameter_name in descwl.survey.Survey._parameter_names:
             # Fits header keyword names are truncated at length 8.
-            value = header[parameter_name[:8].upper()]
+            value = header[parameter_name[-8:].upper()]
             # String values are padded on the right with spaces.
             survey_args[parameter_name] = value.rstrip() if type(value) is str else value
         survey = descwl.survey.Survey(**survey_args)
@@ -206,7 +206,9 @@ class Writer(object):
         primary_hdu = self.hdu_list[0]
         primary_hdu.data = results.survey.image.array
         for key,value in results.survey.args.iteritems():
-            primary_hdu.header.set(key[:8],value)
+            # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
+            # to ensure that they are unique.
+            primary_hdu.header.set(key[-8:],value)
         trace('wrote primary hdu')
         if not self.no_catalog:
             # Save the analysis results table in HDU[1].
