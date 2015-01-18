@@ -320,6 +320,11 @@ class OverlapAnalyzer(object):
             ('grp_size',np.int16),
             ('grp_rank',np.int16),
             ('visible',np.bool8),
+            # Stamp bounding box.
+            ('xmin',np.int32),
+            ('xmax',np.int32),
+            ('ymin',np.int32),
+            ('ymax',np.int32),
             # Source properties.
             ('f_disk', np.float32),
             ('f_bulge', np.float32),
@@ -352,23 +357,19 @@ class OverlapAnalyzer(object):
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
         # Initialize integer arrays of bounding box limits.
-        xmin = np.empty(num_galaxies,np.int32)
-        ymin = np.empty(num_galaxies,np.int32)
-        xmax = np.empty(num_galaxies,np.int32)
-        ymax = np.empty(num_galaxies,np.int32)
         for i in range(num_galaxies):
-            xmin[i] = self.bounds[i].xmin
-            ymin[i] = self.bounds[i].ymin
-            xmax[i] = self.bounds[i].xmax
-            ymax[i] = self.bounds[i].ymax
+            data['xmin'][i] = self.bounds[i].xmin
+            data['ymin'][i] = self.bounds[i].ymin
+            data['xmax'][i] = self.bounds[i].xmax
+            data['ymax'][i] = self.bounds[i].ymax
 
         # Find overlapping bounding boxes.
         x_overlap = np.logical_and(
-            xmin[:,np.newaxis] <= xmax[np.newaxis,:],
-            ymin[:,np.newaxis] <= ymax[np.newaxis,:])
+            data['xmin'][:,np.newaxis] <= data['xmax'][np.newaxis,:],
+            data['ymin'][:,np.newaxis] <= data['ymax'][np.newaxis,:])
         y_overlap = np.logical_and(
-            xmax[:,np.newaxis] >= xmin[np.newaxis,:],
-            ymax[:,np.newaxis] >= ymin[np.newaxis,:])
+            data['xmax'][:,np.newaxis] >= data['xmin'][np.newaxis,:],
+            data['ymax'][:,np.newaxis] >= data['ymin'][np.newaxis,:])
         overlapping_bounds = np.logical_and(x_overlap,y_overlap)
 
         # Calculate isolated galaxy quantities and identify overlapping groups.

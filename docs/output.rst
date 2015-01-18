@@ -44,6 +44,13 @@ grp_size int16   Number of sources in this group (equal to 1 for isolated source
 grp_rank int16   Rank position of this source in its group based on decreasing snr_iso
 visible  bool8   Is this source's centroid within the simulated image bounds?
 -------- ------- ------------------------------------------------------------------------------------
+**Stamp Bounding Box**
+-----------------------------------------------------------------------------------------------------
+xmin     int32   Pixel offset of left edge of bounding box relative to left edge of survey image
+xmax     int32   Pixel offset of right edge of bounding box relative to left edge of survey image
+ymin     int32   Pixel offset of bottom edge of bounding box relative to bottom edge of survey image
+ymax     int32   Pixel offset of top edge of bounding box relative to bottom edge of survey image
+-------- ------- ------------------------------------------------------------------------------------
 **Source Properties**
 -----------------------------------------------------------------------------------------------------
 f_disk   float32 Fraction of total galaxy flux to due a Sersic n=1 disk component
