@@ -11,6 +11,7 @@ import inspect
 import numpy as np
 
 import astropy.table
+import astropy.io.fits
 
 import fitsio
 
@@ -26,6 +27,10 @@ class Reader(object):
     via a `results` data member of type :class:`descwl.analysis.OverlapResults`. Loading of stamp
     datacubes can be defered until stamps are acutally accessed using the defer_stamp_loading
     argument below.
+
+    We use `fitsio <https://github.com/esheldon/fitsio>`_ to read files since it performs
+    significantly faster than :mod:`astropy.io.fits` for files with many (~100K) relatively small
+    HDUs (although :mod:`astropy.io.fits` outperforms `fitsio` for writing these files).
 
     Args:
         input_name(str): Base name of FITS output files to write. The ".fits" extension
@@ -137,6 +142,11 @@ class Writer(object):
 
     See the :doc:`output page </output>` for details on the output contents and formatting.
 
+    We use :mod:`astropy.io.fits` to write files since it performs significanly faster than
+    `fitsio <https://github.com/esheldon/fitsio>`_ for files with many (~100K) relatively small
+    HDUs (although `fitsio` outperforms :mod:`astropy.io.fits` for reading these files).
+    See `this issue <https://github.com/esheldon/fitsio/issues/32>`_ for details and updates.
+
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
         output_name(str): Base name of FITS output files to write. The ".fits" extension
@@ -161,17 +171,18 @@ class Writer(object):
                 self.output_name += '.fits'
             elif extension.lower() != '.fits':
                 raise RuntimeError('Got unexpected output-name extension "%s".' % extension)
+            if not self.output_no_clobber:
+                # Remove the file if it already exists.
+                try:
+                    os.unlink(self.output_name)
+                except OSError:
+                    pass
+            # Try to open a new file.
             try:
-                with open(self.output_name,'rb') as file:
-                    # File already exists. Can we clobber it?
-                    if self.output_no_clobber:
-                        raise RuntimeError('Cannot clobber existing file %r' %
-                            self.output_name)
-            except IOError:
-                pass
-            # Open the new file.
-            self.fits = fitsio.FITS(self.output_name,mode = fitsio.READWRITE,
-                clobber = not self.output_no_clobber)
+                self.fits = astropy.io.fits.open(self.output_name,mode = 'ostream',memmap = False)
+                self.fits.append(astropy.io.fits.PrimaryHDU())
+            except IOError,e:
+                raise RuntimeError(str(e))
 
     def description(self):
         """Describe our output configuration.
@@ -184,6 +195,8 @@ class Writer(object):
     def finalize(self,results,trace):
         """Save analysis results and close the output file, if any.
 
+        This call builds the entire FITS file in memory then writes it to disk.
+
         Args:
             :class:`descwl.analysis.OverlapResults`: Overlap analysis results.
             trace(callable): Function to call for tracing resource usage. Will be
@@ -192,25 +205,29 @@ class Writer(object):
         trace('Writer.finalize begin')
         if self.fits is None:
             return
+        # Write the simulated survey image into the primary HDU.
+        hdu = self.fits[0]
+        hdu.data = results.survey.image.array
         # Copy our Survey ctor args into the primary HDU header.
-        header = { 'NSLICES': results.num_slices }
+        hdu.header['NSLICES'] = results.num_slices
         for key,value in results.survey.args.iteritems():
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
-            header[key[-8:]] = value
-        # Write survey image into the primary HDU.
-        self.fits.write(results.survey.image.array,header = header)
+            hdu.header[key[-8:]] = value
         trace('wrote primary hdu')
         if not self.no_catalog:
             # Save the analysis results table in HDU[1].
-            self.fits.write(np.array(results.table))
+            hdu = astropy.io.fits.BinTableHDU.from_columns(np.array(results.table))
+            self.fits.append(hdu)
             trace('wrote table')
         if not self.no_stamps:
             # Save each stamp datacube.
-            for stamps,bounds in zip(results.stamps,results.bounds):
-                self.fits.write(stamps)
+            for cube in results.stamps:
+                hdu = astropy.io.fits.ImageHDU(data = cube)
+                self.fits.append(hdu)
                 trace('wrote datacube')
-        # Write and close our FITS file.
+        # Write and close our FITS file. Nothing is actually written to disk until we call flush().
+        self.fits.flush()
         self.fits.close()
         trace('Writer.finalize end')
 
