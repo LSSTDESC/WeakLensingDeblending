@@ -236,12 +236,15 @@ class OverlapResults(object):
 
         return fisher,covariance,variance,correlation
 
-    def match_sextractor(self,catalog_name):
+    def match_sextractor(self,catalog_name,column_name = 'match'):
         """Match detected objects to simulated sources.
 
         Args:
             catalog_name(str): Name of an ASCII catalog in SExtractor-compatible format, and containing
                 X_IMAGE, Y_IMAGE columns and `num_found` rows.
+            column_name(str): Name of a column in our `table` data member to fill with the detected
+                object index matched to each simulated source, or -1 if no match is found. Overwrites
+                any exisiting column or creates a new one.  Does nothing if column_name is None or ''.
 
         Returns:
             tuple: Tuple `detected,matched,indices,distance` where `detected` is the detected catalog as
@@ -272,7 +275,15 @@ class OverlapResults(object):
         min_distance,truth_indices = kdtree.query(xy_found)
         matched = (truth_indices < num_truth)
         indices = truth_indices[matched]
-        distance = min_distance[matched]
+        distance = min_distance[matched]        
+        # Add a table column with indices of matched detected objects or -1 for unmatched sources.
+        if column_name:
+            match_lookup = np.empty(len(self.table),dtype = int)
+            match_lookup[:] = -1
+            match_lookup[indices] = np.arange(len(detected))[matched]
+            self.table[column_name] = match_lookup
+            # Make this column available via our locals dictionary.
+            self.locals[column_name] = self.table[column_name]
         return detected,matched,indices,distance
 
 class OverlapAnalyzer(object):
