@@ -57,7 +57,6 @@ class Reader(object):
         except ValueError,e:
             raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
-        print 'primary'
         header = self.fits[0].read_header()
         num_slices = header['NSLICES']
         survey_args = { }
@@ -70,14 +69,12 @@ class Reader(object):
         # Load the simulated image into the survey object.
         survey.image.array[:] = self.fits[0].read()
 
-        print 'table'
         table = None
         stamp_hdu_offset = 1
         if len(self.fits) > 1 and type(self.fits[1]) is fitsio.fitslib.TableHDU:
             table = astropy.table.Table(self.fits[1].read(),copy = False)
             stamp_hdu_offset += 1
 
-        print 'stamps'
         stamps,bounds = [ ],[ ]
         if len(self.fits) > stamp_hdu_offset:
             if table is None:
@@ -97,7 +94,6 @@ class Reader(object):
         self.results = descwl.analysis.OverlapResults(survey,table,stamps,bounds,num_slices)
         if not defer_stamp_loading:
             self.fits.close()
-        print 'done'
 
     @staticmethod
     def add_args(parser):

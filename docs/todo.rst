@@ -2,7 +2,7 @@ To Do List
 ==========
 
 * Formatted survey options printout.
-* Use last 8 chars of survey ctor arg names to avoid ambiguities.
+* Benchmark Erin's udpates to fitsio for writing simulation output.
 * Use better 8-char names and add comments to FITS headers.
 * Is the optical PSF making any difference? How much does it slow down simulate?
 * Implement a 'exposure-time calculator' to calculate quantities for a profile specified on the command line (idea from Josh Meyers).
