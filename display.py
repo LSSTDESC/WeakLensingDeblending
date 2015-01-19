@@ -37,6 +37,17 @@ def main():
         default = [ ], metavar = 'CUT',
         help = 'Select objects passing the specified cut (can be repeated).')
 
+    match_group = parser.add_argument_group('Detection catalog matching options')
+    match_group.add_argument('--match-catalog', type = str,
+        default = None, metavar = 'FILE',
+        help = 'Name of SExtractor-compatible detection catalog to read.')
+    match_group.add_argument('--match-color', type = str,
+        default = 'black', metavar = 'COL',
+        help = 'Matplotlib color name to use for displaying matches.')
+    match_group.add_argument('--match-format', type = str,
+        default = None, metavar = 'FMT',
+        help = 'String interpolation format to generate matched object labels.')
+
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--crop', action = 'store_true',
         help = 'Crop the displayed pixels around the selected objects.')
@@ -98,6 +109,14 @@ def main():
     except RuntimeError,e:
         print str(e)
         return -1
+
+    # Match detected objects to simulated objects, if requested.
+    if args.match_catalog:
+        detected,matched,matched_indices,matched_distance = (
+            results.match_sextractor(args.match_catalog))
+        if args.verbose:
+            print 'Matched %d of %d detected objects (median sep. = %.2f arcsecs).' % (
+                np.count_nonzero(matched),len(matched),np.median(matched_distance))
 
     # Perform object selection.
     if args.select:
@@ -212,27 +231,57 @@ def main():
     ellipse_widths = np.empty(num_selected)
     ellipse_heights = np.empty(num_selected)
     ellipse_angles = np.empty(num_selected)
+    match_ellipse_centers = np.empty((num_selected,2))
+    match_ellipse_widths = np.empty(num_selected)
+    match_ellipse_heights = np.empty(num_selected)
+    match_ellipse_angles = np.empty(num_selected)
+    num_match_ellipses = 0
     for index,selected in enumerate(selected_indices):
         info = results.table[selected]
+        # Do we have a detected object matched to this simulated source?
+        match_info = None
+        if args.match_catalog and info['match'] >= 0:
+            match_info = detected[info['match']]
         # Calculate the selected object's centroid position in user display coordinates.
         x_center = (0.5*results.survey.image_width + info['dx']/scale)
         y_center = (0.5*results.survey.image_height + info['dy']/scale)
+        if match_info is not None:
+            x_match_center = match_info['X_IMAGE']-0.5
+            y_match_center = match_info['Y_IMAGE']-0.5
         # Draw a crosshair at the centroid of selected objects.
         if not args.no_crosshair:
             axes.plot(x_center,y_center,'+',color = args.crosshair_color,
                 markeredgewidth = 2,markersize = 24)
+            if match_info:
+                axes.plot(x_match_center,y_match_center,'x',color = args.match_color,
+                    markeredgewidth = 2,markersize = 24)
         # Add annotation text if requested.
         if args.annotate:
             annotation = args.annotate_format % info
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
                 textcoords = 'offset points',color = args.annotate_color,
                 fontsize = args.annotate_size)
+            if match_info and args.match_format:
+                annotation = args.match_format % match_info
+                axes.annotate(annotation,xy = (x_match_center,y_match_center),
+                    xytext = (4,4),textcoords = 'offset points',color = args.match_color,
+                    fontsize = args.annotate_size)
         # Add a second-moments ellipse if requested.
         if args.draw_moments:
             ellipse_centers[index] = (x_center,y_center)
             ellipse_widths[index] = info['a']/scale
             ellipse_heights[index] = info['b']/scale
             ellipse_angles[index] = np.degrees(info['beta'])
+            if match_info:
+                # This will only work if we have the necessary additional fields in the match catalog.
+                try:
+                    match_ellipse_centers[num_match_ellipses] = (x_match_center,y_match_center)
+                    match_ellipse_widths[num_match_ellipses] = match_info['A_IMAGE']
+                    match_ellipse_heights[num_match_ellipses] = match_info['B_IMAGE']
+                    match_ellipse_angles[num_match_ellipses] = match_info['THETA_IMAGE']
+                    num_match_ellipses += 1
+                except IndexError:
+                    pass
 
     # Draw any ellipses.
     if args.draw_moments:
@@ -242,6 +291,15 @@ def main():
         ellipses.set_facecolor('none')
         ellipses.set_edgecolor(args.ellipse_color)
         axes.add_collection(ellipses,autolim = True)
+        if num_match_ellipses > 0:
+            ellipses = matplotlib.collections.EllipseCollection(units = 'x',
+                widths = match_ellipse_widths,heights = match_ellipse_heights,
+                angles = match_ellipse_angles,offsets = match_ellipse_centers,
+                transOffset = axes.transData)
+            ellipses.set_facecolor('none')
+            ellipses.set_edgecolor(args.match_color)
+            ellipses.set_linestyle('dashed')
+            axes.add_collection(ellipses,autolim = True)
 
     if args.output_name:
         figure.savefig(args.output_name,dpi = args.dpi)
