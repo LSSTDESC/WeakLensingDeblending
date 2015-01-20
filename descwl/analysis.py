@@ -45,8 +45,25 @@ class OverlapResults(object):
             if self.num_slices not in (1,len(self.slice_labels)):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
+        self.noise_seed = None
 
     slice_labels = ['dflux','dx','dy','dscale','dg1','dg2']
+
+    def add_noise(self,noise_seed):
+        """Add Poisson noise to the simulated survey image.
+
+        Args:
+            noise_seed(int): Random seed to use.
+
+        Raises:
+            RuntimeError: Noise has already been added.
+        """
+        if self.noise_seed is not None:
+            raise RuntimeError('Noise has already been added to the simulated image.')
+        self.noise_seed = noise_seed
+        generator = galsim.random.BaseDeviate(seed = self.noise_seed)
+        noise = galsim.PoissonNoise(rng = generator, sky_level = self.survey.mean_sky_level)
+        self.survey.image.addNoise(noise)
 
     def select(self,selector):
         """Select objects.

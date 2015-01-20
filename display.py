@@ -71,6 +71,8 @@ def main():
         help = 'Clip pixels with non-zero values above this percentile for the selected image.')
     view_group.add_argument('--hide-background', action = 'store_true',
         help = 'Do not display background pixels.')
+    view_group.add_argument('--add-noise',type = int,default = None,metavar = 'SEED',
+        help = 'Add Poisson noise using the seed provided (no noise is added unless this is set).')
 
     format_group = parser.add_argument_group('Formatting options')
     format_group.add_argument('--annotate-size', type = str,
@@ -111,6 +113,10 @@ def main():
     except RuntimeError,e:
         print str(e)
         return -1
+
+    # Add noise, if requested.
+    if args.add_noise is not None:
+        results.add_noise(args.add_noise)
 
     # Match detected objects to simulated objects, if requested.
     if args.match_catalog:
