@@ -64,7 +64,7 @@ def main():
     view_group.add_argument('--no-crosshair', action = 'store_true',
         help = 'Do not draw a crosshair at the centroid of each selected object.')
     view_group.add_argument('--clip-lo-noise-fraction', type = float,
-        default = 0.2, metavar = 'PCT',
+        default = 0.2, metavar = 'FRAC',
         help = 'Clip pixels with values below this fraction of the mean sky noise.')
     view_group.add_argument('--clip-hi-percentile', type = float,
         default = 90.0, metavar = 'PCT',
@@ -73,6 +73,8 @@ def main():
         help = 'Do not display background pixels.')
     view_group.add_argument('--add-noise',type = int,default = None,metavar = 'SEED',
         help = 'Add Poisson noise using the seed provided (no noise is added unless this is set).')
+    view_group.add_argument('--clip-noise',type = float,default = -1.,metavar = 'SIGMAS',
+        help = 'Clip background images at this many sigmas when noise is added.')
 
     format_group = parser.add_argument_group('Formatting options')
     format_group.add_argument('--annotate-size', type = str,
@@ -154,29 +156,6 @@ def main():
     # Build the image of selected objects (might be None).
     selected_image = results.get_subimage(selected_indices)
 
-    # Prepare the z scaling.
-    zscale_pixels = results.survey.image.array
-    if selected_image:
-        if selected_image.bounds.area() < 16:
-            print 'WARNING: using full image for z-scaling since only %d pixel(s) selected.' % (
-                selected_image.bounds.area())
-        else:
-            zscale_pixels = selected_image.array
-    # Clip large fluxes to a fixed percentile of the non-zero selected pixel values.
-    non_zero_pixels = (zscale_pixels != 0)
-    vmax = np.percentile(zscale_pixels[non_zero_pixels],q = (args.clip_hi_percentile))
-    # Clip small fluxes to a fixed fraction of the mean sky noise.
-    vmin = args.clip_lo_noise_fraction*np.sqrt(results.survey.mean_sky_level)
-    if args.verbose:
-        print 'Clipping pixel values to [%.1f,%.1f] detected electrons.' % (vmin,vmax)
-
-    def znorm(pixels):
-        return (np.clip(pixels,vmin,vmax) - vmin)/(vmax-vmin)
-
-    # See http://ds9.si.edu/ref/how.html#Scales
-    def zscale(pixels):
-        return np.sqrt(znorm(pixels))
-
     # Calculate our viewing bounds.
     if args.crop and selected_image is not None:
         view_bounds = selected_image.bounds
@@ -212,9 +191,33 @@ def main():
         overlap = selected_image.bounds & view_bounds
         highlighted[overlap] = selected_image[overlap]
 
-    # Apply clipping and z-scaling to normalize pixel values to [0,1].
-    background_z = zscale(background.array)
-    highlighted_z = zscale(highlighted.array)
+    # Prepare the z scaling.
+    zscale_pixels = results.survey.image.array
+    if selected_image:
+        if selected_image.bounds.area() < 16:
+            print 'WARNING: using full image for z-scaling since only %d pixel(s) selected.' % (
+                selected_image.bounds.area())
+        else:
+            zscale_pixels = selected_image.array
+    # Clip large fluxes to a fixed percentile of the non-zero selected pixel values.
+    non_zero_pixels = (zscale_pixels != 0)
+    vmax = np.percentile(zscale_pixels[non_zero_pixels],q = (args.clip_hi_percentile))
+    # Clip small fluxes to a fixed fraction of the mean sky noise.
+    vmin = args.clip_lo_noise_fraction*np.sqrt(results.survey.mean_sky_level)
+    if args.verbose:
+        print 'Clipping pixel values to [%.1f,%.1f] detected electrons.' % (vmin,vmax)
+
+    # Define the z scaling function. See http://ds9.si.edu/ref/how.html#Scales
+    def zscale(pixels):
+        return np.sqrt(pixels)
+
+    # Calculate the clipped and scaled pixel values to display.
+    highlighted_z = zscale((np.clip(highlighted.array,vmin,vmax) - vmin)/(vmax-vmin))
+    if args.add_noise:
+        vmin = args.clip_noise*np.sqrt(results.survey.mean_sky_level)
+        if args.verbose:
+            print 'Background pixels with noise clipped to [%.1f,%.1f].' % (vmin,vmax)
+    background_z = zscale((np.clip(background.array,vmin,vmax) - vmin)/(vmax-vmin))
 
     # Convert the background image to RGB using the requested colormap.
     # Drop the alpha channel [3], which is all ones anyway.
