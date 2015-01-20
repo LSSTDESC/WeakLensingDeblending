@@ -43,57 +43,59 @@ def main():
         help = 'Name of SExtractor-compatible detection catalog to read.')
     match_group.add_argument('--match-color', type = str,
         default = 'black', metavar = 'COL',
-        help = 'Matplotlib color name to use for displaying matches.')
+        help = 'Matplotlib color name to use for displaying detection catalog matches.')
     match_group.add_argument('--match-format', type = str,
         default = None, metavar = 'FMT',
         help = 'String interpolation format to generate matched object labels.')
 
-    display_group = parser.add_argument_group('Display options')
-    display_group.add_argument('--crop', action = 'store_true',
+    view_group = parser.add_argument_group('Viewing options')
+    view_group.add_argument('--crop', action = 'store_true',
         help = 'Crop the displayed pixels around the selected objects.')
-    display_group.add_argument('--draw-moments', action = 'store_true',
-        help = 'Draw ellipses to represent the 50% iosophote second moments of selected objects.')
-    display_group.add_argument('--annotate', action = 'store_true',
-        help = 'Annotate selected objects with a brief description.')
-    display_group.add_argument('--annotate-format', type = str,
-        default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
-        help = 'String interpolation format to generate annotation labels.')
-    display_group.add_argument('--annotate-size', type = str,
-        default = 'medium', metavar = 'SIZE',
-        help = 'Matplotlib font size specification in points or relative (small,large,...)')
-    display_group.add_argument('--no-crosshair', action = 'store_true',
-        help = 'Do not draw a crosshair at the centroid of each selected object.')
-    display_group.add_argument('--dpi', type = float, default = 64.,
-        help = 'Number of pixels per inch to use for display.')
-    display_group.add_argument('--magnification', type = float,
+    view_group.add_argument('--magnification', type = float,
         default = 1, metavar = 'MAG',
         help = 'Magnification factor to use for display.')
-    display_group.add_argument('--max-view-size', type = int,
-        default = 2048, metavar = 'SIZE',
-        help = 'Maximum allowed pixel dimensions of displayed image.')
-    display_group.add_argument('--colormap', type = str,
-        default = 'YlGnBu', metavar = 'CMAP',
-        help = 'Matplotlib colormap name to use for background pixel values.')
-    display_group.add_argument('--highlight', type = str,
-        default = 'red', metavar = 'COL',
-        help = 'Matplotlib color name to use for highlighted pixel values.')
-    display_group.add_argument('--crosshair-color', type = str,
-        default = 'greenyellow', metavar = 'COL',
-        help = 'Matplotlib color name to use for crosshairs.')
-    display_group.add_argument('--ellipse-color', type = str,
-        default = 'greenyellow', metavar = 'COL',
-        help = 'Matplotlib color name to use for second-moment ellipses.')
-    display_group.add_argument('--annotate-color', type = str,
-        default = 'green', metavar = 'COL',
-        help = 'Matplotlib color name to use for annotation text.')
-    display_group.add_argument('--clip-lo-noise-fraction', type = float,
+    view_group.add_argument('--draw-moments', action = 'store_true',
+        help = 'Draw ellipses to represent the 50%% iosophote second moments of selected objects.')
+    view_group.add_argument('--annotate', action = 'store_true',
+        help = 'Annotate selected objects with a brief description.')
+    view_group.add_argument('--annotate-format', type = str,
+        default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
+        help = 'String interpolation format to generate annotation labels.')
+    view_group.add_argument('--no-crosshair', action = 'store_true',
+        help = 'Do not draw a crosshair at the centroid of each selected object.')
+    view_group.add_argument('--clip-lo-noise-fraction', type = float,
         default = 0.2, metavar = 'PCT',
         help = 'Clip pixels with values below this fraction of the mean sky noise.')
-    display_group.add_argument('--clip-hi-percentile', type = float,
+    view_group.add_argument('--clip-hi-percentile', type = float,
         default = 90.0, metavar = 'PCT',
         help = 'Clip pixels with non-zero values above this percentile for the selected image.')
-    display_group.add_argument('--hide-background', action = 'store_true',
+    view_group.add_argument('--hide-background', action = 'store_true',
         help = 'Do not display background pixels.')
+
+    format_group = parser.add_argument_group('Formatting options')
+    format_group.add_argument('--annotate-size', type = str,
+        default = 'medium', metavar = 'SIZE',
+        help = 'Matplotlib font size specification in points or relative (small,large,...)')
+    format_group.add_argument('--dpi', type = float, default = 64.,
+        help = 'Number of pixels per inch to use for display.')
+    format_group.add_argument('--max-view-size', type = int,
+        default = 2048, metavar = 'SIZE',
+        help = 'Maximum allowed pixel dimensions of displayed image.')
+    format_group.add_argument('--colormap', type = str,
+        default = 'YlGnBu', metavar = 'CMAP',
+        help = 'Matplotlib colormap name to use for background pixel values.')
+    format_group.add_argument('--highlight', type = str,
+        default = 'red', metavar = 'COL',
+        help = 'Matplotlib color name to use for highlighted pixel values.')
+    format_group.add_argument('--crosshair-color', type = str,
+        default = 'greenyellow', metavar = 'COL',
+        help = 'Matplotlib color name to use for crosshairs.')
+    format_group.add_argument('--ellipse-color', type = str,
+        default = 'greenyellow', metavar = 'COL',
+        help = 'Matplotlib color name to use for second-moment ellipses.')
+    format_group.add_argument('--annotate-color', type = str,
+        default = 'green', metavar = 'COL',
+        help = 'Matplotlib color name to use for annotation text.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
