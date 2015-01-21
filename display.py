@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.collections
 import matplotlib.colors
 import matplotlib.cm
+import matplotlib.patheffects
 
 import galsim
 
@@ -109,6 +110,9 @@ def main():
     format_group.add_argument('--annotate-color', type = str,
         default = 'green', metavar = 'COL',
         help = 'Matplotlib color name to use for annotation text.')
+    format_group.add_argument('--outline-color', type = str,
+        default = None, metavar = 'COL',
+        help = 'Matplotlib color name to use for outlining annotation text.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
@@ -332,6 +336,9 @@ def main():
                     markeredgewidth = 2,markersize = 24)
         # Add annotation text if requested.
         if args.annotate:
+            path_effects = None if args.outline_color is None else [
+                matplotlib.patheffects.withStroke(linewidth = 2,
+                foreground = args.outline_color)]
             try:
                 annotation = args.annotate_format % info
             except IndexError:
@@ -339,7 +346,7 @@ def main():
                 return -1
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
                 textcoords = 'offset points',color = args.annotate_color,
-                fontsize = args.annotate_size)
+                fontsize = args.annotate_size,path_effects = path_effects)
             if match_info and args.match_format:
                 try:
                     annotation = args.match_format % match_info
@@ -347,8 +354,9 @@ def main():
                     print 'Invalid match-format %r' % args.match_format
                     return -1
                 axes.annotate(annotation,xy = (x_match_center,y_match_center),
-                    xytext = (4,4),textcoords = 'offset points',color = args.match_color,
-                    fontsize = args.annotate_size)
+                    xytext = (4,4),textcoords = 'offset points',
+                    color = args.annotate_color,fontsize = args.annotate_size,
+                    path_effects = path_effects)
         # Add a second-moments ellipse if requested.
         if args.draw_moments:
             ellipse_centers[index] = (x_center,y_center)
