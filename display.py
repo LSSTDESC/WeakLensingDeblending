@@ -37,6 +37,9 @@ def main():
     select_group.add_argument('--select', type = str, action = 'append',
         default = [ ], metavar = 'CUT',
         help = 'Select objects passing the specified cut (can be repeated).')
+    select_group.add_argument('--select-region', type = str,
+        default = None, metavar = '[XMIN,XMAX,YMIN,YMAX]',
+        help = 'Select objects within this region relative to the image center (arcsecs).')
 
     match_group = parser.add_argument_group('Detection catalog matching options')
     match_group.add_argument('--match-catalog', type = str,
@@ -131,6 +134,20 @@ def main():
         if args.verbose:
             print 'Matched %d of %d detected objects (median sep. = %.2f arcsecs).' % (
                 np.count_nonzero(matched),len(matched),np.median(matched_distance))
+
+    # Create region selectors.
+    if args.select_region:
+        try:
+            assert args.select_region[0] == '[' and args.select_region[-1] == ']'
+            xmin,xmax,ymin,ymax = [ float(token) for token in args.select_region[1:-1].split(',') ]
+            assert xmin < xmax and ymin < ymax
+        except (ValueError,AssertionError):
+            print 'Invalid select-region xmin,xmax,ymin,ymax = %s.' % args.select_region
+            return -1
+        args.select.append('dx>=%f' % xmin)
+        args.select.append('dx<%f' % xmax)
+        args.select.append('dy>=%f' % ymin)
+        args.select.append('dy<%f' % ymax)
 
     # Perform object selection.
     if args.select:
