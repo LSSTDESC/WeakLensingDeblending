@@ -58,9 +58,9 @@ def main():
         help = 'Magnification factor to use for display.')
     view_group.add_argument('--crop', action = 'store_true',
         help = 'Crop the displayed pixels around the selected objects.')
-    view_group.add_argument('--view-window', type = str,
+    view_group.add_argument('--view-region', type = str,
         default = None, metavar = '[XMIN,XMAX,YMIN,YMAX]',
-        help = 'Viewing window in arcsecs relative to the image center (overrides crop if set).')
+        help = 'Viewing region in arcsecs relative to the image center (overrides crop if set).')
     view_group.add_argument('--draw-moments', action = 'store_true',
         help = 'Draw ellipses to represent the 50%% iosophote second moments of selected objects.')
     view_group.add_argument('--annotate', action = 'store_true',
@@ -181,13 +181,13 @@ def main():
     # relative to the image bottom-left corner. Also calculate view_bounds with
     # integer values that determine how to extract sub-images to display.
     scale = results.survey.pixel_scale
-    if args.view_window is not None:
+    if args.view_region is not None:
         try:
-            assert args.view_window[0] == '[' and args.view_window[-1] == ']'
-            xmin,xmax,ymin,ymax = [ float(token) for token in args.view_window[1:-1].split(',') ]
+            assert args.view_region[0] == '[' and args.view_region[-1] == ']'
+            xmin,xmax,ymin,ymax = [ float(token) for token in args.view_region[1:-1].split(',') ]
             assert xmin < xmax and ymin < ymax
         except (ValueError,AssertionError):
-            print 'Invalid view-window xmin,xmax,ymin,ymax = %s.' % args.view_window
+            print 'Invalid view-window xmin,xmax,ymin,ymax = %s.' % args.view_region
             return -1
         # Convert to pixels relative to bottom-left corner.
         xmin = xmin/scale + 0.5*results.survey.image_width
