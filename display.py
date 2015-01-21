@@ -293,6 +293,8 @@ def main():
     # The argparse module escapes any \n or \t in string args, but we need these
     # to be unescaped in the annotation format string.
     args.annotate_format = args.annotate_format.decode('string-escape')
+    if args.match_format:
+        args.match_format = args.match_format.decode('string-escape')
 
     num_selected = len(selected_indices)
     ellipse_centers = np.empty((num_selected,2))
@@ -325,12 +327,20 @@ def main():
                     markeredgewidth = 2,markersize = 24)
         # Add annotation text if requested.
         if args.annotate:
-            annotation = args.annotate_format % info
+            try:
+                annotation = args.annotate_format % info
+            except IndexError:
+                print 'Invalid annotate-format %r' % args.annotate_format
+                return -1
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
                 textcoords = 'offset points',color = args.annotate_color,
                 fontsize = args.annotate_size)
             if match_info and args.match_format:
-                annotation = args.match_format % match_info
+                try:
+                    annotation = args.match_format % match_info
+                except IndexError:
+                    print 'Invalid match-format %r' % args.match_format
+                    return -1
                 axes.annotate(annotation,xy = (x_match_center,y_match_center),
                     xytext = (4,4),textcoords = 'offset points',color = args.match_color,
                     fontsize = args.annotate_size)
