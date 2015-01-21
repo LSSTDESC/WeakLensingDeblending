@@ -23,10 +23,9 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 To write a survey image with Poisson sky noise added to a new file, use e.g.::
 
 	import galsim,descwl
-	survey = descwl.output.Reader('LSST_i_trimmed.fits').results.survey
-	noise = galsim.PoissonNoise(sky_level = survey.mean_sky_level)
-	survey.image.addNoise(noise)
-	galsim.fits.write(survey.image,'LSST_i_noise.fits')
+	results = descwl.output.Reader('LSST_i.fits').results
+	results.add_noise(noise_seed=1)
+	galsim.fits.write(results.survey.image,'LSST_i_noise.fits')
 
 .. _analysis-results:
 

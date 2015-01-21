@@ -43,7 +43,7 @@ class Reader(object):
     Raises:
         RuntimeError: Unable to initialize FITS input file.
     """
-    def __init__(self,input_name,defer_stamp_loading):
+    def __init__(self,input_name,defer_stamp_loading = True):
         if not input_name:
             raise RuntimeError('Missing required input-name parameter.')
         self.input_name = input_name
