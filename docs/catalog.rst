@@ -17,7 +17,7 @@ The parameter names below are required by the :ref:`prog-simulate` program, but 
 ==================== ==========================================================================
 Name                 Description
 ==================== ==========================================================================
-id                   Unique integer identifier for this object (stored procedure `galtileid`)
+galtileid            Unique integer identifier for this object
 ra                   Object centroid right ascension (degrees)
 dec                  Object centroid declination (degrees)
 redshift             Object cosmological redshift
