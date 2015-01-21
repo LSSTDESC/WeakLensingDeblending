@@ -78,6 +78,8 @@ def main():
         help = 'Clip pixels with non-zero values above this percentile for the selected image.')
     view_group.add_argument('--hide-background', action = 'store_true',
         help = 'Do not display background pixels.')
+    view_group.add_argument('--hide-selected', action = 'store_true',
+        help = 'Do not overlay any selected pixels.')
     view_group.add_argument('--add-noise',type = int,default = None,metavar = 'SEED',
         help = 'Add Poisson noise using the seed provided (no noise is added unless this is set).')
     view_group.add_argument('--clip-noise',type = float,default = -1.,metavar = 'SIGMAS',
@@ -111,6 +113,9 @@ def main():
     args = parser.parse_args()
     if args.no_display and not args.output_name:
         print 'No display our output requested.'
+        return 0
+    if args.hide_background and args.hide_selected:
+        print 'No pixels visible with --hide-background and --hide-selected.'
         return 0
 
     # Load the analysis results file we will display from.
@@ -237,7 +242,7 @@ def main():
         overlap = results.survey.image.bounds & view_bounds
         if overlap.area() > 0:
             background[overlap] = results.survey.image[overlap]
-    if selected_image is not None:
+    if not args.hide_selected and selected_image is not None:
         overlap = selected_image.bounds & view_bounds
         if overlap.area() > 0:
             highlighted[overlap] = selected_image[overlap]
