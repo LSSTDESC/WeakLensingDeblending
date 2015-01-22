@@ -212,11 +212,15 @@ class OverlapResults(object):
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
-        If the Fisher matrix is not invertible, `covariance`, `variance` and `correlation`
-        will be returned as None.  If any variances are <= 0, `correlation` will be
-        returned as None. These problems are generally associated with sources that are
-        barely above the pixel SNR threshold. Use the :ref:`prog-fisher` program to
-        visualize matrix elements and to analyze cases where some arrays are returned as None.
+        If the Fisher matrix is not invertible or any variances are <= 0, we will drop
+        the selected source with the lowest value of snr_iso and try again. This procedure
+        is iterated until we get a valid covariance matrix. Matrix elements for all parameters
+        of any sources that get dropped by this procedure will be set to zero and variances
+        will be set to np.inf so that 1/np.sqrt(variance) = 0. Invalid covariances are
+        generally associated with sources that are barely above the pixel SNR threshold,
+        so this procedure should normally provide sensible values for the largest
+        possible subset of the input selected sources. Use the :ref:`prog-fisher` program to
+        visualize matrix elements and to further study examples of invalid covariances.
 
         Args:
             selected(iterable): Array of integer indices for the sources to include in the
@@ -225,12 +229,13 @@ class OverlapResults(object):
         Returns:
             tuple: Tuple `(fisher,covariance,variance,correlation)` of :class:`numpy.ndarray`
                 where `variance` has shape (npar,) and all other arrays are symmetric with
-                shape (npar,npar), where npar = 6*len(selected). If any array cannot be
-                calculated, it will be returned as None.
+                shape (npar,npar), where npar = 6*len(selected). Matrix elements will be
+                zero for any parameters associated with dropped sources, as described above.
         """
         background = self.get_subimage(selected)
+        nsel = len(selected)
         npar = self.num_slices
-        nfisher = len(selected)*npar
+        nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
         for row,index1 in enumerate(selected):
             for col,index2 in enumerate(selected[:row+1]):
@@ -242,16 +247,61 @@ class OverlapResults(object):
                 if row != col:
                     fisher[npar*col:npar*(col+1),npar*row:npar*(row+1)] = fisher_sums.T
 
-        covariance,variance,correlation = None,None,None
-        try:
-            covariance = np.linalg.inv(fisher)
-            variance = np.diag(covariance)
-            if np.min(variance) > 0:
-                correlation = covariance/np.sqrt(np.outer(variance,variance))
-        except np.linalg.LinAlgError:
-            pass
+        # Sort indices into the selected array by increasing snr_iso.
+        priority = np.arange(nsel)[np.argsort(self.table['snr_iso'][selected])]
+        # Start by trying to use all sources in the group.
+        keep = np.ones((nsel,npar),dtype=bool)
+        num_dropped = 0
+        while np.any(keep):
+            try:
+                keep_flat = keep.flatten()
+                # Advanced indexing like this makes a copy, not a view.
+                reduced_fisher = fisher[keep_flat,:][:,keep_flat]
+                reduced_covariance = np.linalg.inv(reduced_fisher)
+                reduced_variance = np.diag(reduced_covariance)
+                assert np.min(reduced_variance) > 0,'Expected variance > 0'
+                reduced_correlation = reduced_covariance/np.sqrt(
+                    np.outer(reduced_variance,reduced_variance))
+                break
+            except (np.linalg.LinAlgError,AssertionError),e:
+                # We can't calculate a covariance for this set of objects, so drop the next
+                # lowest SNR member of the set and try again.
+                keep[priority[num_dropped],:] = False
+                num_dropped += 1
 
-        return fisher,covariance,variance,correlation
+        if num_dropped == 0:
+            return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
+        else:
+            fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
+            covariance = np.zeros((nfisher,nfisher),dtype = np.float64)
+            correlation = np.zeros((nfisher,nfisher),dtype = np.float64)
+            variance = np.empty((nfisher,),dtype = np.float64)
+            variance[:] = np.inf
+            # Build matrices with zeros for any sources that had to be dropped. Is there
+            # a more elegant way to do this? We cannot simply assign to a submatrix
+            # since that requires advancing slicing, which creates a copy, not a view.
+            keep_map = np.zeros(nsel,dtype=int)
+            keep_map[keep[:,0]] = np.arange(nsel-num_dropped)
+            next = 0
+            for row in range(nsel):
+                if not keep[row,0]: continue
+                row_slice = slice(npar*row,npar*(row+1))
+                krow = keep_map[row]
+                krow_slice = slice(npar*krow,npar*(krow+1))
+                variance[row_slice] = reduced_variance[krow_slice]
+                for col in range(row+1):
+                    if not keep[col,0]: continue
+                    col_slice = slice(npar*col,npar*(col+1))
+                    kcol = keep_map[col]
+                    kcol_slice = slice(npar*kcol,npar*(kcol+1))
+                    fisher[row_slice,col_slice] = reduced_fisher[krow_slice,kcol_slice]
+                    covariance[row_slice,col_slice] = reduced_covariance[krow_slice,kcol_slice]
+                    correlation[row_slice,col_slice] = reduced_correlation[krow_slice,kcol_slice]
+                    if row == col: continue
+                    fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
+                    covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
+                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
+            return fisher,covariance,variance,correlation
 
     def match_sextractor(self,catalog_name,column_name = 'match'):
         """Match detected objects to simulated sources.
@@ -494,16 +544,12 @@ class OverlapAnalyzer(object):
                 # Calculate this galaxy's SNR in various ways.
                 base = index*num_slices
                 data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
-                if correlation is not None:
-                    data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
-                    data['ds_grp'][galaxy] = np.sqrt(variance[base+dscale_index])
-                    data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
-                    data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
-                else:
-                    data['snr_grpf'][galaxy] = -1.
-                    data['ds_grp'][galaxy] = -1.
-                    data['dg1_grp'][galaxy] = -1.
-                    data['dg2_grp'][galaxy] = -1.
+                # Variances will be np.inf if this galaxy was dropped from the group for the
+                # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
+                data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
+                data['ds_grp'][galaxy] = np.sqrt(variance[base+dscale_index])
+                data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
+                data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
@@ -514,17 +560,13 @@ class OverlapAnalyzer(object):
                     # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
                         results.get_matrices([galaxy]))
+                    # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
+                    # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
-                    if iso_correlation is not None:
-                        data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
-                        data['ds'][galaxy] = np.sqrt(iso_variance[dscale_index])
-                        data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
-                        data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
-                    else:
-                        data['snr_isof'][galaxy] = -1.
-                        data['ds'][galaxy] = -1.
-                        data['dg1'][galaxy] = -1.
-                        data['dg2'][galaxy] = -1.
+                    data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
+                    data['ds'][galaxy] = np.sqrt(iso_variance[dscale_index])
+                    data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
+                    data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
 
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]

@@ -87,7 +87,10 @@ The figure below illustrates the different Fisher-matrix error-estimation models
 
 .. image:: img/error_models.*
 
-Values of -1 are possible for some of the pixel-level properties and indicate that a Fisher matrix inversion failed. This should normally open occur for the lowest signal-to-noise sources.
+If any Fisher matrix is not invertible or yields non-positive variances, galaxies are iteratively
+dropped (in order of increasing snr_iso) until a valid covariance is obtained for the remaining
+galaxies. The corresponding values in the analysis results table will be zero for signal-to-noise
+ratios and infinite (`numpy.inf`) for errors on s,g1,g2.
 
 You can load just the analysis results from the output file using, e.g.::
 

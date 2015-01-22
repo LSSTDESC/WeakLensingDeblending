@@ -123,9 +123,6 @@ def main():
             matrix = covariance
         else:
             matrix = correlation
-        if matrix is None:
-            print 'Unable to evaluate the requested matrix elements.'
-            return -1
 
     # Print a summary table of RMS errors on each parameter.
     if args.verbose and correlation is not None:
