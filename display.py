@@ -49,9 +49,9 @@ def main():
     match_group.add_argument('--match-color', type = str,
         default = 'black', metavar = 'COL',
         help = 'Matplotlib color name to use for displaying detection catalog matches.')
-    match_group.add_argument('--match-format', type = str,
+    match_group.add_argument('--match-info', type = str,
         default = None, metavar = 'FMT',
-        help = 'String interpolation format to generate matched object labels.')
+        help = 'String interpolation format to generate matched object annotations.')
 
     view_group = parser.add_argument_group('Viewing options')
     view_group.add_argument('--magnification', type = float,
@@ -64,10 +64,8 @@ def main():
         help = 'Viewing region in arcsecs relative to the image center (overrides crop if set).')
     view_group.add_argument('--draw-moments', action = 'store_true',
         help = 'Draw ellipses to represent the 50%% iosophote second moments of selected objects.')
-    view_group.add_argument('--annotate', action = 'store_true',
-        help = 'Annotate selected objects with a brief description.')
-    view_group.add_argument('--annotate-format', type = str,
-        default = 'z=%(z).1f\nAB=%(ab_mag).1f', metavar = 'FMT',
+    view_group.add_argument('--info', type = str,
+        default = None, metavar = 'FMT',
         help = 'String interpolation format to generate annotation labels.')
     view_group.add_argument('--no-crosshair', action = 'store_true',
         help = 'Do not draw a crosshair at the centroid of each selected object.')
@@ -87,8 +85,8 @@ def main():
         help = 'Clip background images at this many sigmas when noise is added.')
 
     format_group = parser.add_argument_group('Formatting options')
-    format_group.add_argument('--annotate-size', type = str,
-        default = 'medium', metavar = 'SIZE',
+    format_group.add_argument('--info-size', type = str,
+        default = 'large', metavar = 'SIZE',
         help = 'Matplotlib font size specification in points or relative (small,large,...)')
     format_group.add_argument('--dpi', type = float, default = 64.,
         help = 'Number of pixels per inch to use for display.')
@@ -107,12 +105,12 @@ def main():
     format_group.add_argument('--ellipse-color', type = str,
         default = 'greenyellow', metavar = 'COL',
         help = 'Matplotlib color name to use for second-moment ellipses.')
-    format_group.add_argument('--annotate-color', type = str,
+    format_group.add_argument('--info-color', type = str,
         default = 'green', metavar = 'COL',
-        help = 'Matplotlib color name to use for annotation text.')
+        help = 'Matplotlib color name to use for info text.')
     format_group.add_argument('--outline-color', type = str,
         default = None, metavar = 'COL',
-        help = 'Matplotlib color name to use for outlining annotation text.')
+        help = 'Matplotlib color name to use for outlining text.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
@@ -301,9 +299,9 @@ def main():
 
     # The argparse module escapes any \n or \t in string args, but we need these
     # to be unescaped in the annotation format string.
-    args.annotate_format = args.annotate_format.decode('string-escape')
-    if args.match_format:
-        args.match_format = args.match_format.decode('string-escape')
+    args.info = args.info.decode('string-escape')
+    if args.match_info:
+        args.match_info = args.match_info.decode('string-escape')
 
     num_selected = len(selected_indices)
     ellipse_centers = np.empty((num_selected,2))
@@ -335,28 +333,28 @@ def main():
                 axes.plot(x_match_center,y_match_center,'x',color = args.match_color,
                     markeredgewidth = 2,markersize = 24)
         # Add annotation text if requested.
-        if args.annotate:
+        if args.info:
             path_effects = None if args.outline_color is None else [
                 matplotlib.patheffects.withStroke(linewidth = 2,
                 foreground = args.outline_color)]
             try:
-                annotation = args.annotate_format % info
+                annotation = args.info % info
             except IndexError:
-                print 'Invalid annotate-format %r' % args.annotate_format
+                print 'Invalid annotate-format %r' % args.info
                 return -1
             axes.annotate(annotation,xy = (x_center,y_center),xytext = (4,4),
-                textcoords = 'offset points',color = args.annotate_color,
-                fontsize = args.annotate_size,path_effects = path_effects)
-            if match_info and args.match_format:
-                try:
-                    annotation = args.match_format % match_info
-                except IndexError:
-                    print 'Invalid match-format %r' % args.match_format
-                    return -1
-                axes.annotate(annotation,xy = (x_match_center,y_match_center),
-                    xytext = (4,4),textcoords = 'offset points',
-                    color = args.annotate_color,fontsize = args.annotate_size,
-                    path_effects = path_effects)
+                textcoords = 'offset points',color = args.info_color,
+                fontsize = args.info_size,path_effects = path_effects)
+        if match_info and args.match_info:
+            try:
+                annotation = args.match_info % match_info
+            except IndexError:
+                print 'Invalid match-format %r' % args.match_info
+                return -1
+            axes.annotate(annotation,xy = (x_match_center,y_match_center),
+                xytext = (4,4),textcoords = 'offset points',
+                color = args.info_color,fontsize = args.info_size,
+                path_effects = path_effects)
         # Add a second-moments ellipse if requested.
         if args.draw_moments:
             ellipse_centers[index] = (x_center,y_center)
