@@ -372,7 +372,7 @@ class OverlapAnalyzer(object):
             ('purity',np.float32),
             ('snr_sky',np.float32),
             ('snr_iso',np.float32),
-            ('snr_iso2',np.float32),
+            ('snr_grp',np.float32),
             ('snr_isof',np.float32),
             ('snr_grpf',np.float32),
             ('ds',np.float32),
@@ -493,7 +493,7 @@ class OverlapAnalyzer(object):
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
                 base = index*num_slices
-                data['snr_iso2'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
+                data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 if correlation is not None:
                     data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
                     data['ds_grp'][galaxy] = np.sqrt(variance[base+dscale_index])
@@ -505,7 +505,7 @@ class OverlapAnalyzer(object):
                     data['dg1_grp'][galaxy] = -1.
                     data['dg2_grp'][galaxy] = -1.
                 if grp_size == 1:
-                    data['snr_iso'][galaxy] = data['snr_iso2'][galaxy]
+                    data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
                     data['ds'][galaxy] = data['ds_grp'][galaxy]
                     data['dg1'][galaxy] = data['dg1_grp'][galaxy]

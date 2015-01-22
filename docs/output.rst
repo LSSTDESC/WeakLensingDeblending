@@ -72,7 +72,7 @@ beta     float32 Position angle of second-moment ellipse in radians, or zero whe
 purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
 snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit (a)
 snr_iso  float32 Same as snr_sky but including signal variance (b)
-snr_iso2 float32 Same as snr_sky but including signal+overlap variance (c)
+snr_grp  float32 Same as snr_sky but including signal+overlap variance (c)
 snr_isof float32 Same as snr_iso2 but including correlations with all isolated fit parameters (d)
 snr_grpf float32 Same as snr_iso2 but including correlations with all fit parameters (e)
 ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
