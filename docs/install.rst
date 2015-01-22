@@ -6,9 +6,13 @@ Install with GIT
 
 The code is hosted on `github <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending>`_ so the easiest method to perform an initial installation is with `git <http://git-scm.com>`_::
 
-	git clone git@github.com:DarkEnergyScienceCollaboration/WeakLensingDeblending.git
+	git clone https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending.git
 
 This will create a new subdirectory `WeakLensingDeblending` containing the latest stable version of the complete package.
+
+Experts who already have a `correctly configured github account <https://help.github.com/articles/which-remote-url-should-i-use/#cloning-with-ssh>`_ might prefer this alternative::
+
+	git clone git@github.com:DarkEnergyScienceCollaboration/WeakLensingDeblending.git
 
 Update with GIT
 ---------------
