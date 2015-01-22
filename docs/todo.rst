@@ -25,6 +25,7 @@ Longer-Term Projects
 * Compare DM pipeline object detection with snr_grp detection threshold.
 * Use PhoSim to generate realistic bright-star templates that could be used in GalSim (Chris Walter?).
 * Compare GalSim and PhoSim images generated for the same catalog footprint.
+* Characterize galaxies that look like stars.
 * Compare CFHTLS predictions with published results.
 * Compare DES predictions with actual DES imaging.
 * Add survey parameters for HSC to Survey class and compare predictions with actual HSC imaging (Rachel Mandelbaum?)
