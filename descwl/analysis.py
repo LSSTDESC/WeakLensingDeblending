@@ -319,7 +319,7 @@ class OverlapResults(object):
                 indicating whether each object was matched with a simulated object, `indices` is an array
                 of `num_matched = np.count_nonzero(matched)` integers giving row numbers in our `table`
                 attribute for each simulated match, and `distance` is an array of `num_matched` separation
-                distances between matched and simulated objects.
+                distances in arcseconds between matched and simulated objects.
         """
         # Read the catalog of detected objects.
         detected = astropy.table.Table.read(catalog_name,format='ascii')
@@ -397,7 +397,7 @@ class OverlapAnalyzer(object):
             ('grp_id',np.int64),
             ('grp_size',np.int16),
             ('grp_rank',np.int16),
-            ('visible',np.bool8),
+            ('visible',np.int16),
             # Stamp bounding box.
             ('xmin',np.int32),
             ('xmax',np.int32),
@@ -464,7 +464,7 @@ class OverlapAnalyzer(object):
             data['ab_mag'][index] = model.ab_magnitude
             data['flux'][index] = model.model.getFlux()
             # Is this galaxy's centroid visible in the survey image?
-            data['visible'][index] = self.survey.image.bounds.includes(bounds.center())
+            data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
             # Save model parameters.
             data['f_disk'][index] = model.disk_fraction
             data['f_bulge'][index] = model.bulge_fraction
