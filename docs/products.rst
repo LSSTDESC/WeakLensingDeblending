@@ -1,7 +1,7 @@
 Data Products
 =============
 
-The following data products related to this package are available for `download from SLAC <http://srs.slac.stanford.edu/DataCatalog/?experiment=LSST-DESC&folder=12915647>`_:
+The following data products related to this package are available for `download from SLAC <ftp://ftp.slac.stanford.edu/groups/desc/WL/>`_:
 
 ======================= ========== ========================================================
 Filename                Size (Mb)  Description
