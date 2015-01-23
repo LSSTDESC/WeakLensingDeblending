@@ -213,7 +213,7 @@ class Engine(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
-        parser.add_argument('--min-snr', type = float, default = 0.1, metavar = 'SNR',
+        parser.add_argument('--min-snr', type = float, default = 0.05, metavar = 'SNR',
             help = 'Simulate signals from individual sources down to this S/N threshold.')
         parser.add_argument('--truncate-radius', type = float, default = 30., metavar = 'SIZE',
             help = 'All extended sources are truncated at this radius in arcseconds.')
