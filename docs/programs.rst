@@ -7,6 +7,10 @@ All programs are configured by passing command-line options. Pass the `--help` o
 
 	./simulate.py --help
 
+Note that some program arguments normally contain characters that your shell may interpret specially but you can generally avoid this by quoting these arguments. For example, the square brackets [ ] and parentheses ( ) in the following command line are problematic and should be quoted as shown::
+
+	./display.py -i demo --crop --select-region '[-10.20,2.80,-30.40,-12.80]' --info '%(grp_size)d' --magnification 8
+
 This document provides an introduction to each of the available programs. Examples of running the programs are :doc:`documented elsewhere </examples>`.
 
 .. _prog-simulate:
