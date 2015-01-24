@@ -16,20 +16,17 @@ images_to_save = [ ]
 
 # Load the results of a previous simulation.
 results = descwl.output.Reader('demo.fits').results
-num_galaxies = len(results.table)
 
 # Select the brightest sources from groups with exactly 2 members.
 selected = results.select('grp_size==2','grp_rank==0')
 
 # Loop over these pair groups.
-for index in np.arange(num_galaxies)[selected]:
+for index in selected:
 	info = results.table[index]
 	# Skip groups where the overlap has essentially no effect on the brighter galaxy.
-	if info['purity'] > 0.95:
-		continue
+	if info['purity'] > 0.95: continue
 	# Select all (both) members of this group.
 	group = results.select('grp_id==%d' % info['db_id'])
-	group = np.arange(num_galaxies)[group]
 	# Create and save an image of just this group.
 	image = results.get_subimage(group)
 	images_to_save.append(image)

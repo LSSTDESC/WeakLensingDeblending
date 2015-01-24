@@ -72,24 +72,39 @@ class OverlapResults(object):
         source of the selector strings is trusted.
 
         Args:
-            *selectors(str,...): A sequence of one or more selection strings, each
+            selectors(str,...): A sequence of one or more selection strings, each
                 consisting of a boolean expression of column table names, e.g.
                 'snr_iso > 5'.  The special strings 'ALL' and 'NONE' do what you
                 would expect.
             mode(str): The string 'and' or 'or' to specify how multiple selectors
                 should be combined.
+            format(str): The string 'mask' or 'index' to specify the format of the
+                returned array.  A mask is an array of booleans with one entry per
+                source. The alternative index array of integers lists the selected
+                indices in increasing order and might be empty.  The mask format
+                is useful for performing your own logical operations on the
+                returned array. The index format is useful for iterating over the
+                selected objects. Both formats can be used to slice the catalog
+                table to extract only the selected rows.
 
         Returns:
-            :class:`numpy.ndarray`: Boolean array containing a selection mask with one
-                entry per object whose True/False value indicates if the object has
-                been selected.
+            :class:`numpy.ndarray`: A numpy array of booleans or integers, depending
+                on the value of the format input argument.
 
         Raises:
-            RuntimeError: Selector uses an undefined variable name or unexpected mode.
+            RuntimeError: A selector uses an undefined variable name, the method was
+                passed an unexpected mode or format string, or these results have
+                no catalog table.
         """
+        if self.table is None:
+            raise RuntimeError('Cannot select() without a catalog table.')
         mode = options.get('mode','and')
         if mode not in ('and','or'):
             raise RuntimeError('Unexpected mode "%s".' % mode)
+        format = options.get('format','index')
+        if format not in ('mask','index'):
+            raise RuntimeError('Unexpected format "%s".' % format)
+
         selection = self._select('ALL') if mode == 'and' else self._select('NONE')
         for selector in selectors:
             update = self._select(selector)
@@ -97,6 +112,9 @@ class OverlapResults(object):
                 selection = np.logical_and(selection,update)
             else:
                 selection = np.logical_or(selection,update)
+
+        if format == 'index':
+            selection = np.arange(self.num_objects)[selection]
         return selection
 
     def _select(self,selector):
@@ -143,6 +161,8 @@ class OverlapResults(object):
 
         Args:
             indices(iterable): Indices of the objects to include in the subimage.
+                Our :meth:`select` method returns a suitable argument to use here
+                by default (format = 'index').
 
         Returns:
             galsim.Image: Image of the selected objects or None if indices is empty.

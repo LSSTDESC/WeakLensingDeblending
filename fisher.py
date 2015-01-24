@@ -91,17 +91,16 @@ def main():
     # Look for the selected galaxy or group.
     if args.galaxy:
         selected = results.select('db_id==%d' % args.galaxy)
-        if not np.any(selected):
+        if len(selected) == 0:
             print 'No such galaxy with ID %d' % args.galaxy
             return -1
         title = 'galaxy-%d' % args.galaxy
     else:
         selected = results.select('grp_id==%d' % args.group)
-        if not np.any(selected):
+        if len(selected) == 0:
             print 'No such group with ID %d' % args.group
             return -1
         title = 'group-%d' % args.group
-    selected = np.arange(results.num_objects)[selected]
     # Sort selected galaxies in increasing rank order.
     sort_order = np.argsort(results.table['grp_rank'][selected])
     selected = selected[sort_order]

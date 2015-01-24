@@ -156,19 +156,19 @@ def main():
     # Perform object selection.
     if args.select:
         # Combine select clauses with logical AND.
-        selection = results.select(*args.select,mode='and')
+        selection = results.select(*args.select,mode='and',format='mask')
     else:
         # Nothing is selected by default.
-        selection = results.select('NONE')
+        selection = results.select('NONE',format='mask')
     # Add any specified groups to the selection with logical OR.
     for identifier in args.group:
-        selected = results.select('grp_id==%d' % identifier)
+        selected = results.select('grp_id==%d' % identifier,format='mask')
         if not np.any(selected):
             print 'WARNING: no group found with ID %d.' % identifier
         selection = np.logical_or(selection,selected)
     # Add any specified galaxies to the selection with logical OR.
     for identifier in args.galaxy:
-        selected = results.select('db_id==%d' % identifier)
+        selected = results.select('db_id==%d' % identifier,format='mask')
         if not np.any(selected):
             print 'WARNING: no galaxy found with ID %d.' % identifier
         selection = np.logical_or(selection,selected)
