@@ -65,16 +65,19 @@ class OverlapResults(object):
         noise = galsim.PoissonNoise(rng = generator, sky_level = self.survey.mean_sky_level)
         self.survey.image.addNoise(noise)
 
-    def select(self,selector):
+    def select(self,*selectors,**options):
         """Select objects.
 
         This function is implemented using :func:`eval` so should only be used when the
-        source of the selector string is trusted.
+        source of the selector strings is trusted.
 
         Args:
-            selector(str): A selection string consisting of a boolean expression of
-                column table names, e.g. 'snr_iso > 5'.  The special strings 'ALL' and
-                'NONE' do what you would expect.
+            *selectors(str,...): A sequence of one or more selection strings, each
+                consisting of a boolean expression of column table names, e.g.
+                'snr_iso > 5'.  The special strings 'ALL' and 'NONE' do what you
+                would expect.
+            mode(str): The string 'and' or 'or' to specify how multiple selectors
+                should be combined.
 
         Returns:
             :class:`numpy.ndarray`: Boolean array containing a selection mask with one
@@ -82,8 +85,22 @@ class OverlapResults(object):
                 been selected.
 
         Raises:
-            RuntimeError: Selector uses an undefined variable name.
+            RuntimeError: Selector uses an undefined variable name or unexpected mode.
         """
+        mode = options.get('mode','and')
+        if mode not in ('and','or'):
+            raise RuntimeError('Unexpected mode "%s".' % mode)
+        selection = self._select('ALL') if mode == 'and' else self._select('NONE')
+        for selector in selectors:
+            update = self._select(selector)
+            if mode == 'and':
+                selection = np.logical_and(selection,update)
+            else:
+                selection = np.logical_or(selection,update)
+        return selection
+
+    def _select(self,selector):
+        # This private method implements select() for a single selector.
         if selector == 'ALL':
             return np.ones(self.num_objects,dtype=bool)
         elif selector == 'NONE':

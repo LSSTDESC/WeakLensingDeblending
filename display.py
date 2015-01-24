@@ -151,27 +151,22 @@ def main():
         except (ValueError,AssertionError):
             print 'Invalid select-region xmin,xmax,ymin,ymax = %s.' % args.select_region
             return -1
-        args.select.append('dx>=%f' % xmin)
-        args.select.append('dx<%f' % xmax)
-        args.select.append('dy>=%f' % ymin)
-        args.select.append('dy<%f' % ymax)
+        args.select.extend(['dx>=%f'%xmin,'dx<%f'%xmax,'dy>=%f'%ymin,'dy<%f'%ymax])
 
     # Perform object selection.
     if args.select:
         # Combine select clauses with logical AND.
-        selection = results.select('ALL')
-        for selector in args.select:
-            selection = np.logical_and(selection,results.select(selector))
+        selection = results.select(*args.select,mode='and')
     else:
         # Nothing is selected by default.
         selection = results.select('NONE')
-    # Add any specified groups to the selection.
+    # Add any specified groups to the selection with logical OR.
     for identifier in args.group:
         selected = results.select('grp_id==%d' % identifier)
         if not np.any(selected):
             print 'WARNING: no group found with ID %d.' % identifier
         selection = np.logical_or(selection,selected)
-    # Add any specified galaxies to the selection.
+    # Add any specified galaxies to the selection with logical OR.
     for identifier in args.galaxy:
         selected = results.select('db_id==%d' % identifier)
         if not np.any(selected):

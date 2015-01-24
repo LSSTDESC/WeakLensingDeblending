@@ -19,7 +19,7 @@ results = descwl.output.Reader('demo.fits').results
 num_galaxies = len(results.table)
 
 # Select the brightest sources from groups with exactly 2 members.
-selected = np.logical_and(results.select('grp_size==2'),results.select('grp_rank==0'))
+selected = results.select('grp_size==2','grp_rank==0')
 
 # Loop over these pair groups.
 for index in np.arange(num_galaxies)[selected]:
