@@ -58,6 +58,7 @@ dx       float32 Source centroid in x relative to image center in arcseconds
 dy       float32 Source centroid in y relative to image center in arcseconds
 z        float32 Catalog source redshift
 ab_mag   float32 Catalog source AB magnitude in the simulated filter band
+ri_color float32 Catalog source color calculated as (r-i) AB magnitude difference
 flux     float32 Total detected flux in electrons
 sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as \|Q\|**0.25
 sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5

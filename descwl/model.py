@@ -90,6 +90,7 @@ class Galaxy(object):
         redshift(float): Catalog redshift of this galaxy.
         ab_magnitude(float): Catalog AB magnitude of this galaxy in the filter band being
             simulated.
+        ri_color(float): Catalog source color calculated as (r-i) AB magnitude difference.
         cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
         cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).        
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
@@ -111,13 +112,14 @@ class Galaxy(object):
             lengths for Sersic n=4 component. Ignored if bulge_flux is zero.
         agn_flux(float): Total flux in detected electrons of PSF-like component.
     """
-    def __init__(self,identifier,redshift,ab_magnitude,
+    def __init__(self,identifier,redshift,ab_magnitude,ri_color,
         cosmic_shear_g1,cosmic_shear_g2,
         dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
         bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux):
         self.identifier = identifier
         self.redshift = redshift
         self.ab_magnitude = ab_magnitude
+        self.ri_color = ri_color
         self.dx_arcsecs = dx_arcsecs
         self.dy_arcsecs = dy_arcsecs
         self.cosmic_shear_g1 = cosmic_shear_g1
@@ -231,8 +233,9 @@ class GalaxyBuilder(object):
         # Calculate the object's total flux in detected electrons.
         try:
             ab_magnitude = entry[filter_band + '_ab']
+            ri_color = entry['r_ab'] - entry['i_ab']
         except KeyError:
-            raise RuntimeError('Catalog entry is missing %s-band AB flux value.')
+            raise RuntimeError('Catalog entry is missing required AB magnitudes.')
         total_flux = self.survey.get_flux(ab_magnitude)
         # Calculate the flux of each component in detected electrons.
         total_fluxnorm = entry['fluxnorm_disk'] + entry['fluxnorm_bulge'] + entry['fluxnorm_agn']
@@ -283,7 +286,7 @@ class GalaxyBuilder(object):
                     bulge_flux/total_flux,bulge_hlr_arcsecs,bulge_q)
             if agn_flux > 0:
                 print '  AGN: frac = %.6f' % (agn_flux/total_flux)
-        return Galaxy(identifier,redshift,ab_magnitude,
+        return Galaxy(identifier,redshift,ab_magnitude,ri_color,
             self.survey.cosmic_shear_g1,self.survey.cosmic_shear_g2,
             dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
             bulge_flux,bulge_hlr_arcsecs,bulge_q,agn_flux)
