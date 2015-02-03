@@ -11,16 +11,45 @@ Note that some program arguments normally contain characters that your shell may
 
 	./display.py -i demo --crop --select-region '[-10.20,2.80,-30.40,-12.80]' --info '%(grp_size)d' --magnification 8
 
-This document provides an introduction to each of the available programs. Examples of running the programs are :doc:`documented elsewhere </examples>`.
+This document provides an introduction to each of the available programs. Examples of running the programs are :doc:`documented elsewhere </examples>`. The flowchart below shows the main processing steps and relationships between these programs.
+
+.. image:: img/programs.*
 
 .. _prog-simulate:
 
 simulate
 --------
 
-The `simulate` program simulates a weak-lensing survey by performing fast image rendering with `galsim <https://github.com/GalSim-developers/GalSim>`_.
+The `simulate` program simulates and analyzes a weak-lensing survey by performing fast image rendering with `galsim <https://github.com/GalSim-developers/GalSim>`_.
 
-The program reads a :doc:`catalog of astronomical sources </catalog>` and produces a set of :doc:`output data products </output>`.  The outputs can be displayed using the `display` program.
+The program reads a :doc:`catalog of astronomical sources </catalog>` and produces a set of :doc:`output data products </output>`.  Simulation outputs can be displayed with the `display` and `fisher` programs, or you can modify the `skeleton` program to perform your own analysis of the outputs.
+
+By default, the program will simulate and analyze an area corresponding to 1 LSST chip (about 13 x 13 arcmin**2) assuming a full-depth LSST i-band exposure with nominal PSF, sky background, extinction, zero points, etc.  To simulate a different nominal survey use, e.g.::
+
+	./simulate.py --survey LSST --filter r
+	./simulate.py --survey DES --filter i
+
+Use the following command to see all the defaults associated with each survey configuration::
+
+	./simulate.py --survey-defaults
+
+You can override any of these defaults on the command line, e.g.::
+
+	./simulate.py --survey CFHT --sky-brightness 20.7 --airmass 1.3 --atmospheric-psf-e1 0.01
+
+You can also create new default survey configurations by editing the :mod:`descwl.survey` module.
+
+The main simulation parameter is the pixel signal-to-noise threshold, `min-snr`::
+
+	./simulate.py --min-snr 0.1 ...
+
+Sources are simulated over a footprint that includes exactly those pixels whose noise-free mean signal is above this threshold. Any source with at least one pixel meeting this criterion is considered 'visible' and others are discarded from the subsequent analysis and output. The threshold is in units of the full-depth mean sky noise level and the default value is 0.05.
+
+For a full list of the available options, use::
+
+	./simulate.py --help
+
+For details on the simulation output format, see :doc:`this page <output>`.
 
 .. _prog-display:
 
@@ -35,9 +64,25 @@ Certain objects can be selected for highlighting and annotating. Use the `--gala
 
 The `--select` arg can be repeated and the results will be combined with logical AND, followed by the logical OR of any `--galaxy` or `--group` args.
 
-Pixel values are :func:`clipped <numpy.clip>` with limits based on percentiles of the histogram of non-zero pixel values for the selected objects. Use the `--clip-lo-percentile` and `--clip-hi-percentile` command-line args to change the defaults of 0 and 90 percent limits. Clipped pixel values are rescaled from zero to one and displayed using the DS9 `sqrt scale <http://ds9.si.edu/ref/how.html#Scales>`_.
+Displayed pixel values are :func:`clipped <numpy.clip>` using an upper limits set at a fixed percentile of the histogram of non-zero pixel values for the selected objects, and a lower limit set a a fixed fraction of the mean sky noise level. Use the `--clip-hi-percentile` and `--clip-lo-noise-fraction` command-line args to change the defaults of 90% and 0.1, respectively. Clipped pixel values are rescaled from zero to one and displayed using the DS9 `sqrt scale <http://ds9.si.edu/ref/how.html#Scales>`_.
 
 Scaled pixel values are displayed using two colormaps: one for selected objects and another for background objects.  Use the `--highlight` and `--colormap` command-line args to change the defaults using any `named matplotlib colormap <http://matplotlib.org/examples/color/colormaps_reference.html>`_.
+
+Selected objects can be annotated using any information stored in the :ref:`analysis-results`.  Annotations are specified using python `format strings <https://docs.python.org/2/library/stdtypes.html#string-formatting-operations>`_ where all catalog variables are available. For example, to display redshifts with 2 digits of precision, use::
+
+	./display.py --info '%(z).2f' ...
+
+More complex formats with custom styling options are also possible, e.g.::
+
+	./display.py --info '$\\nu$ = %(snr_isof).1f,%(snr_grpf).1f' --info-size large --info-color red ...
+
+The results of running an independent object detection pipeline can be superimposed in a displayed image. The `match-catalog` option specifies the detections to use in SExtractor compatible format.  The matching algorithm is described :func:`here <descwl.analysis.OverlapResults.match_sextractor>`.  Matches can also be annoted, e.g.::
+
+	./display.py --match-catalog SE.cat --match-info '%(FLUX_AUTO).1f'
+
+For a full list of available options, use::
+
+	./display.py --help
 
 .. _prog-fisher:
 
@@ -48,7 +93,7 @@ The `fisher` program creates plots to illustrate galaxy parameter error estimati
 
 The program either calculates the Fisher matrix for a single galaxy (`--galaxy`) as if it were isolated, or else for an overlapping group of galaxies (`--group`). The displayed image consists of the lower-triangular part of a symmetric `npar x npar` matrix, where::
 
-	npar = num_partials * num_galaxies
+	npar = (num_partials=6) * num_galaxies
 
 By default, the program displays the Fisher-matrix images whose sums (over pixels) give the Fisher matrix element values. Alternatively, you can display the partial derivative images (`--partials`), Fisher matrix elements (`--matrix`), covariance matrix elements (`--covariance`) or correlation coefficients matrix (`--correlation`).
 
@@ -59,4 +104,4 @@ Use the `--colormap` option to select the color map. The vertical color scales a
 dbquery
 -------
 
-Program to query the official LSST simulation galaxy catalog and write a text :doc:`catalog file </catalog>` in the format expected by the `simulate` program.  You do not normally need to run this program since suitable catalog files are already provided.
+The `dbquery` program queries the official LSST simulation galaxy catalog and writes a text :doc:`catalog file </catalog>` in the format expected by the `simulate` program.  You do not normally need to run this program since suitable catalog files are :doc:`already provided <products>`.
