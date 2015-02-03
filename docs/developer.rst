@@ -35,6 +35,13 @@ Create a new documentation file `docs/src/descwl.xxx.rst` containing (replace `x
 	    :undoc-members:
 	    :show-inheritance:
 
+Update the version
+------------------
+
+Update the `version` and `release` values in the sphinx configuration file `docs/conf.py`, then commit, tag, and push the new version, e.g.::
+
+	git tag -l v0.2
+
 Profiling
 ---------
 
