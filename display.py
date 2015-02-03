@@ -176,6 +176,11 @@ def main():
     if args.verbose:
         print 'Selected IDs:\n%s' % np.array(results.table['db_id'][selected_indices])
 
+    # Do we have individual objects available for selection in the output file?
+    if np.any(selection) and not results.stamps:
+        print 'Cannot display selected objects without any stamps available.'
+        return -1
+
     # Build the image of selected objects (might be None).
     selected_image = results.get_subimage(selected_indices)
 
@@ -294,7 +299,8 @@ def main():
 
     # The argparse module escapes any \n or \t in string args, but we need these
     # to be unescaped in the annotation format string.
-    args.info = args.info.decode('string-escape')
+    if args.info:
+        args.info = args.info.decode('string-escape')
     if args.match_info:
         args.match_info = args.match_info.decode('string-escape')
 
@@ -341,6 +347,9 @@ def main():
                 textcoords = 'offset points',color = args.info_color,
                 fontsize = args.info_size,path_effects = path_effects)
         if match_info and args.match_info:
+            path_effects = None if args.outline_color is None else [
+                matplotlib.patheffects.withStroke(linewidth = 2,
+                foreground = args.outline_color)]
             try:
                 annotation = args.match_info % match_info
             except IndexError:
