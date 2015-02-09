@@ -13,6 +13,7 @@ To Do List
 * Add zscale color gradient and angular scale legend options to display.py
 * Add option to specify display view bounds independently of selected objects.
 * Increase simulated area (from 1 LSST chip) for data products?
+* Add option to add arbitrary fraction of 2*pi to all position angles (for ring tests).
 
 Longer-Term Projects
 --------------------
@@ -20,12 +21,13 @@ Longer-Term Projects
 * Validate galaxy input catalog quantities against existing datasets.
 * Add stars from some catalog and estimate their contributions to blending statistics.
 * Integrate over survey observing conditions (seeing, sky, ...) using operations simulator output.
-* Test toy deblender performance on simulated images (Josh Myers?).
+* Test toy deblender performance on simulated images (Josh Myers).
 * Compare sextractor object detection with snr_grp detection threshold (Mandeep Gill).
 * Compare DM pipeline object detection with snr_grp detection threshold.
-* Use PhoSim to generate realistic bright-star templates that could be used in GalSim (Chris Walter?).
-* Compare GalSim and PhoSim images generated for the same catalog footprint.
+* Use PhoSim to generate realistic bright-star templates that could be used in GalSim (Chris Walter).
+* Compare GalSim and PhoSim images generated for the same catalog footprint (Matt Wiesner).
 * Characterize galaxies that look like stars.
 * Compare CFHTLS predictions with published results.
 * Compare DES predictions with actual DES imaging.
-* Add survey parameters for HSC to Survey class and compare predictions with actual HSC imaging (Rachel Mandelbaum?)
+* Add survey parameters for HSC to Survey class and compare predictions with actual HSC imaging (Rachel Mandelbaum).
+* Include CatSim SEDs to implement band-dependent bulge/disk ratios and synthesize non-LSST magnitudes.
