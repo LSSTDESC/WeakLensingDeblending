@@ -93,22 +93,22 @@ dropped (in order of increasing snr_iso) until a valid covariance is obtained fo
 galaxies. The corresponding values in the analysis results table will be zero for signal-to-noise
 ratios and infinite (`numpy.inf`) for errors on s,g1,g2.
 
-You can load just the analysis results from the output file using, e.g.::
+You can load just the analysis results catalog from the output file using, e.g.::
 
 	import astropy.table
-	table = astropy.table.Table.read('demo.fits',hdu=1)
+	catalog = astropy.table.Table.read('demo.fits',hdu=1)
 
 To scroll through the table in an interactive python session, use::
 
-	table.more()
+	catalog.more()
 
-To browse the table interactively (including seaching and sorting), use::
+To browse the catalog interactively (including seaching and sorting), use::
 
-	table.show_in_browser(jsviewer=True)
+	catalog.show_in_browser(jsviewer=True)
 
 To plot a histogram of signal-to-noise ratios for all visible galaxies (assuming that `matplotlib` is configured)::
 
-	plt.hist(table['snr'][table['visible']])
+	plt.hist(catalog['snr'][catalog['visible']])
 
 Rendered Galaxy Stamps
 ----------------------
