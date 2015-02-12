@@ -81,6 +81,12 @@ class Survey(object):
             self.psf_size = hsm_results.moments_sigma*self.pixel_scale
         except RuntimeError,e:
             raise RuntimeError('Failed to calculate PSF size using HSM adaptive moments.')
+        # Reconstruct the second-moment matrix of the PSF using the HSM size and the
+        # true PSF ellipticity.
+        self.psf_second_moments = self.psf_size**2*np.identity(2)
+        if self.atmospheric_psf_e1 != 0 or self.atmospheric_psf_e2 != 0:
+            self.psf_second_moments = descwl.model.sheared_second_moments(
+                self.psf_second_moments,self.atmospheric_psf_e1,self.atmospheric_psf_e2)
         print '%d pixels covers %.5f of psf flux with size %.3f arcsec' % (
             psf_size_pixels,np.sum(self.psf_image.array),self.psf_size)
         # Calculate the mean sky background level in detected electrons per pixel.

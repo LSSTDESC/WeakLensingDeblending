@@ -72,6 +72,28 @@ def moments_size_and_shape(Q):
     e2 = asymQy/e_denom
     return sigma_m,sigma_p,a,b,beta,e1,e2
 
+def sheared_second_moments(Q,g1,g2):
+    """Apply shear to a second moments matrix.
+
+    The shear M = ((1-g1,-g2),(-g2,1+g1)) is applied to each Q by calculating
+    Q' = (M**-1).Q.(M**-1)^t where M**-1 = ((1+g1,g2),(g2,1-g1))/\|M\|.
+    If the input is an array of second-moment tensors, the calculation is vectorized
+    and returns a tuple of output arrays with the same leading dimensions (...).
+
+    Args:
+        Q(numpy.ndarray): Array of shape (...,2,2) containing second-moment tensors,
+            which are assumed to be symmetric.
+        g1(float): Shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
+        g2(float): Shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).
+
+    Returns:
+        numpy.ndarray: Array with the same shape as the input Q with the shear
+            (g1,g2) applied to each 2x2 second-moments submatrix.
+    """
+    detM = 1 - g1**2 - g2**2
+    Minv = np.array(((1+g1,g2),(g2,1-g1)))/detM
+    return np.einsum('ia,...ab,jb',Minv,Q,Minv)
+
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible model components.
     """
@@ -157,10 +179,8 @@ class Galaxy(object):
         self.model = self.get_transformed_model()
         # Shear the second moments, if necessary.
         if self.cosmic_shear_g1 != 0 or self.cosmic_shear_g2 != 0:
-            g1,g2 = self.cosmic_shear_g1,self.cosmic_shear_g2
-            detM = 1 - g1**2 - g2**2
-            Minv = np.array(((1+g1,g2),(g2,1-g1)))/detM
-            self.second_moments = Minv.dot(self.second_moments).dot(Minv.T)
+            self.second_moments = sheared_second_moments(
+                self.second_moments,self.cosmic_shear_g1,self.cosmic_shear_g2)
 
     def get_transformed_model(self,dx=0,dy=0,dscale=0,dtheta=0,dg1=0,dg2=0):
         """Apply transforms to our model.
