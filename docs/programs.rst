@@ -99,6 +99,13 @@ By default, the program displays the Fisher-matrix images whose sums (over pixel
 
 Use the `--colormap` option to select the color map. The vertical color scales are optimized independently for each partial-derivative or Fisher-matrix image, but are guaranteed to use ranges that are symmetric about zero (so `diverging colormaps <http://matplotlib.org/examples/color/colormaps_reference.html>`_ are usually the best choice). When Fisher or covariance matrix elements are being displayed, their relative values are somewhat arbitrary since they generally have different units.  However, the dimensionless correlation coefficient matrix is always displayed using a scale range of [-1,+1].
 
+.. _prog-skeleton:
+
+skeleton
+--------
+
+The `skeleton` program provides a simple demonstration of reading and analyzing simulation output that you can adapt to your own analysis.  See the comments in the code for details.
+
 .. _prog-dbquery:
 
 dbquery

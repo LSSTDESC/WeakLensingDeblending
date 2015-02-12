@@ -13,12 +13,27 @@ You can inspect an output file's contents from an interactive python session, e.
 	print fits[1] # analysis results
 	fits.close()
 
+You can reconstruct the analysis :class:`descwl.analysis.OverlapResults` using the :class:`descwl.output.Reader` class, e.g.::
+
+	import descwl
+	results = descwl.output.Reader('demo.fits').results
+	print results.survey.description()
+
+You will need to ensure that the `descwl` package directory is in your `$PYTHONPATH` for this example to work. See the :ref:`prog-skeleton` program for a more complete example of using analysis results from python.
+
 Simulated Survey Image
 ----------------------
 
 The primary HDU contains the final simulated image using double precision floats. All sources are superimposed in this source and fluxes are given in units of detected electrons during the full exposure time.
 
-All of the :class:`descwl.survey.Survey` constructor args are saved as header keywords in the primary HDU, using only the first eight characters in upper case for the corresponding keys.
+All of the :class:`descwl.survey.Survey` constructor args are saved as header keywords in the primary HDU, using only the last eight characters in upper case for the corresponding keys. In addition, the class attribute variables listed below are saved to the header.
+
+======== ======================================= ============== ==============================================
+Key      Class                                   Attribute      Description
+======== ======================================= ============== ==============================================
+NSLICES  :class:`descwl.analysis.OverlapResults` `num_slices`   Number of slices for each per-object datacube
+PSF_SIZE :class:`descwl.survey.Survey`           `psf_size`     PSF size \|Q\|**0.25 in arcseconds
+======== ======================================= ============== ==============================================
 
 To write a survey image with Poisson sky noise added to a new file, use e.g.::
 
@@ -84,7 +99,7 @@ ds_grp   float32 Same as ds but also marginalizing over parameters of any overla
 dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
 -------- ------- ------------------------------------------------------------------------------------
-**HSM Analysis Results (ignoring overlaps) **
+**HSM Analysis Results** (ignoring overlaps)
 -----------------------------------------------------------------------------------------------------
 hsm_sigm float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
 hsm_e1   float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments

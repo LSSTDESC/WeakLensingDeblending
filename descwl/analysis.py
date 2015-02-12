@@ -511,7 +511,7 @@ class OverlapAnalyzer(object):
             # Save model parameters.
             data['f_disk'][index] = model.disk_fraction
             data['f_bulge'][index] = model.bulge_fraction
-            # Calculate this galaxy's size and shape from its second-moments tensor.
+            # Calculate this galaxy's sizes and shapes from its second-moments tensor.
             sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
                 model.second_moments)
             # Save values to the analysis results.
