@@ -66,6 +66,7 @@ class Reader(object):
             # String values are padded on the right with spaces.
             survey_args[parameter_name] = value.rstrip() if type(value) is str else value
         survey = descwl.survey.Survey(**survey_args)
+        survey.psf_size = header['PSF_SIZE']
         # Load the simulated image into the survey object.
         survey.image.array[:] = self.fits[0].read()
 
@@ -206,6 +207,7 @@ class Writer(object):
         hdu.data = results.survey.image.array
         # Copy our Survey ctor args into the primary HDU header.
         hdu.header['NSLICES'] = results.num_slices
+        hdu.header['PSF_SIZE'] = self.survey.psf_size
         for key,value in results.survey.args.iteritems():
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
