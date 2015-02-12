@@ -32,7 +32,8 @@ To write a survey image with Poisson sky noise added to a new file, use e.g.::
 Analysis Results
 ----------------
 
-HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below. Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF.
+HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below. Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF. M refers to the second-moment tensor estimated using adaptive pixel
+moments and including the PSF. Note that the `e1,e2` and `hsm_e1,hsm_e2` parameters use different ellipticity conventions. HSM below refers to algorithms described in Hirata & Seljak (2003; MNRAS, 343, 459) and tested/characterized using real data in Mandelbaum et al. (2005; MNRAS, 361, 1287).
 
 ======== ======= ====================================================================================
 Name     Type    Description
@@ -60,8 +61,8 @@ z        float32 Catalog source redshift
 ab_mag   float32 Catalog source AB magnitude in the simulated filter band
 ri_color float32 Catalog source color calculated as (r-i) AB magnitude difference
 flux     float32 Total detected flux in electrons
-sigma_m  float32 Galaxy unsheared half-light radius in arcseconds calculated as \|Q\|**0.25
-sigma_p  float32 Galaxy unsheared half-light radius in arcseconds calculated as (0.5*trQ)**0.5
+sigma_m  float32 Galaxy half-light radius in arcseconds calculated as \|Q\|**0.25
+sigma_p  float32 Galaxy half-light radius in arcseconds calculated as (0.5*trQ)**0.5
 e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
 e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
 a        float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
@@ -82,6 +83,12 @@ dg2      float32 Error on shear x component (nominal g2=0) marginalized over flu
 ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
 dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
+-------- ------- ------------------------------------------------------------------------------------
+**HSM Analysis Results**
+-----------------------------------------------------------------------------------------------------
+hsm_sigm float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
+hsm_e1   float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments
+hsm_e2   float32 Galaxy shape e1=(2*M12)/(M11+M22) from PSF-convolved adaptive second moments
 ======== ======= ====================================================================================
 
 The figure below illustrates the different Fisher-matrix error-estimation models (a-e) used to define the pixel-level properties and referred to in the table above. The green bands show the variance used in the Fisher-matrix denominator and the arrows indicate the parameters that are considered floating for calculating marginalized parameter errors. Vertical arrows denote flux parameters and horizontal arrows denote the size and shape parameters (dx,dy,ds,dg1,dg2).

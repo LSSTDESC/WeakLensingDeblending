@@ -153,7 +153,7 @@ class OverlapResults(object):
             self.stamps[index] = datacube
         image = galsim.Image(datacube[datacube_index],
             xmin = bounds.xmin,ymin = bounds.ymin,
-            scale = self.survey.pixel_scale,make_const = True)
+            scale = self.survey.pixel_scale,make_const = False)
         return image
 
     def get_subimage(self,indices,datacube_index=0):
@@ -469,6 +469,10 @@ class OverlapAnalyzer(object):
             ('ds_grp',np.float32),
             ('dg1_grp',np.float32),
             ('dg2_grp',np.float32),
+            # HSM analysis results.
+            ('hsm_sigm',np.float32),
+            ('hsm_e1',np.float32),
+            ('hsm_e2',np.float32),
             ])
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
@@ -577,6 +581,18 @@ class OverlapAnalyzer(object):
                 signal_plus_background = group_image[signal.bounds]
                 data['purity'][galaxy] = (
                     np.sum(signal.array**2)/np.sum(signal.array*signal_plus_background.array))
+                # Run the HSM analysis on this galaxy's stamp (ignoring overlaps).
+                data['hsm_sigm'][galaxy] = np.nan
+                data['hsm_e1'][galaxy] = np.nan
+                data['hsm_e2'][galaxy] = np.nan
+                try:
+                    hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
+                    data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                    data['hsm_e1'][galaxy] = hsm_results.corrected_e1
+                    data['hsm_e2'][galaxy] = hsm_results.corrected_e2
+                except RuntimeError,e:
+                    # Usually "Unphysical situation: galaxy convolved with PSF is smaller than PSF!"
+                    print 'HSM Error:',str(e)
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
