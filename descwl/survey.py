@@ -38,7 +38,7 @@ class Survey(object):
         cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).
 
     Raises:
-        RuntimeError: Missing or extra arguments provided.
+        RuntimeError: Missing or extra arguments provided or unable to calculate PSF size.
     """
     def __init__(self,**args):
         if set(args.keys()) != set(Survey._parameter_names):
@@ -71,6 +71,18 @@ class Survey(object):
         else:
             self.psf_model = atmospheric_psf_model
             self.obscuration_fraction = 0.
+        # Draw a centered PSF image covering 10x the atmospheric PSF FWHM.
+        psf_size_pixels = 2*int(math.ceil(10*atmospheric_psf_fwhm/self.pixel_scale))
+        self.psf_image = galsim.Image(psf_size_pixels,psf_size_pixels,scale  = self.pixel_scale)
+        self.psf_model.drawImage(image = self.psf_image)
+        # Calculate the PSF size sigma(-) = |Q|^0.25 in arcseconds using HSM.
+        try:
+            hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
+            self.psf_size = hsm_results.moments_sigma*self.pixel_scale
+        except RuntimeError,e:
+            raise RuntimeError('Failed to calculate PSF size using HSM adaptive moments.')
+        print '%d pixels covers %.5f of psf flux with size %.3f arcsec' % (
+            psf_size_pixels,np.sum(self.psf_image.array),self.psf_size)
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
