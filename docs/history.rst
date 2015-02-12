@@ -1,8 +1,13 @@
 Revision History
 ================
 
+latest
+------
+- Add HSM size and shape analysis for each galaxy (ignoring overlaps)
+
 v0.2
 ----
+- Download from `here <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/releases/tag/v0.2>`_.
 - Refactor code and add sphinx documentation.
 - Rename `galsimcat.py` as `simulate.py` and `lsst2wl.py` as `dbquery.py`.
 - Add new programs `display.py`, `fisher.py`.

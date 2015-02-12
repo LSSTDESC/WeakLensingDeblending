@@ -31,3 +31,4 @@ Longer-Term Projects
 * Compare DES predictions with actual DES imaging.
 * Add survey parameters for HSC to Survey class and compare predictions with actual HSC imaging (Rachel Mandelbaum).
 * Include CatSim SEDs to implement band-dependent bulge/disk ratios and synthesize non-LSST magnitudes.
+* Study dependence of full-depth neff on assumed mean sky noise and seeing.

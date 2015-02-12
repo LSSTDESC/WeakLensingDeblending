@@ -84,7 +84,7 @@ ds_grp   float32 Same as ds but also marginalizing over parameters of any overla
 dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
 -------- ------- ------------------------------------------------------------------------------------
-**HSM Analysis Results**
+**HSM Analysis Results (ignoring overlaps) **
 -----------------------------------------------------------------------------------------------------
 hsm_sigm float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
 hsm_e1   float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments
