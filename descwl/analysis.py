@@ -592,7 +592,13 @@ class OverlapAnalyzer(object):
                     data['hsm_e2'][galaxy] = hsm_results.corrected_e2
                 except RuntimeError,e:
                     # Usually "Unphysical situation: galaxy convolved with PSF is smaller than PSF!"
-                    print 'HSM Error:',str(e)
+                    # due to truncation of a faint galaxy at the limiting isophote.  Try to just
+                    # calculate the PSF-convolved size in this case.
+                    try:
+                        hsm_results = galsim.hsm.FindAdaptiveMom(signal)
+                        data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                    except RuntimeError,e:
+                        print str(e)
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
