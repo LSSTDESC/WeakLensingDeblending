@@ -4,6 +4,7 @@
 import math
 
 import numpy as np
+import numpy.linalg
 
 import galsim
 
@@ -75,20 +76,34 @@ class Survey(object):
         psf_size_pixels = 2*int(math.ceil(10*atmospheric_psf_fwhm/self.pixel_scale))
         self.psf_image = galsim.Image(psf_size_pixels,psf_size_pixels,scale  = self.pixel_scale)
         self.psf_model.drawImage(image = self.psf_image)
-        # Calculate the PSF size sigma(-) = |Q|^0.25 in arcseconds using HSM.
+        # Draw a (temporary) high-resolution (10x) image covering the same area.
+        zoom = 10
+        hires_psf_image = galsim.Image(zoom*psf_size_pixels,zoom*psf_size_pixels,scale = self.pixel_scale/zoom)
+        self.psf_model.drawImage(image = hires_psf_image)
+        # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
+        hires_sum = np.sum(hires_psf_image.array)
+        hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
+        hires_x,hires_y = np.meshgrid(hires_grid,hires_grid)
+        psf_x = np.sum(hires_psf_image.array*hires_x)/hires_sum
+        psf_y = np.sum(hires_psf_image.array*hires_x)/hires_sum
+        print 'PSF centroid',psf_x,psf_y,'arcsec'
+        hires_x -= psf_x
+        hires_y -= psf_y
+        psf_xx = np.sum(hires_psf_image.array*hires_x**2)/hires_sum
+        psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
+        psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
+        print 'PSF moments',psf_xx,psf_xy,psf_yy
+        self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
+        # Calculate the corresponding PSF size as |Q|**0.25
+        self.psf_size = np.power(np.linalg.det(self.psf_second_moments),0.25)
+        # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
+        # of the non-hires PSF image.
         try:
             hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
-            self.psf_size = hsm_results.moments_sigma*self.pixel_scale
+            self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
         except RuntimeError,e:
-            raise RuntimeError('Failed to calculate PSF size using HSM adaptive moments.')
-        # Reconstruct the second-moment matrix of the PSF using the HSM size and the
-        # true PSF ellipticity.
-        self.psf_second_moments = self.psf_size**2*np.identity(2)
-        if self.atmospheric_psf_e1 != 0 or self.atmospheric_psf_e2 != 0:
-            self.psf_second_moments = descwl.model.sheared_second_moments(
-                self.psf_second_moments,self.atmospheric_psf_e1,self.atmospheric_psf_e2)
-        print '%d pixels covers %.5f of psf flux with size %.3f arcsec' % (
-            psf_size_pixels,np.sum(self.psf_image.array),self.psf_size)
+            raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
+        print 'PSF size',self.psf_size,self.psf_size_hsm,'arcsec'
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.

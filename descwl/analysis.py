@@ -456,6 +456,7 @@ class OverlapAnalyzer(object):
             ('a',np.float32),
             ('b',np.float32),
             ('beta',np.float32),
+            ('psf_sigm',np.float32),
             # Pixel-level properties.
             ('purity',np.float32),
             ('snr_sky',np.float32),
@@ -522,6 +523,11 @@ class OverlapAnalyzer(object):
             data['e1'][index] = e1
             data['e2'][index] = e2
             data['beta'][index] = beta
+            # Re-calculate sizes and shapes with the PSF second moments added.
+            sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
+                model.second_moments + self.survey.psf_second_moments)
+            # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
+            data['psf_sigm'][index] = sigma_m_psf
             # Loop over earlier galaxies with overlapping bounding boxes.
             for pre_index in np.arange(index)[overlapping_bounds[index,:index]]:
                 pre_bounds = self.bounds[pre_index]

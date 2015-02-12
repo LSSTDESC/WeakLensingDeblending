@@ -32,7 +32,8 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 Key      Class                                   Attribute      Description
 ======== ======================================= ============== ==============================================
 NSLICES  :class:`descwl.analysis.OverlapResults` `num_slices`   Number of slices for each per-object datacube
-PSF_SIZE :class:`descwl.survey.Survey`           `psf_size`     PSF size \|Q\|**0.25 in arcseconds
+PSF_SIZE :class:`descwl.survey.Survey`           `psf_size`     PSF size \|Q\|**0.25 in arcsecs (unweighted Q)
+HSM_SIZE :class:`descwl.survey.Survey`           `psf_size_hsm` PSF size \|Q\|**0.25 in arcsecs (weighted Q)
 ======== ======================================= ============== ==============================================
 
 To write a survey image with Poisson sky noise added to a new file, use e.g.::
@@ -83,6 +84,7 @@ e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q2
 a        float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
 b        float32 Semi-minor axis of 50% isophote ellipse in arcseconds, derived from Q
 beta     float32 Position angle of second-moment ellipse in radians, or zero when a = b
+psf_sigm float32 PSF-convolved half-light radius in arcseconds calculated as \|Q\|**0.25
 -------- ------- ------------------------------------------------------------------------------------
 **Pixel-Level Properties**
 -----------------------------------------------------------------------------------------------------
