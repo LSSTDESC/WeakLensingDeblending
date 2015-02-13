@@ -9,6 +9,8 @@ import numpy.linalg
 
 import galsim
 
+import lmfit
+
 def sersic_second_moments(n,hlr,q,beta):
     """Calculate the second-moment tensor of a sheared Sersic radial profile.
 

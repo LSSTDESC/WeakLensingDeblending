@@ -41,8 +41,9 @@ The following python packages are required by this package:
 * astropy (version >= 0.4)
 * `fitsio <https://github.com/esheldon/fitsio>`_ (version >= 0.9.6)
 * `galsim <https://github.com/GalSim-developers/GalSim>`_ (version >= 1.2)
+* `lmfit <http://cars9.uchicago.edu/software/python/lmfit/>`_ (version >= 0.8.3)
 
-Note that `numpy` and `astropy` are both available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. The `fitsio` package is required for performance reasons, since the similar pure-python functionality in the :mod:`astropy.io.fits` module is too slow for this application. Installing GalSim is a more involved process, but well worth the effort.
+Note that `numpy` and `astropy` are both available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. The `fitsio` package is required for performance reasons, since the similar pure-python functionality in the :mod:`astropy.io.fits` module is too slow for this application. Installing GalSim is a more involved process, but well worth the effort. The `lmfit` package is only required if you will be running your own simulations.
 
 You can check your astropy version using::
 
