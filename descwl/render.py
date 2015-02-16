@@ -13,6 +13,68 @@ class SourceNotVisible(Exception):
     """
     pass
 
+class GalaxyRenderer(object):
+    """Rendering engine for a single galaxy.
+
+    Args:
+        galaxy(descwl.model.Galaxy): Model of the galaxy we will render.
+        stamp(galsim.Image): Previously rendered image of this galaxy with no transforms
+            applied. Zero pixels in this image are used to define a mask where all
+            subsequently rendered images will have pixels values set to zero. The input
+            stamp is copied and not modified. The stamp bounds determine the region of the
+            full survey image that we will render into.
+        survey(descwl.survey.Survey): Survey that rendered images will simulate. Used to
+            determine the mapping from survey positions to stamp positions and specify
+            the PSF to use.
+    """
+    def __init__(self,galaxy,stamp,survey):
+        self.galaxy = galaxy
+        self.stamp = stamp.copy()
+        self.mask = (self.stamp.array == 0)
+        self.dx_arcsec = 0.5*(self.stamp.bounds.xmin + self.stamp.bounds.xmax+1 -
+            survey.image_width)*survey.pixel_scale
+        self.dy_arcsec = 0.5*(self.stamp.bounds.ymin + self.stamp.bounds.ymax+1 -
+            survey.image_height)*survey.pixel_scale
+        self.psf_model = survey.psf_model
+        self.gsparams = galsim.GSParams(maximum_fft_size=1<<16)
+        self.last_parameters = {'dx':0.,'dy':0.,'ds':0.,'dg1':0.,'dg2':0.}
+
+    def draw(self,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
+        """
+        Draw the galaxy with the specified transforms applied.
+
+        We use :meth:`descwl.galaxy.Galaxy.get_transformed_model` with the same parameters.
+        The transformed model is convolved with the survey PSF, rendered into the
+        stamp specified in our constructor, and masked (zero pixels in the untransformed
+        rendering are forced to zero). Repeated calls with the same transform parameters
+        return a cached image immediately.
+
+        Args:
+            dx(float): Amount to shift centroid in x, in arcseconds.
+            dy(float): Amount to shift centroid in y, in arcseconds.
+            ds(float): Relative amount to scale the galaxy profile in the
+                radial direction while conserving flux, before applying shear
+                or convolving with the PSF.
+            dg1(float): Amount to adjust the + shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+            dg2(float): Amount to adjust the x shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+
+        Returns:
+            galsim.ConstImageView: Read-only rendering of the transformed galaxy.
+        """
+        parameters = {'dx':dx,'dy':dy,'ds':ds,'dg1':dg1,'dg2':dg2}
+        if parameters != self.last_parameters:
+            model = self.galaxy.get_transformed_model(**parameters)
+            convolved = galsim.Convolve([
+                model.shift(dx = -self.dx_arcsec,dy = -self.dy_arcsec),
+                self.psf_model
+                ],gsparams = self.gsparams)
+            convolved.drawImage(image = self.stamp)
+            self.stamp.array[self.mask] = 0.
+            self.last_parameters = parameters
+        return self.stamp.view(make_const = True)
+
 class Engine(object):
     """Rendering engine to simulate survey observations.
 
@@ -148,6 +210,9 @@ class Engine(object):
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
 
+        # Give this Galaxy its own GalaxyRenderer.
+        galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
+
         # Define the parameter variations we consider for building Fisher matrices.
         # The names appearing below are args of Galaxy.get_transformed_model().
         # We do not include 'flux' below since the nominal image is already the
@@ -155,7 +220,7 @@ class Engine(object):
         variations = [
             ('dx',self.survey.pixel_scale/3), # arcsecs
             ('dy',self.survey.pixel_scale/3), # arcsecs
-            ('dscale',0.05), # relative dilation (flux preserving)
+            ('ds',0.05), # relative dilation (flux preserving)
             ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
             ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
             ]
