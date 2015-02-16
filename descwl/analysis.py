@@ -47,7 +47,7 @@ class OverlapResults(object):
                     % self.num_slices)
         self.noise_seed = None
 
-    slice_labels = ['dflux','dx','dy','dscale','dg1','dg2']
+    slice_labels = ['dflux','dx','dy','ds','dg1','dg2']
 
     def add_noise(self,noise_seed):
         """Add Poisson noise to the simulated survey image.
@@ -568,7 +568,7 @@ class OverlapAnalyzer(object):
 
         sky = self.survey.mean_sky_level
         dflux_index = results.slice_labels.index('dflux')
-        dscale_index = results.slice_labels.index('dscale')
+        ds_index = results.slice_labels.index('ds')
         dg1_index = results.slice_labels.index('dg1')
         dg2_index = results.slice_labels.index('dg2')
         # Loop over groups to calculate pixel-level quantities.
@@ -614,7 +614,7 @@ class OverlapAnalyzer(object):
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
                 data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
-                data['ds_grp'][galaxy] = np.sqrt(variance[base+dscale_index])
+                data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                 data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                 data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                 if grp_size == 1:
@@ -631,7 +631,7 @@ class OverlapAnalyzer(object):
                     # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
                     data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
-                    data['ds'][galaxy] = np.sqrt(iso_variance[dscale_index])
+                    data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
                     data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
                     data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
 

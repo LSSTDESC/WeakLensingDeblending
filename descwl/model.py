@@ -184,7 +184,7 @@ class Galaxy(object):
             self.second_moments = sheared_second_moments(
                 self.second_moments,self.cosmic_shear_g1,self.cosmic_shear_g2)
 
-    def get_transformed_model(self,dx=0,dy=0,dscale=0,dtheta=0,dg1=0,dg2=0):
+    def get_transformed_model(self,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
         """Apply transforms to our model.
 
         The nominal model returned by `get_transformed_model()` is available via
@@ -193,7 +193,7 @@ class Galaxy(object):
         Args:
             dx(float): Amount to shift centroid in x, in arcseconds.
             dy(float): Amount to shift centroid in y, in arcseconds.
-            dscale(float): Relative amount to scale the galaxy profile in the
+            ds(float): Relative amount to scale the galaxy profile in the
                 radial direction while conserving flux, before applying shear
                 or convolving with the PSF.
             dg1(float): Amount to adjust the + shear applied to the galaxy profile,
@@ -206,7 +206,7 @@ class Galaxy(object):
                 the requested transforms applied.
         """
         return (self.profile
-            .dilate(1 + dscale)
+            .dilate(1 + ds)
             .shear(g1 = self.cosmic_shear_g1 + dg1,g2 = self.cosmic_shear_g2 + dg2)
             .shift(dx = self.dx_arcsecs + dx,dy = self.dy_arcsecs + dy))
 
