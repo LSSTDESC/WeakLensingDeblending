@@ -45,6 +45,7 @@ MOCK_MODULES = [
     'astropy.io.fits',
     'fitsio',
     'galsim',
+    'lmfit',
 ]
 if on_rtd:
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
