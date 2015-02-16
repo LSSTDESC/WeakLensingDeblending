@@ -218,8 +218,8 @@ class Engine(object):
         # We do not include 'flux' below since the nominal image is already the
         # partial derivative wrt flux (after dividing by flux).
         variations = [
-            ('dx',self.survey.pixel_scale/3), # arcsecs
-            ('dy',self.survey.pixel_scale/3), # arcsecs
+            ('dx',self.survey.pixel_scale/3.), # arcsecs
+            ('dy',self.survey.pixel_scale/3.), # arcsecs
             ('ds',0.05), # relative dilation (flux preserving)
             ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
             ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
@@ -237,23 +237,9 @@ class Engine(object):
 
         # Calculate partial derivative images, if requested.
         if not no_partials:
-            dx_stamp_arcsec = 0.5*(cropped_bounds.xmin + cropped_bounds.xmax+1 -
-                self.survey.image_width)*self.survey.pixel_scale
-            dy_stamp_arcsec = 0.5*(cropped_bounds.ymin + cropped_bounds.ymax+1 -
-                self.survey.image_height)*self.survey.pixel_scale
-            mask = (cropped_stamp.array == 0)
-            variation_stamp = cropped_stamp.copy()
             for i,(pname,delta) in enumerate(variations):
-                for sign in (-1,+1):
-                    variation_model = galaxy.get_transformed_model(**{pname:sign*delta})
-                    model = galsim.Convolve([
-                        variation_model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
-                        self.survey.psf_model
-                        ],gsparams=self.galsim_params)
-                    model.drawImage(image = variation_stamp,
-                        use_true_center = True, add_to_image = (sign > 0))
-                    variation_stamp = sign*variation_stamp
-                variation_stamp.array[mask] = 0.
+                variation_stamp = (galaxy.renderer.draw(**{pname: +delta}).copy() - 
+                    galaxy.renderer.draw(**{pname: -delta}))
                 datacube[i+1] = variation_stamp.array/(2*delta)
 
         if self.verbose_render:
