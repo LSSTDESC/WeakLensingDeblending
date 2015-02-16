@@ -547,6 +547,9 @@ class OverlapAnalyzer(object):
             ('hsm_sigm',np.float32),
             ('hsm_e1',np.float32),
             ('hsm_e2',np.float32),
+            # Systematics fit results.
+            ('g1_fit',np.float32),
+            ('g2_fit',np.float32),
             ])
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
@@ -653,7 +656,15 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
-            self.fit_galaxies(group_indices,group_image)
+            # Fit this overlap group.
+            data['g1_fit'][group_indices] = np.nan
+            data['g2_fit'][group_indices] = np.nan
+            try:
+                bestfit_parameters = self.fit_galaxies(group_indices,group_image)
+                data['g1_fit'][group_indices] = bestfit_parameters[:,4]
+                data['g2_fit'][group_indices] = bestfit_parameters[:,5]
+            except RuntimeError,e:
+                print str(e)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)

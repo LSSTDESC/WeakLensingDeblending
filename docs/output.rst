@@ -95,8 +95,8 @@ snr_grp  float32 Same as snr_sky but including signal+overlap variance (c)
 snr_isof float32 Same as snr_grp but including correlations with fit parameters for this source (d)
 snr_grpf float32 Same as snr_grp but including correlations with fit parameters for all sources (e)
 ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
-dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g1 (d)
-dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g2 (d)
+dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2 (d)
+dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1 (d)
 ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
 dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
@@ -106,6 +106,11 @@ dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overl
 hsm_sigm float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
 hsm_e1   float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments
 hsm_e2   float32 Galaxy shape e1=(2*M12)/(M11+M22) from PSF-convolved adaptive second moments
+-------- ------- ------------------------------------------------------------------------------------
+**Systematics Fit Results**
+-----------------------------------------------------------------------------------------------------
+g1_fit  float32  Best-fit value of g1 from simultaneous fit to noise-free image
+g2_fit  float32  Best-fit value of g2 from simultaneous fit to noise-free image
 ======== ======= ====================================================================================
 
 The figure below illustrates the different Fisher-matrix error-estimation models (a-e) used to define the pixel-level properties and referred to in the table above. The green bands show the variance used in the Fisher-matrix denominator and the arrows indicate the parameters that are considered floating for calculating marginalized parameter errors. Vertical arrows denote flux parameters and horizontal arrows denote the size and shape parameters (dx,dy,ds,dg1,dg2).
