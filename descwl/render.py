@@ -39,17 +39,20 @@ class GalaxyRenderer(object):
         self.gsparams = galsim.GSParams(maximum_fft_size=1<<16)
         self.last_parameters = {'dx':0.,'dy':0.,'ds':0.,'dg1':0.,'dg2':0.}
 
-    def draw(self,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
+    def draw(self,df=0.,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
         """
         Draw the galaxy with the specified transforms applied.
 
-        We use :meth:`descwl.galaxy.Galaxy.get_transformed_model` with the same parameters.
+        We use :meth:`descwl.galaxy.Galaxy.get_transformed_model` to apply all
+        transforms except for `df`, which we implement internally using rescaling.
         The transformed model is convolved with the survey PSF, rendered into the
         stamp specified in our constructor, and masked (zero pixels in the untransformed
         rendering are forced to zero). Repeated calls with the same transform parameters
-        return a cached image immediately.
+        return a cached image immediately. The same is true if only the `df` parameter
+        is changed from the last call.
 
         Args:
+            df(float): Relative amount to scale the total galaxy flux.
             dx(float): Amount to shift centroid in x, in arcseconds.
             dy(float): Amount to shift centroid in y, in arcseconds.
             ds(float): Relative amount to scale the galaxy profile in the
@@ -61,10 +64,12 @@ class GalaxyRenderer(object):
                 with \|g\| = (a-b)/(a+b), before convolving with the PSF.
 
         Returns:
-            galsim.ConstImageView: Read-only rendering of the transformed galaxy.
+            galsim.Image: Rendering of the transformed galaxy.
         """
+        # We do not include df here since we implement it by rescaling df=0 images.
         parameters = {'dx':dx,'dy':dy,'ds':ds,'dg1':dg1,'dg2':dg2}
         if parameters != self.last_parameters:
+            # We always render and cache using the nominal flux df=0.
             model = self.galaxy.get_transformed_model(**parameters)
             convolved = galsim.Convolve([
                 model.shift(dx = -self.dx_arcsec,dy = -self.dy_arcsec),
@@ -73,7 +78,8 @@ class GalaxyRenderer(object):
             convolved.drawImage(image = self.stamp)
             self.stamp.array[self.mask] = 0.
             self.last_parameters = parameters
-        return self.stamp.view(make_const = True)
+        # Return a copy of our cached image, applying flux rescaling if necessary.
+        return (1.+df)*self.stamp
 
 class Engine(object):
     """Rendering engine to simulate survey observations.
