@@ -8,6 +8,8 @@ import astropy.table
 
 import galsim
 
+import lmfit
+
 import descwl.model
 
 class OverlapResults(object):
@@ -415,6 +417,77 @@ class OverlapAnalyzer(object):
         self.stamps.append(stamps)
         self.bounds.append(bounds)
 
+    def fit_galaxies(self,indices,observed_image):
+        """Simultaneously fit a set of galaxy parameters to an observed image.
+
+        Fits are performed on noise-free images, so there are no meaningful errors to report
+        and only best-fit parameter values are returned.  This method is intended to support
+        systematics studies where shifts in best-fit parameters are the quantities of interest.
+        See the :meth:`descwl.render.GalaxyRenderer.draw` method for details on how the fit
+        parameters are defined and how each galaxy model is rendered as these parameters
+        are varied.
+
+        Args:
+            indices(iterable): List of num_galaxies integer galaxy indices to include in the fit.
+                Index values correspond to the order in which galaxies were added using
+                :meth:`add_galaxy`.
+            observed_image(galsim.Image): A GalSim image that defines the observed pixels
+                that will be fit and the region into which galaxy models will be renderered.
+
+        Returns:
+            numpy.ndarray: Array with shape (num_galaxies,6) containing the best-fit values
+                of the following six parameters: df,dx,dy,ds,dg1,dg2. See the
+                :meth:`descwl.render.GalaxyRenderer.draw` method for details on how these
+                parameters are defined.
+
+        Raises:
+            RuntimeError: Invalid galaxy index or fit did not find a minimum.
+        """
+        num_galaxies = len(indices)
+        # Define the fit parameters we will use.
+        parameters = lmfit.Parameters()
+        for i in range(num_galaxies):
+            parameters.add('df_%d' % i,value = 0.)
+            parameters.add('dx_%d' % i,value = 0.)
+            parameters.add('dy_%d' % i,value = 0.)
+            parameters.add('ds_%d' % i,value = 0.)
+            parameters.add('dg1_%d' % i,value = 0.)
+            parameters.add('dg2_%d' % i,value = 0.)
+        # Initialize rendering.
+        model_image = observed_image.copy()
+        overlap = [ ]
+        for i,galaxy in enumerate(indices):
+            try:
+                bbox = self.bounds[galaxy]
+            except (TypeError,ValueError):
+                raise RuntimeError('Invalid galaxy index in fit_galaxies: %r' % galaxy)
+            overlap.append(model_image.bounds & bbox)
+        data = observed_image.array.flatten()
+        sigmas = np.sqrt(data + self.survey.mean_sky_level)
+        # Define a function that evaluates the pixel residuals to be minimized.
+        def residuals(p):
+            model_image.array[:] = 0.
+            for i,galaxy in enumerate(indices):
+                model_stamp = self.models[galaxy].renderer.draw(df = p['df_%d'%i].value,
+                    dx = p['dx_%d'%i].value,dy = p['dy_%d'%i].value,ds = p['ds_%d'%i].value,
+                    dg1 = p['dg1_%d'%i].value,dg2 = p['dg2_%d'%i].value)
+                model_image[overlap[i]] += model_stamp[overlap[i]]
+            return (data - model_image.array.flat)/sigmas
+        # Do the minimization.
+        minimum = lmfit.minimize(residuals,parameters)
+        if not minimum.success:
+            raise RuntimeError('fit_galaxies did not find a minimum.')
+        # Copy the best-fit parameter values into the returned array.
+        bestfit_values = np.empty((num_galaxies,6))
+        for i in range(num_galaxies):
+            bestfit_values[i,0] = parameters['df_%d'%i].value
+            bestfit_values[i,1] = parameters['dx_%d'%i].value
+            bestfit_values[i,2] = parameters['dy_%d'%i].value
+            bestfit_values[i,3] = parameters['ds_%d'%i].value
+            bestfit_values[i,4] = parameters['dg1_%d'%i].value
+            bestfit_values[i,5] = parameters['dg2_%d'%i].value
+        return bestfit_values
+
     def finalize(self,verbose,trace):
         """Finalize analysis of all added galaxies.
 
@@ -580,6 +653,7 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
+            self.fit_galaxies(group_indices,group_image)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
