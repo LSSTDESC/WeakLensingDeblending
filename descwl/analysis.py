@@ -417,7 +417,7 @@ class OverlapAnalyzer(object):
         self.stamps.append(stamps)
         self.bounds.append(bounds)
 
-    def fit_galaxies(self,indices,observed_image):
+    def fit_galaxies(self,indices,observed_image,fixed_parameters = None):
         """Simultaneously fit a set of galaxy parameters to an observed image.
 
         Fits are performed on noise-free images, so there are no meaningful errors to report
@@ -433,6 +433,8 @@ class OverlapAnalyzer(object):
                 :meth:`add_galaxy`.
             observed_image(galsim.Image): A GalSim image that defines the observed pixels
                 that will be fit and the region into which galaxy models will be renderered.
+            fixed_parameters(dict): An optional dictionary of parameter values to fix in the
+                fit, or None if all parameters should be floating.
 
         Returns:
             numpy.ndarray: Array with shape (num_galaxies,6) containing the best-fit values
@@ -451,8 +453,13 @@ class OverlapAnalyzer(object):
             parameters.add('dx_%d' % i,value = 0.)
             parameters.add('dy_%d' % i,value = 0.)
             parameters.add('ds_%d' % i,value = 0.)
-            parameters.add('dg1_%d' % i,value = 0.)
-            parameters.add('dg2_%d' % i,value = 0.)
+            parameters.add('dg1_%d' % i,value = 0.,min = -0.2,max = +0.2)
+            parameters.add('dg2_%d' % i,value = 0.,min = -0.2,max = +0.2)
+        # Fix parameters as requested.
+        if fixed_parameters:
+            for name,value in fixed_parameters.iteritems():
+                parameters[name].value = value
+                parameters[name].vary = False
         # Initialize rendering.
         model_image = observed_image.copy()
         overlap = [ ]
