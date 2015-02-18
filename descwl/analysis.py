@@ -574,7 +574,7 @@ class OverlapAnalyzer(object):
         y_overlap = np.logical_and(
             data['xmax'][:,np.newaxis] >= data['xmin'][np.newaxis,:],
             data['ymax'][:,np.newaxis] >= data['ymin'][np.newaxis,:])
-        overlapping_bounds = np.logical_and(x_overlap,y_overlap)
+        overlapping_bounds = x_overlap & y_overlap
 
         # Calculate isolated galaxy quantities and identify overlapping groups.
         # At this stage, we use small integers for grp_id values, but these are later
@@ -725,33 +725,46 @@ class OverlapAnalyzer(object):
             group_leader = data['db_id'][sorted_indices[0]]
             data['grp_id'][grp_members] = group_leader
 
-            alpha = +1.0
+            alpha = +1.
+            detection_threshold = 6. # cut on snr_grpf
             data['g1_fit'][sorted_indices] = 0.
             data['g2_fit'][sorted_indices] = 0.
-            if grp_size > 1:
-                print '-- group size',grp_size
+            detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
+            if np.count_nonzero(detected) > 0 and grp_size > 1:
+                use_count = np.zeros(grp_size,dtype = int)
                 # Loop over galaxies in order of decreasing snr_iso.
                 for i1,g1 in enumerate(sorted_indices):
+                    # Skip sources below our detection threshold, which instead are added
+                    # to a detected object below (unless they only directly overlap other
+                    # undetected sources).
+                    if not detected[i1]:
+                        continue
                     stamp1 = results.get_stamp(g1)
                     deblended = stamp1.copy()
                     # Loop over other galaxies in this group in order of decreasing snr_iso.
                     for i2,g2 in enumerate(sorted_indices):
-                        if i1 == i2:
+                        if i1 == i2 or not overlapping_bounds[g1,g2]:
                             continue
                         stamp2 = results.get_stamp(g2)
                         bbox = stamp1.bounds & stamp2.bounds
-                        if bbox.area() == 0:
-                            continue
-                        overlap = stamp1[bbox]*stamp2[bbox]/group_image[bbox]
-                        # Re-assign a fraction of the overlapping flux in the deblended image.
-                        if i1 < i2:
-                            deblended[bbox] -= alpha*overlap
+                        assert bbox.area() > 0
+                        if not detected[i2]:
+                            # This object is below our detection threshold so add its full
+                            # flux to the first detected source that it overlaps.
+                            if use_count[i2] == 0:
+                                deblended[bbox] += stamp2[bbox]
+                                use_count[i2] += 1
                         else:
-                            deblended[bbox] += alpha*overlap
+                            overlap = stamp1[bbox]*stamp2[bbox]/group_image[bbox]
+                            # Re-assign a fraction of the overlapping flux in the deblended image.
+                            if i1 < i2:
+                                deblended[bbox] -= alpha*overlap
+                            else:
+                                deblended[bbox] += alpha*overlap
                     # Fit the deblended image of this galaxy.
+                    use_count[i1] += 1
                     try:
                         bestfit = self.fit_galaxies([g1],deblended)
-                        print g1,data['db_id'][g1],bestfit
                         data['g1_fit'][g1] = bestfit[0,4]
                         data['g2_fit'][g1] = bestfit[0,5]
                     except RuntimeError,e:
