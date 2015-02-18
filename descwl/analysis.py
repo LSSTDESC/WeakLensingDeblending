@@ -663,15 +663,6 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
-            # Fit this overlap group.
-            data['g1_fit'][group_indices] = np.nan
-            data['g2_fit'][group_indices] = np.nan
-            try:
-                bestfit_parameters = self.fit_galaxies(group_indices,group_image)
-                data['g1_fit'][group_indices] = bestfit_parameters[:,4]
-                data['g2_fit'][group_indices] = bestfit_parameters[:,5]
-            except RuntimeError,e:
-                print str(e)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
@@ -733,6 +724,38 @@ class OverlapAnalyzer(object):
             # Replace group ID with ID of galaxy with largest S/N.
             group_leader = data['db_id'][sorted_indices[0]]
             data['grp_id'][grp_members] = group_leader
+
+            alpha = +1.0
+            data['g1_fit'][sorted_indices] = 0.
+            data['g2_fit'][sorted_indices] = 0.
+            if grp_size > 1:
+                print '-- group size',grp_size
+                # Loop over galaxies in order of decreasing snr_iso.
+                for i1,g1 in enumerate(sorted_indices):
+                    stamp1 = results.get_stamp(g1)
+                    deblended = stamp1.copy()
+                    # Loop over other galaxies in this group in order of decreasing snr_iso.
+                    for i2,g2 in enumerate(sorted_indices):
+                        if i1 == i2:
+                            continue
+                        stamp2 = results.get_stamp(g2)
+                        bbox = stamp1.bounds & stamp2.bounds
+                        if bbox.area() == 0:
+                            continue
+                        overlap = stamp1[bbox]*stamp2[bbox]/group_image[bbox]
+                        # Re-assign a fraction of the overlapping flux in the deblended image.
+                        if i1 < i2:
+                            deblended[bbox] -= alpha*overlap
+                        else:
+                            deblended[bbox] += alpha*overlap
+                    # Fit the deblended image of this galaxy.
+                    try:
+                        bestfit = self.fit_galaxies([g1],deblended)
+                        print g1,data['db_id'][g1],bestfit
+                        data['g1_fit'][g1] = bestfit[0,4]
+                        data['g2_fit'][g1] = bestfit[0,5]
+                    except RuntimeError,e:
+                        print str(e)
 
         trace('OverlapAnalyzer.finalize end')
         return results
