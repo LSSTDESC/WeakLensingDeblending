@@ -32,8 +32,9 @@ All of the :class:`descwl.survey.Survey` constructor args are saved as header ke
 Key      Class                                   Attribute      Description
 ======== ======================================= ============== ==============================================
 NSLICES  :class:`descwl.analysis.OverlapResults` `num_slices`   Number of slices for each per-object datacube
-PSF_SIZE :class:`descwl.survey.Survey`           `psf_size`     PSF size \|Q\|**0.25 in arcsecs (unweighted Q)
-HSM_SIZE :class:`descwl.survey.Survey`           `psf_size_hsm` PSF size \|Q\|**0.25 in arcsecs (weighted Q)
+PSF_SIGM :class:`descwl.survey.Survey`           `psf_sigma_m`  PSF size \|Q\|**0.25 in arcsecs (unweighted Q)
+PSF_SIGP :class:`descwl.survey.Survey`           `psf_sigma_m`  PSF size (0.5*trQ)**0.5 in arcsecs (unweighted Q)
+PSF_HSM  :class:`descwl.survey.Survey`           `psf_size_hsm` PSF size \|Q\|**0.25 in arcsecs (weighted Q)
 ======== ======================================= ============== ==============================================
 
 To write a survey image with Poisson sky noise added to a new file, use e.g.::

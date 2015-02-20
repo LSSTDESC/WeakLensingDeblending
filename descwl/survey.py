@@ -94,8 +94,9 @@ class Survey(object):
         psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
         print 'PSF moments',psf_xx,psf_xy,psf_yy
         self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
-        # Calculate the corresponding PSF size as |Q|**0.25
-        self.psf_size = np.power(np.linalg.det(self.psf_second_moments),0.25)
+        # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
+        self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
+        self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))
         # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
         # of the non-hires PSF image.
         try:
@@ -103,7 +104,8 @@ class Survey(object):
             self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
         except RuntimeError,e:
             raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
-        print 'PSF size',self.psf_size,self.psf_size_hsm,'arcsec'
+        print 'PSF size: sigm = %.5f, sigp = %.5f, hsm = %.5f arcsec' % (
+            self.psf_sigma_m,self.psf_sigma_p,self.psf_size_hsm)
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
