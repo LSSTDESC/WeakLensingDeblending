@@ -109,8 +109,8 @@ hsm_e2   float32 Galaxy shape e1=(2*M12)/(M11+M22) from PSF-convolved adaptive s
 -------- ------- ------------------------------------------------------------------------------------
 **Systematics Fit Results**
 -----------------------------------------------------------------------------------------------------
-g1_fit  float32  Best-fit value of g1 from simultaneous fit to noise-free image
-g2_fit  float32  Best-fit value of g2 from simultaneous fit to noise-free image
+g1_fit   float32  Best-fit value of g1 from simultaneous fit to noise-free image
+g2_fit   float32  Best-fit value of g2 from simultaneous fit to noise-free image
 ======== ======= ====================================================================================
 
 The figure below illustrates the different Fisher-matrix error-estimation models (a-e) used to define the pixel-level properties and referred to in the table above. The green bands show the variance used in the Fisher-matrix denominator and the arrows indicate the parameters that are considered floating for calculating marginalized parameter errors. Vertical arrows denote flux parameters and horizontal arrows denote the size and shape parameters (dx,dy,ds,dg1,dg2).
