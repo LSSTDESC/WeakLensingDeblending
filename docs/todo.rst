@@ -26,8 +26,8 @@ Longer-Term Projects
 * Compare DM pipeline object detection with snr_grp detection threshold.
 * Use PhoSim to generate realistic bright-star templates that could be used in GalSim (Chris Walter).
 * Compare GalSim and PhoSim images generated for the same catalog footprint (Matt Wiesner).
-* Characterize galaxies that look like stars.
-* Compare CFHTLS predictions with published results.
+* Characterize galaxies that look like stars (Alex Abate + Elliott Cheu + Arizona undergrad).
+* Compare CFHTLS predictions with published results (Dominique Boutigny).
 * Compare DES predictions with actual DES imaging.
 * Add survey parameters for HSC to Survey class and compare predictions with actual HSC imaging (Rachel Mandelbaum).
 * Include CatSim SEDs to implement band-dependent bulge/disk ratios and synthesize non-LSST magnitudes.
