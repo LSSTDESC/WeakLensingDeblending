@@ -288,9 +288,12 @@ def main():
 
     # Overlay the highlighted image using alpha blending.
     # http://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
-    alpha = highlighted_z[:,:,np.newaxis]
-    color = np.array(matplotlib.colors.colorConverter.to_rgb(args.highlight))
-    final_rgb = alpha*color + background_rgb*(1.-alpha)
+    if args.highlight and args.highlight != 'none':
+        alpha = highlighted_z[:,:,np.newaxis]
+        color = np.array(matplotlib.colors.colorConverter.to_rgb(args.highlight))
+        final_rgb = alpha*color + background_rgb*(1.-alpha)
+    else:
+        final_rgb = background_rgb
 
     # Draw the composite image.
     extent = (view_bounds.xmin,view_bounds.xmax+1,view_bounds.ymin,view_bounds.ymax+1)
@@ -391,7 +394,7 @@ def main():
                 transOffset = axes.transData)
             ellipses.set_facecolor('none')
             ellipses.set_edgecolor(args.match_color)
-            ellipses.set_linestyle('dashed')
+            #ellipses.set_linestyle('dashed')
             axes.add_collection(ellipses,autolim = True)
 
     if args.output_name:
