@@ -56,6 +56,9 @@ def main():
     display_group.add_argument('--value-format', type = str,
         default = '%.3g', metavar = 'FMT',
         help = 'Printf format to use for matrix element values.')
+    display_group.add_argument('--clip-percentile', type = float,
+        default = 10.0, metavar = 'PCT',
+        help = 'Percentile level for clipping color scale.')
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
@@ -69,6 +72,10 @@ def main():
         return -1
     if args.partials + args.matrix + args.covariance + args.correlation > 1:
         print 'Can only specify one of the partials,matrix,covariance options.'
+        return -1
+
+    if args.clip_percentile < 0 or args.clip_percentile >= 50:
+        print 'Invalid --clip-percentile %f (should be 0-50).' % args.clip_percentile
         return -1
 
     # Load the analysis results file we will get partial derivative images from.
@@ -146,7 +153,8 @@ def main():
     plt.subplots_adjust(left = 0,bottom = 0,right = 1,top = 1,wspace = 0,hspace = 0)
 
     def draw(row,col,pixels):
-        vcut = np.max(np.fabs(np.percentile(pixels[pixels != 0],(10,90))))
+        vcut = np.max(np.fabs(np.percentile(pixels[pixels != 0],
+            (args.clip_percentile, 100 - args.clip_percentile))))
         scaled = np.clip(pixels,-vcut,+vcut)
         axes = plt.subplot(nrows,ncols,row*ncols+col+1)
         axes.set_axis_off()
