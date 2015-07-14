@@ -148,18 +148,23 @@ def main():
     figure_scale = args.figure_size/(ncols*max(height,width))
     figure_width = ncols*width*figure_scale
     figure_height = nrows*height*figure_scale
-    figure = plt.figure(figsize = (figure_width,figure_height),frameon = False)
+    figure = plt.figure(figsize = (figure_width,figure_height),frameon=False)
     figure.canvas.set_window_title(title)
     plt.subplots_adjust(left = 0,bottom = 0,right = 1,top = 1,wspace = 0,hspace = 0)
 
     def draw(row,col,pixels):
-        vcut = np.max(np.fabs(np.percentile(pixels[pixels != 0],
-            (args.clip_percentile, 100 - args.clip_percentile))))
-        scaled = np.clip(pixels,-vcut,+vcut)
         axes = plt.subplot(nrows,ncols,row*ncols+col+1)
         axes.set_axis_off()
+        if row == col:
+            # All values are positive.
+            vmax = np.percentile(pixels[pixels != 0], 100 - args.clip_percentile)
+        else:
+            vmax = np.max(np.fabs(np.percentile(pixels[pixels != 0],
+                (args.clip_percentile, 100 - args.clip_percentile))))
+        vmin = -vmax
+        scaled = np.clip(pixels,vmin,vmax)
         plt.imshow(scaled,origin = 'lower',interpolation = 'nearest',
-            cmap = args.colormap,vmin = -vcut,vmax = +vcut)
+            cmap = args.colormap,vmin = vmin,vmax = vmax)
 
     def draw_param_label(index,row,col):
         # index determines which parameter label to draw.
