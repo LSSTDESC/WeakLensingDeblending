@@ -11,3 +11,8 @@ import render
 import analysis
 import output
 import trace
+import model_star
+import render_star
+import analysis_star
+import catalog_star
+import output_star
