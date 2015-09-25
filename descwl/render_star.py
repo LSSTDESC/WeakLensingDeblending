@@ -15,7 +15,6 @@ class SourceNotVisible(Exception):
 
 class GalaxyRenderer(object):
     """Rendering engine for a single galaxy.
-
     Args:
         galaxy(descwl.model.Galaxy): Model of the galaxy we will render.
         stamp(galsim.Image): Previously rendered image of this galaxy with no transforms
@@ -42,7 +41,6 @@ class GalaxyRenderer(object):
     def draw(self,df=0.,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
         """
         Draw the galaxy with the specified transforms applied.
-
         We use :meth:`descwl.model.galaxy.Galaxy.get_transformed_model` to apply all
         transforms except for `df`, which we implement internally using rescaling.
         The transformed model is convolved with the survey PSF, rendered into the
@@ -50,7 +48,6 @@ class GalaxyRenderer(object):
         rendering are forced to zero). Repeated calls with the same transform parameters
         return a cached image immediately. The same is true if only the `df` parameter
         is changed from the last call.
-
         Args:
             df(float): Relative amount to scale the total galaxy flux.
             dx(float): Amount to shift centroid in x, in arcseconds.
@@ -62,7 +59,6 @@ class GalaxyRenderer(object):
                 with \|g\| = (a-b)/(a+b), before convolving with the PSF.
             dg2(float): Amount to adjust the x shear applied to the galaxy profile,
                 with \|g\| = (a-b)/(a+b), before convolving with the PSF.
-
         Returns:
             galsim.Image: Rendering of the transformed galaxy.
         """
@@ -83,9 +79,8 @@ class GalaxyRenderer(object):
         
 class StarRenderer(object):
     """Rendering engine for a single star.
-
     Args:
-        galaxy(descwl.model.Star): Model of the galaxy we will render.
+        star(descwl.model_star.Star): Model of the star we will render.
         stamp(galsim.Image): Previously rendered image of this star with no transforms
             applied. Zero pixels in this image are used to define a mask where all
             subsequently rendered images will have pixels values set to zero. The input
@@ -105,31 +100,28 @@ class StarRenderer(object):
             survey.image_height)*survey.pixel_scale
         self.psf_model = survey.psf_model
         self.gsparams = galsim.GSParams(maximum_fft_size=1<<16)
-        self.last_parameters = {'dx':0.,'dy':0.}
+        self.last_parameters = {'dx':0.,'dy':0.,'ds':0.,'dg1':0.,'dg2':0.}
 
-    def draw(self,df=0.,dx=0.,dy=0.):
+    def draw(self,df=0.,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
         """
         Draw the star with the specified transforms applied.
-
-        We use :meth:`descwl.model.star.Galaxy.get_transformed_model` to apply all
+        We use :meth:`descwl.model_star.star.Star.get_transformed_model` to apply all
         transforms except for `df`, which we implement internally using rescaling.
         The transformed model is convolved with the survey PSF, rendered into the
         stamp specified in our constructor, and masked (zero pixels in the untransformed
         rendering are forced to zero). Repeated calls with the same transform parameters
         return a cached image immediately. The same is true if only the `df` parameter
         is changed from the last call.
-
         Args:
             df(float): Relative amount to scale the total galaxy flux.
             dx(float): Amount to shift centroid in x, in arcseconds.
             dy(float): Amount to shift centroid in y, in arcseconds.
             
-
         Returns:
             galsim.Image: Rendering of the transformed galaxy.
         """
         # We do not include df here since we implement it by rescaling df=0 images.
-        parameters = {'dx':dx,'dy':dy}
+        parameters = {'dx':dx,'dy':dy,'ds':ds,'dg1':dg1,'dg2':dg2}
         if parameters != self.last_parameters:
             # We always render and cache using the nominal flux df=0.
             model = self.star.get_transformed_model(**parameters)
@@ -145,11 +137,9 @@ class StarRenderer(object):
 
 class Engine(object):
     """Rendering engine to simulate survey observations.
-
     Any pixels outside of the truncation radius or below the minimum S/N cut will have their
     flux set to zero in the rendered image. As a result the total rendered flux may be below
     the total model flux.
-
     Args:
         survey(descwl.survey.Survey): Survey that rendered images will simulate.
         min_snr(float): Simulate signals from individual sources down to this S/N threshold,
@@ -188,7 +178,6 @@ class Engine(object):
 
     def description(self):
         """Describe our rendering configuration.
-
         Returns:
             str: Description of the rendering configuration that we be used to simulate
                 the survey.
@@ -200,11 +189,9 @@ class Engine(object):
 
     def render_galaxy(self,galaxy,no_partials = False):
         """Render a galaxy model for a simulated survey.
-
         Args:
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
             no_partials(bool): Do not calculate partial derivative images.
-
         Returns:
             tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
                 (nstamp,width,height) pixel values that represents nstamp postage-stamp images
@@ -213,7 +200,6 @@ class Engine(object):
                 full simulated survey image as a `galsim.BoundsI` object. Note that these bounds
                 might extend beyond the survey image, but will always have some overlap where
                 the source is above threshold.
-
         Raises:
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
@@ -322,11 +308,9 @@ class Engine(object):
 
     def render_star(self,star,no_partials = False):
         """Render a star model for a simulated survey.
-
         Args:
             star(descwl.model.Star): Model of the star to render.
             no_partials(bool): Do not calculate partial derivative images.
-
         Returns:
             tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
                 (nstamp,width,height) pixel values that represents nstamp postage-stamp images
@@ -335,7 +319,6 @@ class Engine(object):
                 full simulated survey image as a `galsim.BoundsI` object. Note that these bounds
                 might extend beyond the survey image, but will always have some overlap where
                 the source is above threshold.
-
         Raises:
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
@@ -410,6 +393,9 @@ class Engine(object):
         variations = [
             ('dx',self.survey.pixel_scale/3.), # arcsecs
             ('dy',self.survey.pixel_scale/3.), # arcsecs
+            ('ds',0.05), # relative dilation (flux preserving)
+            ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
+            ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
             ]
 
         # Prepare the datacube that we will return.
@@ -431,7 +417,7 @@ class Engine(object):
 
         if self.verbose_render:
             print 'Rendered star model for id = %d with z = %.3f' % (
-                star.identifier,galaxy.redshift)
+                star.identifier,star.redshift)
             print 'bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
@@ -442,11 +428,9 @@ class Engine(object):
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Engine`.
-
         The added arguments are our constructor parameters with '_' replaced by '-' in the names.
         Note that constructor parameter defaults are specified here rather than in the constructor,
         so that they are included in command-line help.
-
         Args:
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
@@ -463,13 +447,11 @@ class Engine(object):
     @classmethod
     def from_args(cls,survey,args):
         """Create a new :class:`Engine` object from a set of arguments.
-
         Args:
             survey(descwl.survey.Survey): Survey that rendered images will simulate.
             args(object): A set of arguments accessed as a :py:class:`dict` using the
                 built-in :py:func:`vars` function. Any extra arguments beyond those defined
                 in :func:`add_args` will be silently ignored.
-
         Returns:
             :class:`Engine`: A newly constructed Engine object.
         """

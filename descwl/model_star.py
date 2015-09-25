@@ -454,7 +454,7 @@ class StarBuilder(object):
         total_flux = self.survey.get_flux(ab_magnitude)
         # Calculate the flux of each component in detected electrons.
         total_fluxnorm = entry['fluxnorm_star']
-        star_flux = entry['fluxnorm_star']/total_fluxnorm*total_flux
+        star_flux = total_flux
         # Is there any flux to simulate?
         if star_flux == 0:
             raise SourceNotVisible

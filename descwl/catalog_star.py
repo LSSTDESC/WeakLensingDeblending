@@ -87,9 +87,9 @@ class Reader(object):
         dec_max = self.dec_center + dec_size
         # Iterate over all catalog entries.
         for entry in self.table:
-            if self.only_id and entry['id'] not in self.only_id:
+            if self.only_id and entry['galtileid'] not in self.only_id:
                 continue
-            if self.skip_id and entry['id'] in self.skip_id:
+            if self.skip_id and entry['galtileid'] in self.skip_id:
                 continue
             ra,dec = entry['ra'],entry['dec']
             if ra > 180:
@@ -167,14 +167,14 @@ class ReaderStar(object):
     Raises:
         RuntimeError: Missing required catalog_name arg.
     """
-    def __init__(self,star_catalog_name,ra_center = 0.0,dec_center = 0.0,only_id = [],skip_id = []):
+    def __init__(self,star_catalog_name,ra_center = 0.0,dec_center = 0.0,only_star_id = [],skip_id = []):
         if not star_catalog_name:
             raise RuntimeError('Missing required catalog_name arg.')
         
         self.star_catalog_name = star_catalog_name
         self.ra_center = ra_center
         self.dec_center = dec_center
-        self.only_id = only_id
+        self.only_star_id = only_star_id
         self.skip_id = skip_id
         name,ext = os.path.splitext(star_catalog_name)
         
@@ -221,9 +221,9 @@ class ReaderStar(object):
         dec_max = self.dec_center + dec_size
         # Iterate over all catalog entries.
         for entry in self.table:
-            if self.only_id and entry['id'] not in self.only_id:
+            if self.only_star_id and entry['startileid'] not in self.only_star_id:
                 continue
-            if self.skip_id and entry['id'] in self.skip_id:
+            if self.skip_id and entry['startileid'] in self.skip_id:
                 continue
             ra,dec = entry['ra'],entry['dec']
             if ra > 180:
@@ -249,6 +249,8 @@ class ReaderStar(object):
         """
         parser.add_argument('--star_catalog-name', type = str, default = None, metavar = 'NAME',
             help = 'Name of catalog file, which must exist and be readable.')
+        parser.add_argument('--only_star-id', type = int, action = 'append', metavar = 'ID',
+            help = 'Use row with ID from the input catalog. May be repeated. All other rows will be ignored.')
         
     @classmethod
     def from_args(cls,args):
