@@ -82,7 +82,7 @@ def main():
     try:
         reader = descwl.output_star.Reader.from_args(defer_stamp_loading = True,args = args)
         results = reader.results
-        npartials = len(results.slice_labels)
+        npartials = len(results.slice_labels_star)
         if args.verbose:
             print results.survey.description()
     except RuntimeError,e:
@@ -113,7 +113,7 @@ def main():
     selected = selected[sort_order]
     num_selected = len(selected)
     npar = npartials*num_selected
-    nrows,ncols = npar,npar
+    #nrows,ncols = npar,npar
 
     # Get the background image for these galaxies.
     background = results.get_subimage(selected)
@@ -121,6 +121,8 @@ def main():
 
     # Calculate matrix elements.
     fisher,covariance,variance,correlation = results.get_matrices(selected)
+    nrows,ncols = covariance.shape
+    npar = nrows
     show_matrix = args.matrix or args.covariance or args.correlation
     if show_matrix:
         if args.matrix:
@@ -155,7 +157,9 @@ def main():
     def draw(row,col,pixels):
         axes = plt.subplot(nrows,ncols,row*ncols+col+1)
         axes.set_axis_off()
-        if row == col:
+        if (pixels.all() ==0):
+            vmax=1e-10
+        elif row == col:
             # All values are positive.
             vmax = np.percentile(pixels[pixels != 0], 100 - args.clip_percentile)
         else:
