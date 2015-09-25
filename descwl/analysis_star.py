@@ -50,7 +50,8 @@ class OverlapResults(object):
         self.noise_seed = None
 
     slice_labels = ['dflux','dx','dy','ds','dg1','dg2']
-    slice_labels_star = ['dflux', 'dx', 'dy']
+    #slice_labels_star = ['dflux', 'dx', 'dy']
+    slice_labels_star = slice_labels
     def add_noise(self,noise_seed):
         """Add Poisson noise to the simulated survey image.
 
@@ -151,6 +152,7 @@ class OverlapResults(object):
             raise RuntimeError('No such object with index=%d.' % index)
         bounds = self.bounds[index]
         datacube = self.stamps[index]
+        #print 'Datacube length ', len(datacube)
         if callable(datacube):
             datacube = datacube()
             self.stamps[index] = datacube
@@ -243,6 +245,7 @@ class OverlapResults(object):
             partials2[islice] = self.get_stamp(index2,islice)[overlap].array
         partials1[0] /= self.table['flux'][index1]
         partials2[0] /= self.table['flux'][index2]
+        #print self.table['flux'][index1], self.table['flux'][index2]
         # Normalize the Fisher images.
         mu0 = background[overlap].array + self.survey.mean_sky_level
         fisher_norm = mu0**-1 + 0.5*mu0**-2
@@ -275,9 +278,12 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
+        #print 'Number of selected objects ',nsel
         npar = self.num_slices
         nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
+        reduced_covariance = np.zeros((nfisher,nfisher), dtype = np.float64)
+        reduced_correlation = np.zeros((nfisher,nfisher), dtype = np.float64)
         for row,index1 in enumerate(selected):
             for col,index2 in enumerate(selected[:row+1]):
                 images,overlap = self.get_fisher_images(index1,index2,background)
@@ -298,11 +304,15 @@ class OverlapResults(object):
                 keep_flat = keep.flatten()
                 # Advanced indexing like this makes a copy, not a view.
                 reduced_fisher = fisher[keep_flat,:][:,keep_flat]
-                reduced_covariance = np.linalg.inv(reduced_fisher)
+                m = (np.sum(fisher,axis=0)!=0)
+                reduced_covariance_aux = np.linalg.inv(fisher[m][:,m])
+                reduced_covariance[np.ix_(m,m)]=reduced_covariance_aux
+                reduced_variance_aux = np.diag(reduced_covariance_aux)
                 reduced_variance = np.diag(reduced_covariance)
-                assert np.min(reduced_variance) > 0,'Expected variance > 0'
-                reduced_correlation = reduced_covariance/np.sqrt(
-                    np.outer(reduced_variance,reduced_variance))
+                assert np.min(reduced_variance_aux) > 0,'Expected variance > 0'
+                reduced_correlation_aux = reduced_covariance_aux/np.sqrt(
+                    np.outer(reduced_variance_aux,reduced_variance_aux))
+                reduced_correlation[np.ix_(m,m)]=reduced_correlation_aux
                 break
             except (np.linalg.LinAlgError,AssertionError),e:
                 # We can't calculate a covariance for this set of objects, so drop the next
@@ -515,7 +525,7 @@ class OverlapAnalyzer(object):
         Fits are performed on noise-free images, so there are no meaningful errors to report
         and only best-fit parameter values are returned.  This method is intended to support
         systematics studies where shifts in best-fit parameters are the quantities of interest.
-        See the :meth:`descwl.render.GalaxyRenderer.draw` method for details on how the fit
+        See the :meth:`descwl.render_star.StarRenderer.draw` method for details on how the fit
         parameters are defined and how each galaxy model is rendered as these parameters
         are varied.
 
@@ -529,8 +539,8 @@ class OverlapAnalyzer(object):
                 fit, or None if all parameters should be floating.
 
         Returns:
-            numpy.ndarray: Array with shape (num_stars,3) containing the best-fit values
-                of the following six parameters: df,dx,dy. See the
+            numpy.ndarray: Array with shape (num_stars,6) containing the best-fit values
+                of the following six parameters: df,dx,dy,ds,dg1,dg2. See the
                 :meth:`descwl.render.StarRenderer.draw` method for details on how these
                 parameters are defined.
 
@@ -544,6 +554,15 @@ class OverlapAnalyzer(object):
             parameters.add('df_%d' % i,value = 0.)
             parameters.add('dx_%d' % i,value = 0.)
             parameters.add('dy_%d' % i,value = 0.)
+            parameters.add('ds_%d' % i,value = 0.)
+            parameters.add('dg1_%d' % i,value = 0.,min=-2e-5,max=2e-5)
+            parameters.add('dg2_%d' % i,value = 0.,min=-2e-5,max=2e-5)
+            parameters['ds_%d' %i].value = 1e-5
+            parameters['ds_%d' %i].vary = False
+            parameters['dg1_%d' %i].value = 1e-5
+            parameters['dg1_%d' %i].vary = False
+            parameters['dg2_%d' %i].value = 1e-5
+            parameters['dg2_%d' %i].vary = False
             # Fix parameters as requested.
         if fixed_parameters:
             for name,value in fixed_parameters.iteritems():
@@ -556,7 +575,7 @@ class OverlapAnalyzer(object):
             try:
                 bbox = self.bounds[star]
             except (TypeError,ValueError):
-                raise RuntimeError('Invalid star index in fit_galaxies: %r' % star)
+                raise RuntimeError('Invalid star index in fit_dystd: %r' % star)
             overlap.append(model_image.bounds & bbox)
         data = observed_image.array.flatten()
         sigmas = np.sqrt(data + self.survey.mean_sky_level)
@@ -565,7 +584,8 @@ class OverlapAnalyzer(object):
             model_image.array[:] = 0.
             for i,star in enumerate(indices):
                 model_stamp = self.models[star].renderer.draw(df = p['df_%d'%i].value,
-                    dx = p['dx_%d'%i].value,dy = p['dy_%d'%i].value)
+                    dx = p['dx_%d'%i].value,dy = p['dy_%d'%i].value,ds = p['ds_%d'%i].value,
+                    dg1 = p['dg1_%d'%i].value,dg2 = p['dg2_%d'%i].value)
                 model_image[overlap[i]] += model_stamp[overlap[i]]
             return (data - model_image.array.flat)/sigmas
         # Do the minimization.
@@ -573,11 +593,14 @@ class OverlapAnalyzer(object):
         if not minimum.success:
             raise RuntimeError('fit_stars did not find a minimum.')
         # Copy the best-fit parameter values into the returned array.
-        bestfit_values = np.empty((num_stars,3))
+        bestfit_values = np.empty((num_stars,6))
         for i in range(num_stars):
             bestfit_values[i,0] = parameters['df_%d'%i].value
             bestfit_values[i,1] = parameters['dx_%d'%i].value
             bestfit_values[i,2] = parameters['dy_%d'%i].value
+            bestfit_values[i,3] = parameters['ds_%d'%i].value
+            bestfit_values[i,4] = parameters['dg1_%d'%i].value
+            bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
     
     def finalize(self,verbose,trace):
@@ -682,7 +705,7 @@ class OverlapAnalyzer(object):
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
                 # Calculate this galaxy's sizes and shapes from its second-moments tensor.
-                sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
+                sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model_star.moments_size_and_shape(
                     model.second_moments)
                 # Save values to the analysis results.
                 data['sigma_m'][index] = sigma_m
@@ -730,8 +753,8 @@ class OverlapAnalyzer(object):
         table = astropy.table.Table(data,copy = False)
         num_slices,h,w = self.stamps[0].shape
         #print num_slices,getattr(model,'f_disk',None)
-        if(getattr(model,'f_disk',None)==None):
-            num_slices=3
+        #if(getattr(model,'f_disk',None)==None):
+        #    num_slices=3
         results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
         # Check that we have partial derivatives available.
@@ -740,10 +763,10 @@ class OverlapAnalyzer(object):
 
         sky = self.survey.mean_sky_level
         dflux_index = results.slice_labels.index('dflux')
-        if(getattr(results.slice_labels,'ds',None)!=None):
-            ds_index = results.slice_labels.index('ds')
-            dg1_index = results.slice_labels.index('dg1')
-            dg2_index = results.slice_labels.index('dg2')
+        #if(getattr(results.slice_labels,'ds',None)!=None):
+        ds_index = results.slice_labels.index('ds')
+        dg1_index = results.slice_labels.index('dg1')
+        dg2_index = results.slice_labels.index('dg2')
         # Loop over groups to calculate pixel-level quantities.
         for i,grp_id in enumerate(grp_id_set):
             trace('grp_id %d is %d of %d' % (grp_id,i,len(grp_id_set)))
@@ -787,17 +810,17 @@ class OverlapAnalyzer(object):
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
                 data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
-                if(getattr(results.slice_labels,'ds',None)!=None):
-                    data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
-                    data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
-                    data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
+                #if(getattr(results.slice_labels,'ds',None)!=None):
+                data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
+                data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
+                data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
-                    if(getattr(results.slice_labels,'ds',None)!=None):   
-                        data['ds'][galaxy] = data['ds_grp'][galaxy]
-                        data['dg1'][galaxy] = data['dg1_grp'][galaxy]
-                        data['dg2'][galaxy] = data['dg2_grp'][galaxy]
+                    #if(getattr(results.slice_labels,'ds',None)!=None):   
+                    data['ds'][galaxy] = data['ds_grp'][galaxy]
+                    data['dg1'][galaxy] = data['dg1_grp'][galaxy]
+                    data['dg2'][galaxy] = data['dg2_grp'][galaxy]
                 else:
                     # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
@@ -806,10 +829,10 @@ class OverlapAnalyzer(object):
                     # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
                     data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
-                    if(getattr(results.slice_labels,'ds',None)!=None):
-                        data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
-                        data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
-                        data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
+                    #if(getattr(results.slice_labels,'ds',None)!=None):
+                    data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
+                    data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
+                    data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
 
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
@@ -856,16 +879,19 @@ class OverlapAnalyzer(object):
                                 deblended[bbox] += alpha*overlap
                     # Fit the deblended image of this galaxy.
                     use_count[i1] += 1
-                    if(getattr(results.slice_labels,'ds',None)!=None):
+                   
+                    if(getattr(model,'f_disk',None)!=None):
                         try:
                             bestfit = self.fit_galaxies([g1],deblended)
                             data['g1_fit'][g1] = bestfit[0,4]
                             data['g2_fit'][g1] = bestfit[0,5]
                         except RuntimeError,e:
                             print str(e)
-                    elif(getattr(results.slice_labels,'ds',None)==None):
+                    else:
                         try:
                             bestfit = self.fit_stars([g1],deblended)
+                            data['g1_fit'][g1] = 0
+                            data['g2_fit'][g1] = 0
                         except RuntimeError,e:
                             print str(e)
         trace('OverlapAnalyzer.finalize end')
