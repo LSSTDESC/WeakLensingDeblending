@@ -701,7 +701,8 @@ class OverlapAnalyzer(object):
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
             # Save model parameters.
-            if(getattr(model,'f_disk',None)!=None):
+            if(getattr(model,'disk_fraction',None)!=None):
+                print data['db_id'][index], 'GALAXY'
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
                 # Calculate this galaxy's sizes and shapes from its second-moments tensor.
@@ -718,6 +719,22 @@ class OverlapAnalyzer(object):
                 # Re-calculate sizes and shapes with the PSF second moments added.
                 sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model_star.moments_size_and_shape(
                     model.second_moments + self.survey.psf_second_moments)
+                # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
+                data['psf_sigm'][index] = sigma_m_psf
+            else:
+                print data['db_id'][index], 'STAR'
+                data['f_disk'][index]=0
+                data['f_bulge'][index]=0
+                data['sigma_m'][index] = 0
+                data['sigma_p'][index] = 0
+                data['a'][index] = 0
+                data['b'][index] = 0
+                data['e1'][index] = 0
+                data['e2'][index] = 0
+                data['beta'][index] = 0
+                # Re-calculate sizes and shapes with the PSF second moments added.
+                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model_star.moments_size_and_shape(
+                    self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
             # Loop over earlier galaxies with overlapping bounding boxes.
@@ -752,9 +769,6 @@ class OverlapAnalyzer(object):
         # to use a method that needs something in table that we have not filled in yet).
         table = astropy.table.Table(data,copy = False)
         num_slices,h,w = self.stamps[0].shape
-        #print num_slices,getattr(model,'f_disk',None)
-        #if(getattr(model,'f_disk',None)==None):
-        #    num_slices=3
         results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
         # Check that we have partial derivatives available.
@@ -763,7 +777,6 @@ class OverlapAnalyzer(object):
 
         sky = self.survey.mean_sky_level
         dflux_index = results.slice_labels.index('dflux')
-        #if(getattr(results.slice_labels,'ds',None)!=None):
         ds_index = results.slice_labels.index('ds')
         dg1_index = results.slice_labels.index('dg1')
         dg2_index = results.slice_labels.index('dg2')
@@ -810,14 +823,12 @@ class OverlapAnalyzer(object):
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
                 data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
-                #if(getattr(results.slice_labels,'ds',None)!=None):
                 data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                 data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                 data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
-                    #if(getattr(results.slice_labels,'ds',None)!=None):   
                     data['ds'][galaxy] = data['ds_grp'][galaxy]
                     data['dg1'][galaxy] = data['dg1_grp'][galaxy]
                     data['dg2'][galaxy] = data['dg2_grp'][galaxy]
@@ -829,7 +840,6 @@ class OverlapAnalyzer(object):
                     # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
                     data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
-                    #if(getattr(results.slice_labels,'ds',None)!=None):
                     data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
                     data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
                     data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
@@ -880,7 +890,7 @@ class OverlapAnalyzer(object):
                     # Fit the deblended image of this galaxy.
                     use_count[i1] += 1
                    
-                    if(getattr(model,'f_disk',None)!=None):
+                    if(getattr(model,'disk_fraction',None)!=None):
                         try:
                             bestfit = self.fit_galaxies([g1],deblended)
                             data['g1_fit'][g1] = bestfit[0,4]
