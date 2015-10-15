@@ -1,8 +1,9 @@
 Revision History
 ================
 
-latest
-------
+v0.3
+----
+- Add tutorial notebook.
 - Add HSM size and shape analysis for each galaxy (ignoring overlaps)
 
 v0.2
