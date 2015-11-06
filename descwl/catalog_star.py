@@ -168,9 +168,8 @@ class ReaderStar(object):
         RuntimeError: Missing required catalog_name arg.
     """
     def __init__(self,star_catalog_name,ra_center = 0.0,dec_center = 0.0,only_star_id = [],skip_id = []):
-        if not star_catalog_name:
-            raise RuntimeError('Missing required catalog_name arg.')
-        
+        #if not star_catalog_name:
+        #    raise RuntimeError('Missing required catalog_name arg.')
         self.star_catalog_name = star_catalog_name
         self.ra_center = ra_center
         self.dec_center = dec_center
@@ -248,7 +247,7 @@ class ReaderStar(object):
                 add_argument method.
         """
         parser.add_argument('--star_catalog-name', type = str, default = None, metavar = 'NAME',
-            help = 'Name of catalog file, which must exist and be readable.')
+            help = 'Name of star catalog file')
         parser.add_argument('--only_star-id', type = int, action = 'append', metavar = 'ID',
             help = 'Use row with ID from the input catalog. May be repeated. All other rows will be ignored.')
         
