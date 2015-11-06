@@ -316,15 +316,15 @@ class OverlapResults(object):
                 reduced_correlation_aux = reduced_covariance_aux/np.sqrt(
                     np.outer(reduced_variance_aux,reduced_variance_aux))
                 reduced_correlation[np.ix_(m,m)]=reduced_correlation_aux
+                del reduced_correlation_aux
+                del reduced_variance_aux
+                del reduced_covariance_aux    
                 break
             except (np.linalg.LinAlgError,AssertionError),e:
                 # We can't calculate a covariance for this set of objects, so drop the next
                 # lowest SNR member of the set and try again.
                 keep[priority[num_dropped],:] = False
                 num_dropped += 1
-            del reduced_correlation_aux
-            del reduced_variance_aux
-            del reduced_covariance_aux    
         if num_dropped == 0:
             return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
         else:
