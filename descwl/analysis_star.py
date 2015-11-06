@@ -709,7 +709,7 @@ class OverlapAnalyzer(object):
             data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
             # Save model parameters.
             if(getattr(model,'disk_fraction',None)!=None):
-                #print data['db_id'][index], 'GALAXY'
+                print data['db_id'][index], 'GALAXY'
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
                 # Calculate this galaxy's sizes and shapes from its second-moments tensor.
@@ -729,7 +729,7 @@ class OverlapAnalyzer(object):
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
             else:
-                #print data['db_id'][index], 'STAR'
+                print data['db_id'][index], 'STAR'
                 data['f_disk'][index]=0
                 data['f_bulge'][index]=0
                 data['sigma_m'][index] = 0
