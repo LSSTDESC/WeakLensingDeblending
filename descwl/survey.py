@@ -183,6 +183,24 @@ class Survey(object):
                 'image_height': 4096,
                 'pixel_scale': 0.2,
             },
+            # See http://arxiv.org/pdf/0805.2366v4.pdf, Table 2 for:
+            # exposure_time, sky_brightness, zenith_psf_fwhm, extinction.
+            # Zero points are calculated from
+            #  https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/issues/1
+            'y': {
+                'exposure_time': 6900.,
+                'sky_brightness': 18.6,
+                'zenith_psf_fwhm': 0.63,
+                'zero_point': 15.0,
+                'extinction': 0.138,
+            },
+            'z': {
+                'exposure_time': 6900.,
+                'sky_brightness': 19.6,
+                'zenith_psf_fwhm': 0.65,
+                'zero_point': 28.6,
+                'extinction': 0.043,
+            },
             'i': {
                 'exposure_time': 6900.,
                 'sky_brightness': 20.0,
@@ -196,6 +214,20 @@ class Survey(object):
                 'zenith_psf_fwhm': 0.70,
                 'zero_point': 55.8,
                 'extinction': 0.10,
+            },
+            'g': {
+                'exposure_time': 6900.,
+                'sky_brightness': 22.3,
+                'zenith_psf_fwhm': 0.73,
+                'zero_point': 70.5,
+                'extinction': 0.163,
+            },
+            'u': {
+                'exposure_time': 6900.,
+                'sky_brightness': 22.9,
+                'zenith_psf_fwhm': 0.77,
+                'zero_point': 24.3,
+                'extinction': 0.451,
             },
         },
         'DES': {
