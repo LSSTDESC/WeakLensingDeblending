@@ -8,7 +8,12 @@ http://weaklensingdeblending.readthedocs.org/en/latest/programs.html#dbquery
 import argparse
 import math
 
-import _mssql
+#import _mssql
+
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.engine import url
+from sqlalchemy import (create_engine, MetaData)
+
 
 def main():
 
@@ -85,13 +90,29 @@ def main():
     nulls = { }
     clipCount = 0
     try:
-        conn = _mssql.connect(
-            server='fatboy.npl.washington.edu', port=1433,
-            user='LSST-2', password='L$$TUser',
-            database='LSST')
-        conn.execute_query(query)
+        ### SQLalchemy way:
+        driver = "mssql+pymssql"
+        host='localhost'
+        port=51433
+        dbUrl = url.URL(driver, host=host, port=port, database='LSST', 
+                        username='LSST-2', password='L$$TUser')
+    
+        engine = create_engine(dbUrl)
+        session = scoped_session(sessionmaker(autoflush=True, bind=engine))
+        metadata = MetaData(bind=engine)
+        
+        results = session.execute(query).fetchall()
+    
+        # old _mssql way
+        #conn = _mssql.connect(
+        #    server='fatboy.npl.washington.edu', port=51433,
+        #    user='LSST-2', password='L$$TUser',
+        #    database='LSST')
+        #    
+        #conn.execute_query(query)
+        
         nrows = 0
-        for row in conn:
+        for row in results: #conn:
             # Filter out any SQL NULLs
             for col in clist:
                 if row[col] is None:
@@ -117,11 +138,18 @@ def main():
                 for col in nulls:
                     print '%10d %s' % (nulls[col],col)
             print '%d rows with (ra,dec) outside window were clipped' % clipCount
-    except _mssql.MssqlDatabaseException,e:
-        print 'Database Exception'
-        raise
+    
+    
+    
+    # removed as not using mssql:
+    #except _mssql.MssqlDatabaseException,e:
+    #    print 'Database Exception'
+    #    raise
+    #finally:
+        #if conn: conn.close()
     finally:
-        if conn: conn.close()
+        session.close()
+        engine.dispose()
 
     f.close()
 
