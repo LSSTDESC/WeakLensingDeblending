@@ -1,0 +1,12 @@
+###Notes for things related to writing the proposal. 
+
+#Questions? 
+    #how to accomate for pure bulge , pure disk datacubes having different dimensions than bulge+disk?
+        ##what if make all of them same size 
+
+#model.py 
+    #
+
+# render. py 
+    # line 234- were partials are calculated and ncubes established is a good place to start changing. 
+    #
