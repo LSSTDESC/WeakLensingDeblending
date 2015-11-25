@@ -1,7 +1,14 @@
 ###Notes for things related to writing the proposal. 
 
 #TODO 
-    #
+    #first try to add more slices to datacubes and see what breaks. 
+    #depending on what it does to the slices might need to change (limit the calculation and display of partials to only the first 6) -> indicate
+       this are partial s
+    #indicate labels for second_partials ----> how to organize them? 
+    #write functions for getting second partials similar to David's getting partials. 
+    #write function for calculating biases. 
+
+    #do not worry about having 6 vs 8 parameters yet. 
 
 #Questions? 
     #how to accomate for pure bulge , pure disk datacubes having different dimensions than bulge+disk?
