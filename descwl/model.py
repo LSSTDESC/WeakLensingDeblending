@@ -126,7 +126,7 @@ class Galaxy(object):
         disk_hlr_arcsecs(float): Half-light radius sqrt(a*b) of circularized 50% isophote
             for Sersic n=1 component, in arcseconds. Ignored if disk_flux is zero.
         disk_q(float): Ratio b/a of 50% isophote semi-minor (b) to semi-major (a) axis
-            lengths for Sersic n=1 component. Ignored if disk_flux is zero.
+            } for Sersic n=1 component. Ignored if disk_flux is zero.
         bulge_flux(float): Total flux in detected electrons of Sersic n=4 component.
         bulge_hlr_arcsecs(float): Half-light radius sqrt(a*b) of circularized 50% isophote
             for Sersic n=4 component, in arcseconds. Ignored if bulge_flux is zero.
