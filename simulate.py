@@ -15,6 +15,9 @@ def main():
         help = 'Print survey camera and observing parameter defaults and exit.')
     parser.add_argument('--memory-trace', action = 'store_true',
         help = 'Trace memory usage (requires the psutil module).')
+    analysis_group = parser.add_argument_group('Analysis options',
+        'Specify analysis options')
+    descwl.analysis.OverlapAnalyzer.add_args(analysis_group)
     catalog_group = parser.add_argument_group('Catalog input',
         'Specify an input catalog of source parameters for simulation.')
     descwl.catalog.Reader.add_args(catalog_group)
@@ -55,7 +58,7 @@ def main():
         if args.verbose:
             print render_engine.description()
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:

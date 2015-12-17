@@ -12,6 +12,8 @@ import lmfit
 
 import descwl.model
 
+from distutils.version import LooseVersion
+
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
 
@@ -398,12 +400,13 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey):
+    def __init__(self,survey,no_hsm,alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
         self.bounds = [ ]
-
+        self.alpha = alpha
+        self.no_hsm = no_hsm
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -486,13 +489,22 @@ class OverlapAnalyzer(object):
             raise RuntimeError('fit_galaxies did not find a minimum.')
         # Copy the best-fit parameter values into the returned array.
         bestfit_values = np.empty((num_galaxies,6))
-        for i in range(num_galaxies):
-            bestfit_values[i,0] = parameters['df_%d'%i].value
-            bestfit_values[i,1] = parameters['dx_%d'%i].value
-            bestfit_values[i,2] = parameters['dy_%d'%i].value
-            bestfit_values[i,3] = parameters['ds_%d'%i].value
-            bestfit_values[i,4] = parameters['dg1_%d'%i].value
-            bestfit_values[i,5] = parameters['dg2_%d'%i].value
+        if(LooseVersion(lmfit.__version__) > LooseVersion('0.8.3')):
+            for i in range(num_galaxies):
+                bestfit_values[i,0] = minimum.params['df_%d'%i].value
+                bestfit_values[i,1] = minimum.params['dx_%d'%i].value
+                bestfit_values[i,2] = minimum.params['dy_%d'%i].value
+                bestfit_values[i,3] = minimum.params['ds_%d'%i].value
+                bestfit_values[i,4] = minimum.params['dg1_%d'%i].value
+                bestfit_values[i,5] = minimum.params['dg2_%d'%i].value
+        else:
+            for i in range(num_galaxies):
+                bestfit_values[i,0] = parameters['df_%d'%i].value
+                bestfit_values[i,1] = parameters['dx_%d'%i].value
+                bestfit_values[i,2] = parameters['dy_%d'%i].value
+                bestfit_values[i,3] = parameters['ds_%d'%i].value
+                bestfit_values[i,4] = parameters['dg1_%d'%i].value
+                bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
     def finalize(self,verbose,trace):
@@ -674,20 +686,21 @@ class OverlapAnalyzer(object):
                 data['hsm_sigm'][galaxy] = np.nan
                 data['hsm_e1'][galaxy] = np.nan
                 data['hsm_e2'][galaxy] = np.nan
-                try:
-                    hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
-                    data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
-                    data['hsm_e1'][galaxy] = hsm_results.corrected_e1
-                    data['hsm_e2'][galaxy] = hsm_results.corrected_e2
-                except RuntimeError,e:
-                    # Usually "Unphysical situation: galaxy convolved with PSF is smaller than PSF!"
-                    # due to truncation of a faint galaxy at the limiting isophote.  Try to just
-                    # calculate the PSF-convolved size in this case.
+                if(not(self.no_hsm)):
                     try:
-                        hsm_results = galsim.hsm.FindAdaptiveMom(signal)
+                        hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
                         data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                        data['hsm_e1'][galaxy] = hsm_results.corrected_e1
+                        data['hsm_e2'][galaxy] = hsm_results.corrected_e2
                     except RuntimeError,e:
-                        print str(e)
+                        # Usually "Unphysical situation: galaxy convolved with PSF is smaller than PSF!"
+                        # due to truncation of a faint galaxy at the limiting isophote.  Try to just
+                        # calculate the PSF-convolved size in this case.
+                        try:
+                            hsm_results = galsim.hsm.FindAdaptiveMom(signal)
+                            data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                        except RuntimeError,e:
+                            print str(e)
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
@@ -725,7 +738,7 @@ class OverlapAnalyzer(object):
             group_leader = data['db_id'][sorted_indices[0]]
             data['grp_id'][grp_members] = group_leader
 
-            alpha = +1.
+            alpha = self.alpha
             detection_threshold = 6. # cut on snr_grpf
             data['g1_fit'][sorted_indices] = 0.
             data['g2_fit'][sorted_indices] = 0.
@@ -772,3 +785,39 @@ class OverlapAnalyzer(object):
 
         trace('OverlapAnalyzer.finalize end')
         return results
+    @staticmethod
+    def add_args(parser):
+        """Add command-line arguments for constructing a new :class:`Reader`.
+
+        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+        Note that constructor parameter defaults are specified here rather than in the constructor,
+        so that they are included in command-line help.
+
+        Args:
+            parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
+                add_argument method.
+        """
+        parser.add_argument('--alpha', type = float, default = 1, metavar = 'ALPHA',
+            help = 'Fraction of flux given to the other object. Values range from -1 (overlapping flux to faintest source) to +1 \
+            (overlapping flux to brightest source)')
+        parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
+        
+    @classmethod
+    def from_args(cls,args):
+        """Create a new :class:`Reader` object from a set of arguments.
+
+        Args:
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function. Any extra arguments beyond those defined
+                in :func:`add_args` will be silently ignored.
+
+        Returns:
+            :class:`Reader`: A newly constructed Reader object.
+        """
+        # Look up the named constructor parameters.
+        pnames = (inspect.getargspec(cls.__init__)).args[1:]
+        # Get a dictionary of the arguments provided.
+        args_dict = vars(args)
+        # Filter the dictionary to only include constructor parameters.
+        filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
+        return cls(**filtered_dict)
