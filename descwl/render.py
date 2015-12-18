@@ -11,21 +11,7 @@ import galsim
 
 
 
-#return sum of n, n-1, ..., k
-def sum_n_to_k(n,k):
-    l = [x for x in range(n+1) if x>=k]
-    return sum(l)
 
-"""
-these function returns the correction position in the datacube of the specified partial derivative
-i,j. Note that we are filling in cubes number 7 to 20 and partials commute. Order established in 
-the variations dict.
-Differentiating partial flux with respect to flux gives 0. 
-Differentiating any partial with respect to flux leaves it unchanged. 
-So we do not have to calculate any partials with respect to flux at all. 
-"""
-def second_partials_indices_to_datacubes(i,j):
-    return sum_n_to_k(5,7-i) + j - i +7 
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
