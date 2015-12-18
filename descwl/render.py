@@ -8,6 +8,25 @@ import numpy as np
 
 import galsim
 
+
+
+
+#return sum of n, n-1, ..., k
+def sum_n_to_k(n,k):
+    l = [x for x in range(n+1) if x>=k]
+    return sum(l)
+
+"""
+these function returns the correction position in the datacube of the specified partial derivative
+i,j. Note that we are filling in cubes number 7 to 20 and partials commute. Order established in 
+the variations dict.
+Differentiating partial flux with respect to flux gives 0. 
+Differentiating any partial with respect to flux leaves it unchanged. 
+So we do not have to calculate any partials with respect to flux at all. 
+"""
+def second_partials_indices_to_datacubes(i,j):
+    return sum_n_to_k(5,7-i) + j - i +7 
+
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
     """
@@ -136,7 +155,7 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False):
+    def render_galaxy(self,galaxy,no_partials = False, no_bias = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
@@ -278,6 +297,15 @@ class Engine(object):
             help = 'Do not simulate the tails of objects just outside the field.')
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
+
+
+
+        #add one for partials and bias. 
+        parser.add_argument('--no_partials', action = 'store_true', 
+            help = 'Do not store partial derivative images of the galaxy in data cubes')
+        parser.add_argument('--no_bias', action = 'store_true', 
+            help = 'Do not store necessary images in datacubes to calculate bias of galaxy.')
+
 
     @classmethod
     def from_args(cls,survey,args):
