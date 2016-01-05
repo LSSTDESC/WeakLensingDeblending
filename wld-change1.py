@@ -16,6 +16,7 @@ def second_partials_indices_to_datacubes_indices(i,j):
 
 
 # Prepare the datacube that we will return.
+
 if no_partials and no_bias:
     ncube = 1
 
@@ -38,17 +39,19 @@ if not no_partials and not no_bias:
         variation_stamp = (galaxy.renderer.draw(**{pname: +delta_i}).copy() - 
                                galaxy.renderer.draw(**{pname: -delta_j}))
         datacube[i+1] = variation_stamp.array/(2*delta_i)
+
+        if not no_bias:
         
-        for j,(pname_j,delta_j) in range(len(variations))[i:],variations:
+            for j,(pname_j,delta_j) in range(len(variations))[i:],variations:
 
-            ##why the .copy()?? 
-            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, pname_j: +delta_j}).copy()
-            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, pname_j: -delta_j})
-            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, pname_j: +delta_j})
-            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, pname_j: -delta_j})
+                ##why the .copy()?? 
+                galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, pname_j: +delta_j})
+                galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, pname_j: -delta_j})
+                galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, pname_j: +delta_j})
+                galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, pname_j: -delta_j})
 
-            partial_i_j = galaxy_iup_jup + galaxy_idown_jdown - galaxy_idown_jup - galaxy_iup_jdown
-            datacube[f(i,j)] = partial_i_j
+                partial_i_j = galaxy_iup_jup + galaxy_idown_jdown - galaxy_idown_jup - galaxy_iup_jdown
+                datacube[f(i,j)] = partial_i_j
 
 # Calculate partial derivative images only, if requested.
 if not no_partials:
