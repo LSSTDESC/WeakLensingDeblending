@@ -46,7 +46,8 @@ class OverlapResults(object):
         self.bounds = bounds
         self.num_slices = num_slices
         if len(self.stamps) > 0:
-            if self.num_slices not in (1,len(self.slice_labels)):
+             #3rd case allows second partials
+            if self.num_slices not in (1,len(self.slice_labels), 21): 
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
         self.noise_seed = None
@@ -214,8 +215,8 @@ class OverlapResults(object):
             RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
                 background image, or no partial derivative images are available.
         """
-        npar = self.num_slices
-        if npar != len(self.slice_labels):
+        npar = self.slice_labels #this are the actual partials
+        if self.num_slices != len(self.slice_labels) or 21:
             raise RuntimeError('No partial derivative images are available.')
         # Calculate the overlap bounds.
         try:
@@ -281,7 +282,7 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
-        npar = self.num_slices #this now suppose to still be 6 instead of 21
+        npar = self.slice_labels
         nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
         for row,index1 in enumerate(selected):
