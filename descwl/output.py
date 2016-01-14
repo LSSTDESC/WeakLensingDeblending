@@ -208,7 +208,6 @@ class Writer(object):
         hdu = self.fits[0]
         hdu.data = results.survey.image.array
         # Copy our Survey ctor args into the primary HDU header.
-        print results.num_slices
         hdu.header['NSLICES'] = results.num_slices
         hdu.header['PSF_SIGM'] = self.survey.psf_sigma_m
         hdu.header['PSF_SIGP'] = self.survey.psf_sigma_p
