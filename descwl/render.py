@@ -137,7 +137,7 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False, no_bias = False):
+    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
@@ -157,6 +157,11 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
+
+        #make sure logic makes sense. 
+        if no_partials and calculate_bias:
+            raise RuntimeError("Cannot calculate bias with partials")
+
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
             raise SourceNotVisible
@@ -232,24 +237,12 @@ class Engine(object):
             ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
             ]
 
-
-        #Helper function used to create dictionary with partial positions on datacube. 
-        def index_partial(i,j):
-            #return sum of n, n-1, ..., k (non-excluding)
-            def sum_n_to_k(n,k):
-                l = [x for x in range(n+1) if x>=k]
-                return sum(l)
-
-            return sum_n_to_k(5,7-i) + j - i + 6 
-
-
-
         # Prepare the datacube that we will return.
         ncube = 1
 
         if not no_partials:
             ncube = 1+len(variations)
-            if not no_bias:
+            if calculate_bias:
                  #15 is number of second partials for 5 parameters (no flux).
                 ncube = 1 + len(variations) + 15
                 #create dictionary of mapping from corresponding partial names to position in datacube.
@@ -258,7 +251,7 @@ class Engine(object):
                     positions[pname_i] = i+1
                     for j,(pname_j,delta_j) in enumerate(variations):
                         if(j>=i):
-                            positions[pname_i,pname_j] = index_partial(i+1,j+1)
+                            positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
 
 
         height,width = cropped_stamp.array.shape
@@ -275,7 +268,7 @@ class Engine(object):
                 datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
 
                 #calculated second partials, if requested. 
-                if not no_bias:        
+                if calculate_bias:        
                     for j,(pname_j,delta_j) in enumerate(variations):
                         if(j>=i):
                             galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
@@ -326,8 +319,8 @@ class Engine(object):
         #add one for partials and bias. 
         parser.add_argument('--no_partials', action = 'store_true', 
             help = 'Do not store partial derivative images of the galaxy in data cubes')
-        parser.add_argument('--no_bias', action = 'store_true', 
-            help = 'Do not store necessary images in datacubes to calculate bias of galaxy.')
+        parser.add_argument('--calculate_bias', action = 'store_true', 
+            help = 'Store necessary images in datacubes to calculate bias of galaxy.')
 
 
     @classmethod

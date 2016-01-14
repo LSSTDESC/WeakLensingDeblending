@@ -250,6 +250,48 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
         return images,overlap
 
+    def get_bias_matrix_images:
+        ##thinking that a lot will be similar. 
+
+        npar = self.num_slices
+        if npar != len(self.slice_labels):
+            raise RuntimeError('No partial derivative images are available.')
+        # Calculate the overlap bounds.
+        try:
+            overlap = self.bounds[index1] & self.bounds[index2]
+        except IndexError:
+            raise RuntimeError('Invalid index1=%d or index2=%d.' % (index1,index2))
+        # Check that the background image contains each galaxy.
+        if not background.bounds.includes(self.bounds[index1]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index1)
+        if not background.bounds.includes(self.bounds[index2]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index2)
+        # Is there any overlap between the two galaxies?
+        if overlap.area() == 0:
+            return None,None
+        product = self.get_stamp(index1,0)[overlap]*self.get_stamp(index2,0)[overlap]
+        if not np.any(product.array):
+            return None,None
+        # Fill arrays of partial derivatives within the overlap region.
+        width = overlap.xmax - overlap.xmin + 1
+        height = overlap.ymax - overlap.ymin + 1
+        partials1 = np.empty((npar,height,width),dtype = np.float32)
+        partials2 = np.empty((npar,height,width),dtype = np.float32)
+        for islice in range(npar):
+            partials1[islice] = self.get_stamp(index1,islice)[overlap].array
+            partials2[islice] = self.get_stamp(index2,islice)[overlap].array
+        partials1[0] /= self.table['flux'][index1]
+        partials2[0] /= self.table['flux'][index2]
+        # Normalize the Fisher images.
+        mu0 = background[overlap].array + self.survey.mean_sky_level
+        fisher_norm = mu0**-1 + 0.5*mu0**-2
+        # Calculate the Fisher images as the outer product of the partial-derivative images.
+        images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
+        return images,overlap
+
+    def get_bias_images:
+        pass
+
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
@@ -275,7 +317,7 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
-        npar = self.num_slices
+        npar = self.num_slices #this now suppose to still be 6 instead of 21
         nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
         for row,index1 in enumerate(selected):
