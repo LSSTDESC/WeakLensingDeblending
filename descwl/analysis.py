@@ -215,8 +215,8 @@ class OverlapResults(object):
             RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
                 background image, or no partial derivative images are available.
         """
-        npar = self.slice_labels #this are the actual partials
-        if self.num_slices != len(self.slice_labels) or 21:
+        npar = len(self.slice_labels) #this are the actual number of partials
+        if self.num_slices != len(self.slice_labels) and self.num_slices != 21:
             raise RuntimeError('No partial derivative images are available.')
         # Calculate the overlap bounds.
         try:
@@ -251,10 +251,10 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
         return images,overlap
 
-    def get_bias_matrix_images:
+    def get_bias_matrix_images():
         pass
 
-    def get_bias_images:
+    def get_bias_images():
         pass
 
     def get_matrices(self,selected):
@@ -282,7 +282,7 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
-        npar = self.slice_labels
+        npar = len(self.slice_labels)
         nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
         for row,index1 in enumerate(selected):
@@ -665,7 +665,7 @@ class OverlapAnalyzer(object):
         results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
         # Check that we have partial derivatives available.
-        if num_slices != len(results.slice_labels):
+        if num_slices != len(results.slice_labels) and num_slices != 21:
             raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
         sky = self.survey.mean_sky_level
@@ -712,7 +712,7 @@ class OverlapAnalyzer(object):
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
-                base = index*num_slices
+                base = index*6 #number of partials, better way to do this???
                 data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.

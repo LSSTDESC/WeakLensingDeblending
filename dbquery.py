@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 """Query the LSST DM simulation galaxy catalog.
 
 Documentation for this program is available at

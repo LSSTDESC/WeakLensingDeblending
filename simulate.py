@@ -70,7 +70,7 @@ def main():
 
             try:
                 galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                stamps,bounds = render_engine.render_galaxy(galaxy)
+                stamps,bounds = render_engine.render_galaxy(galaxy, args.no_partials, args.calculate_bias)
                 analyzer.add_galaxy(galaxy,stamps,bounds)
                 trace('render')
 

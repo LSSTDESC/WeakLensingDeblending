@@ -242,17 +242,17 @@ class Engine(object):
 
         if not no_partials:
             ncube = 1+len(variations)
+            #create dictionary of mapping from corresponding partial names to position in datacube.
+            positions = {} 
+            for i,(pname_i,delta_i) in enumerate(variations):
+                positions[pname_i] = i+1
             if calculate_bias:
                  #15 is number of second partials for 5 parameters (no flux).
                 ncube = 1 + len(variations) + 15
-                #create dictionary of mapping from corresponding partial names to position in datacube.
-                positions = {}
                 for i,(pname_i,delta_i) in enumerate(variations):
-                    positions[pname_i] = i+1
                     for j,(pname_j,delta_j) in enumerate(variations):
                         if(j>=i):
                             positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
-
 
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
@@ -260,9 +260,8 @@ class Engine(object):
 
         #calculate partials, if requested.
         if not no_partials:
-              #The nominal image doubles as the flux partial derivative.
+            #The nominal image doubles as the flux partial derivative.
             for i,(pname_i,delta_i) in enumerate(variations):
-
                 variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() - 
                                        galaxy.renderer.draw(**{pname_i: -delta_i}))
                 datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
@@ -292,7 +291,6 @@ class Engine(object):
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
-
         return datacube,cropped_bounds
 
     @staticmethod
