@@ -251,8 +251,54 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
         return images,overlap
 
-    def get_bias_matrix_images():
-        pass
+
+    def get_bias_matrix_images(self,index1,index2,background):
+        """Get Bias-matrix images for a set of two galaxies"""
+        npar = len(self.slice_labels) #this are the actual number of partials
+        if self.num_slices != len(self.slice_labels) and self.num_slices != 21:
+            raise RuntimeError('No partial derivative images are available.')
+        # Calculate the overlap bounds.
+        try:
+            overlap = self.bounds[index1] & self.bounds[index2]
+        except IndexError:
+            raise RuntimeError('Invalid index1=%d or index2=%d.' % (index1,index2))
+        # Check that the background image contains each galaxy.
+        if not background.bounds.includes(self.bounds[index1]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index1)
+        if not background.bounds.includes(self.bounds[index2]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index2)
+        # Is there any overlap between the two galaxies?
+        if overlap.area() == 0:
+            return None,None
+        product = self.get_stamp(index1,0)[overlap]*self.get_stamp(index2,0)[overlap]
+        if not np.any(product.array):
+            return None,None
+
+        # Fill arrays of partial derivatives within the overlap region.
+        width = overlap.xmax - overlap.xmin + 1
+        height = overlap.ymax - overlap.ymin + 1
+        partials1 = np.empty((npar,height,width),dtype = np.float32)
+        partials2 = np.empty((npar,height,width),dtype = np.float32)
+        second_partials1 = np.empty((npar,npar,height,width),dtype = np.float32)
+        second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32)
+
+
+        ####have to setup inverse position dictionary.
+
+        #fill partial and second partials, 
+        for islice in range(npar):
+            partials1[islice] = self.get_stamp(index1,islice)[overlap].array
+            partials2[islice] = self.get_stamp(index2,islice)[overlap].array
+            for jslice in range(npar):
+                second_partials1[islice][jslice] = self.get_stamp()
+
+
+
+        partials1[0] /= self.table['flux'][index1]
+
+
+
+
 
     def get_bias_images():
         pass
