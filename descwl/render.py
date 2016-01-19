@@ -269,13 +269,17 @@ class Engine(object):
                 #calculated second partials, if requested. 
                 if calculate_bias:        
                     for j,(pname_j,delta_j) in enumerate(variations):
+
+                        # if(i=j):
+                        #     .5*((1/delta_i)**2)*()
+
                         if(j>=i):
                             galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
-                                                                  pname_j: +delta_j})
+                                                                  pname_j: +delta_j}).copy()
                             galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, 
-                                                                       pname_j: -delta_j})
+                                                                       pname_j: -delta_j}).copy()
                             galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, 
-                                                                       pname_j: +delta_j})
+                                                                       pname_j: +delta_j}).copy()
                             galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, 
                                                                          pname_j: -delta_j})
 
