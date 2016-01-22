@@ -266,14 +266,17 @@ class Engine(object):
                                        galaxy.renderer.draw(**{pname_i: -delta_i}))
                 datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
 
-                #calculated second partials, if requested. 
+                #calculate second partials, if requested. 
                 if calculate_bias:        
                     for j,(pname_j,delta_j) in enumerate(variations):
+                        if(i==j):
+                            galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
+                            galaxy_2idown = galaxy.renderer.draw(**{pname_i: -2*delta_i}).copy()
+                            variation_i_i = galaxy_2iup + galaxy_2idown - 2*galaxy.renderer.draw()
+                            datacube[positions[pname_i,pname_i]] = ((variation_i_i).array/
+                                                                    (2*delta_i)**2)
 
-                        # if(i=j):
-                        #     .5*((1/delta_i)**2)*()
-
-                        if(j>=i):
+                        elif(j>i):
                             galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
                                                                   pname_j: +delta_j}).copy()
                             galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, 
