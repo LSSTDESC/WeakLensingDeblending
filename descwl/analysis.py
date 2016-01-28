@@ -1,3 +1,4 @@
+
 """Perform weak-lensing analysis of simulated sources.
 """
 
@@ -13,6 +14,24 @@ import lmfit
 import descwl.model
 
 from distutils.version import LooseVersion
+
+#create dictionary of mapping from corresponding partial names to position in datacube.
+def make_positions():
+
+    slice_labels = OverlapResults.slice_labels
+
+    positions = {}
+
+    for i,pname_i in enumerate(param_names[1:]):
+        positions[pname_i] = i+1
+        for j,pname_j in enumerate(param_names[1:]):
+            if(j>=i):
+                positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
+    positions[param_names[0]] = 0
+    return positions
+
+def make_inv_positions():
+    return {value:key for key,value in make_positions().iteritems()}
 
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
@@ -277,31 +296,54 @@ class OverlapResults(object):
         # Fill arrays of partial derivatives within the overlap region.
         width = overlap.xmax - overlap.xmin + 1
         height = overlap.ymax - overlap.ymin + 1
-        partials1 = np.empty((npar,height,width),dtype = np.float32)
-        partials2 = np.empty((npar,height,width),dtype = np.float32)
-        second_partials1 = np.empty((npar,npar,height,width),dtype = np.float32)
-        second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32)
+        partials1 = np.empty((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
+        second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
+        # partials2 = np.empty((npar,height,width),dtype = np.float32)
+        # second_partials1 = np.empty((npar,npar,height,width),dtype = np.float32)
 
-
-        ####have to setup inverse position dictionary.
+        #dictionary to get in what bucket is which partial
+        inv_positions = render.make_inv_positions() 
 
         #fill partial and second partials, 
-        for islice in range(npar):
-            partials1[islice] = self.get_stamp(index1,islice)[overlap].array
-            partials2[islice] = self.get_stamp(index2,islice)[overlap].array
-            for jslice in range(npar):
-                second_partials1[islice][jslice] = self.get_stamp()
+        for islice in range(1,npar):
+            datacube_index1 = islice
+            partials1[islice] = self.get_stamp(index1,datacube_index1)[overlap].array 
+            for jslice in range(islice,npar):
+                param_i = render.param_names[islice]
+                param_j = render.param_names[jslice]
+                datacube_index2 = inv_positions[param_i,param_j]
+                second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
+                                                                                          .array)
+
+        #fill in partial with respect to flux
+        partials1[0] = self.get_stamp(index1,0)[overlap].array/self.table['flux'][index1]
+
+        #fill in second partials with respect to flux.
+        for islice in range(1,npar):
+            second_partials2[islice][0] = (self.get_stamp(index2,islice)[overlap].array/
+                                           self.table['flux'][index2])
+
+        #complete second partial array with i,j-->j,i just in case (necessary?) 
 
 
 
-        partials1[0] /= self.table['flux'][index1]
+        mu0 = background[overlap].array + self.survey.mean_sky_level
+        fisher_norm = mu0**-1 + 0.5*mu0**-2
 
 
+        images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)
+        return images
 
 
 
     def get_bias_images():
         pass
+
+    def get_bias_tensor():
+        background = self.get_subimage(selected)
+        nsel = len(selected)
+        npar = len(self.slice_labels)
+
 
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
@@ -394,7 +436,7 @@ class OverlapResults(object):
                     if row == col: continue
                     fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
                     covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
-                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
+                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice] 
             return fisher,covariance,variance,correlation
 
     def match_sextractor(self,catalog_name,column_name = 'match'):

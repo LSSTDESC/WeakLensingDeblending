@@ -8,6 +8,8 @@ import numpy as np
 
 import galsim
 
+import analysis
+
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
@@ -240,19 +242,12 @@ class Engine(object):
         # Prepare the datacube that we will return.
         ncube = 1
 
+        positions = analysis.make_positions()
         if not no_partials:
             ncube = 1+len(variations)
-            #create dictionary of mapping from corresponding partial names to position in datacube.
-            positions = {} 
-            for i,(pname_i,delta_i) in enumerate(variations):
-                positions[pname_i] = i+1
             if calculate_bias:
                  #15 is number of second partials for 5 parameters (no flux).
                 ncube = 1 + len(variations) + 15
-                for i,(pname_i,delta_i) in enumerate(variations):
-                    for j,(pname_j,delta_j) in enumerate(variations):
-                        if(j>=i):
-                            positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
 
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
