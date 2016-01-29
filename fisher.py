@@ -132,6 +132,7 @@ def main():
 
     #do bias calculations
     bias = results.get_bias(selected, covariance)
+    print bias
 
     # Print a summary table of RMS errors on each parameter.
     if args.verbose and correlation is not None:

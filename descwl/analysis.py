@@ -21,12 +21,12 @@ def make_positions():
 
     positions = {}
 
-    for i,pname_i in enumerate(param_names[1:]):
+    for i,pname_i in enumerate(slice_labels[1:]):
         positions[pname_i] = i+1
-        for j,pname_j in enumerate(param_names[1:]):
+        for j,pname_j in enumerate(slice_labels[1:]):
             if(j>=i):
                 positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
-    positions[param_names[0]] = 0
+    positions[slice_labels[0]] = 0
     return positions
 
 def make_inv_positions():
@@ -299,7 +299,8 @@ class OverlapResults(object):
         second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
         #dictionary to get in what bucket is which partial
-        inv_positions = render.make_inv_positions() 
+        positions = make_positions() 
+        slice_labels = OverlapResults.slice_labels
 
         #fill partial and second partials, 
         for islice in range(1,npar):
@@ -313,9 +314,9 @@ class OverlapResults(object):
 
 
             for jslice in range(islice,npar):
-                param_i = render.param_names[islice]
-                param_j = render.param_names[jslice]
-                datacube_index2 = inv_positions[param_i,param_j]
+                param_i = slice_labels[islice]
+                param_j = slice_labels[jslice]
+                datacube_index2 = positions[param_i,param_j]
                 second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
                                                                                           .array)
 
@@ -345,7 +346,7 @@ class OverlapResults(object):
         #take care of dimensionality problems with l.
         #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to refer to the same galaxy.)
 
-        reduced_covariance = np.zeros(nsel*npar,npar, dtype=np.float64)
+        reduced_covariance = np.zeros((nsel*npar,npar), dtype=np.float64)
         for i in range(nsel):
             reduced_covariance[npar*i:npar*(i+1),:]=covariance[npar*i:npar*(i+1),npar*i:npar*(i+1)]
 
@@ -361,7 +362,7 @@ class OverlapResults(object):
         bias_tensor = np.zeros((ntensor,ntensor,npar), dtype=np.float64)
         for row,index1 in enumerate(selected):
             for col,index2 in enumerate(selected):
-                images, overlap = self.get_bias_matrix_images(index1,index2,background)
+                images, overlap = self.get_bias_tensor_images(index1,index2,background)
 
                 if overlap is None:
                     continue
