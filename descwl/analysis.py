@@ -299,7 +299,6 @@ class OverlapResults(object):
         partials1 = np.empty((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
         second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
-
         #dictionary to get in what bucket is which partial
         inv_positions = render.make_inv_positions() 
 
@@ -320,28 +319,39 @@ class OverlapResults(object):
                 datacube_index2 = inv_positions[param_i,param_j]
                 second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
                                                                                           .array)
+
+                #complete second partial array with i,j-->j,i just in case (necessary?) 
                 if islice!=jslice:
                     second_partials2[jslice][islice] = second_partials2[islice][jslice]
 
         #fill in partial with respect to flux
         partials1[0] = self.get_stamp(index1,0)[overlap].array/self.table['flux'][index1]
 
-        for islice in range(1,npar):
-            second_partials2[islice][0] = (self.get_stamp(index2,islice)[overlap].array/
-                                           self.table['flux'][index2])
-
-        #complete second partial array with i,j-->j,i just in case (necessary?) 
         mu0 = background[overlap].array + self.survey.mean_sky_level
         fisher_norm = mu0**-1 + 0.5*mu0**-2
         images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)
         return images,overlap
 
-    def get_bias_images(self, selected, covariance, bias_tensor):
+    def get_bias(self, selected, covariance, bias_tensor):
         nsel = len(selected)
         npar = len(self.slice_labels)
+        nbias = nsel*npar
 
-        bias = np.zeros(nsel, dtype=np.float64)
-        bias = (-.5)*np.einsum('ij,kl,jklyx->iyx')
+        bias = np.zeros(nbias, dtype=np.float64)
+
+        #take care of dimensionality problems with l.
+        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to refer to the same galaxy.)
+
+        covariance_smashed = np.zeros(nsel*npar,npar, dtype=np.float64)
+        for i in range(nsel):
+            covariance_smashed[npar*i:npar*(i+1),:]=covariance[npar*i:npar*(i+1),npar*i:npar*(i+1)]
+
+        bias = (-.5)*np.einsum('ij,kl,jkl->i',covariance, covariance_smashed, bias_tensor)
+
+        return bias
+
+    def get_bias_images(self, index1, bakcground):
+        pass
 
 
     def get_bias_tensor(self,selected,covariance):
@@ -351,20 +361,20 @@ class OverlapResults(object):
         ntensor = nsel*npar
         bias_tensor = np.zeros((ntensor,ntensor,npar), dtype=np.float64)
         for row,index1 in enumerate(selected):
-            for col,index2 in enumerate(selected[:row+1]):
+            for col,index2 in enumerate(selected):
                 images, overlap = self.get_bias_matrix_images(index1,index2,background)
 
                 if overlap is None:
                     continue
-                #maybe not elminate images just yet
-                bias_tensor_sums1 = np.sum(images1,axis=(3,4),dtype = np.float64)
-                bias_tensor[npar*row:npar*(row+1),npar*col:npar*(col+1),0:npar] = bias_tensor_sums1
 
-                if index1 != index2:
-                    images2, overlap = self.get_bias_matrix_images(index2,index1,background)
-                    bias_tensor_sums2 = np.sum(images2,axis=(3,4),dtype = np.float64)
-                    bias_tensor[npar*col:npar*(col+1),npar*row:npar*(row+1),0:npar] = (
-                                                                                bias_tensor_sums2)
+                bias_tensor_sums = np.sum(images,axis=(3,4),dtype = np.float64)
+                bias_tensor[npar*row:npar*(row+1),npar*col:npar*(col+1),:] = bias_tensor_sums
+
+                # if index1 != index2:
+                #     images2, overlap = self.get_bias_matrix_images(index2,index1,background)
+                #     #bias_tensor_sums2 = np.sum(images2,axis=(3,4),dtype = np.float64)
+                #     bias_tensor[npar*col:npar*(col+1),npar*row:npar*(row+1),0:npar] = (
+                #                                                                 bias_tensor_sums2)
 
 
         return bias_tensor
