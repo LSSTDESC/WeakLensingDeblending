@@ -1,4 +1,3 @@
-
 """Perform weak-lensing analysis of simulated sources.
 """
 
@@ -332,27 +331,27 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)
         return images,overlap
 
-    def get_bias(self, selected, covariance, bias_tensor):
+    def get_bias_images(self, index1, bakcground):
+        pass
+
+    def get_bias(self, selected, covariance):
         nsel = len(selected)
         npar = len(self.slice_labels)
         nbias = nsel*npar
 
+        bias_tensor = self.get_bias_tensor(selected, covariance)
         bias = np.zeros(nbias, dtype=np.float64)
 
         #take care of dimensionality problems with l.
         #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to refer to the same galaxy.)
 
-        covariance_smashed = np.zeros(nsel*npar,npar, dtype=np.float64)
+        reduced_covariance = np.zeros(nsel*npar,npar, dtype=np.float64)
         for i in range(nsel):
-            covariance_smashed[npar*i:npar*(i+1),:]=covariance[npar*i:npar*(i+1),npar*i:npar*(i+1)]
+            reduced_covariance[npar*i:npar*(i+1),:]=covariance[npar*i:npar*(i+1),npar*i:npar*(i+1)]
 
-        bias = (-.5)*np.einsum('ij,kl,jkl->i',covariance, covariance_smashed, bias_tensor)
+        bias = (-.5)*np.einsum('ij,kl,jkl->i',covariance, reduced_covariance, bias_tensor)
 
         return bias
-
-    def get_bias_images(self, index1, bakcground):
-        pass
-
 
     def get_bias_tensor(self,selected,covariance):
         background = self.get_subimage(selected)

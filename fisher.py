@@ -130,6 +130,9 @@ def main():
         else:
             matrix = correlation
 
+    #do bias calculations
+    bias = results.get_bias(selected, covariance)
+
     # Print a summary table of RMS errors on each parameter.
     if args.verbose and correlation is not None:
         dtypes = [ (name,np.float32) for name in results.slice_labels ]
