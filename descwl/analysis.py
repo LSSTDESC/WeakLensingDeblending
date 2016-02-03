@@ -295,8 +295,8 @@ class OverlapResults(object):
         # Fill arrays of partial derivatives within the overlap region.
         width = overlap.xmax - overlap.xmin + 1
         height = overlap.ymax - overlap.ymin + 1
-        partials1 = np.empty((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
-        second_partials2 = np.empty((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
+        partials1 = np.zeros((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
+        second_partials2 = np.zeros((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
         #dictionary to get in what bucket is which partial
         positions = make_positions() 
