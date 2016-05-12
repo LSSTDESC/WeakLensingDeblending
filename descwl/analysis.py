@@ -376,10 +376,7 @@ class OverlapResults(object):
                 #     bias_tensor[npar*col:npar*(col+1),npar*row:npar*(row+1),0:npar] = (
                 #                                                                 bias_tensor_sums2)
 
-
         return bias_tensor
-
-
 
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
@@ -749,6 +746,15 @@ class OverlapAnalyzer(object):
             data['e1'][index] = e1
             data['e2'][index] = e2
             data['beta'][index] = beta
+            # sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(self.survey.psf_second_moments)
+            # print 'model.identifier:', model.identifier
+            # print 'sigma_m_psf:', sigma_m_psf
+            # print 'sigma_p_psf:', sigma_p_psf
+            # print 'a_psf', a_psf
+            # print 'b_psf:', b_psf
+            # print 'beta_psf:', beta_psf
+            # print 'e1_psf:', e1_psf 
+            # print 'e2_psf:', e2_psf
             # Re-calculate sizes and shapes with the PSF second moments added.
             sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
                 model.second_moments + self.survey.psf_second_moments)

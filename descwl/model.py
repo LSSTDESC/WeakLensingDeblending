@@ -41,6 +41,7 @@ def sersic_second_moments(n,hlr,q,beta):
     Q22 = 1 + e_mag_sq - 2*e1
     Q12 = 2*e2
     return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2/(1-e_mag_sq)**2
+    #return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2
 
 def moments_size_and_shape(Q):
     """Calculate size and shape parameters from a second-moment tensor.
@@ -153,6 +154,15 @@ class Galaxy(object):
         total_flux = disk_flux + bulge_flux + agn_flux
         self.disk_fraction = disk_flux/total_flux
         self.bulge_fraction = bulge_flux/total_flux
+        print 'identifier', identifier
+        print 'disk_q', disk_q
+        print 'disk_hlr_arcsecs',disk_hlr_arcsecs
+        print 'bulge_hlr_acsecs', bulge_hlr_arcsecs
+        print 'beta_radians',beta_radians
+        #print 'beta_radians*galsim.radians', beta_radians*galsim.radians
+        print 'disk_flux', disk_flux
+        print 'self.cosmic_shear_g1', self.cosmic_shear_g1
+        print 'self.cosmic_shear_g2', self.cosmic_shear_g2
         if disk_flux > 0:
             disk = galsim.Exponential(
                 flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
@@ -160,6 +170,23 @@ class Galaxy(object):
             components.append(disk)
             self.second_moments += self.disk_fraction*sersic_second_moments(
                 n=1,hlr=disk_hlr_arcsecs,q=disk_q,beta=beta_radians)
+
+            Q = self.second_moments
+            trQ = np.trace(Q,axis1=-2,axis2=-1)
+            detQ = np.linalg.det(Q)
+            sigma_m = np.power(detQ,0.25)
+            sigma_p = np.sqrt(0.5*trQ)
+            asymQx = Q[...,0,0] - Q[...,1,1]
+            asymQy = 2*Q[...,0,1]
+            asymQ = np.sqrt(asymQx**2 + asymQy**2)
+            a = np.sqrt(0.5*(trQ + asymQ))
+            b = np.sqrt(0.5*(trQ - asymQ))
+            # e_denom = trQ + 2*np.sqrt(detQ)
+            # e1 = asymQx/e_denom
+            # e2 = asymQy/e_denom
+            print 'a1: {0}'.format(a)
+            print 'b1: {0}'.format(b)
+            print 'sqrt(a1*b1) = hlr_d?: {0}'.format(math.sqrt(a*b))
         if bulge_flux > 0:
             bulge = galsim.DeVaucouleurs(
                 flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
@@ -173,6 +200,19 @@ class Galaxy(object):
         if agn_flux > 0:
             agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
             components.append(agn)
+
+        # Q = self.second_moments
+        # trQ = np.trace(Q,axis1=-2,axis2=-1)
+        # detQ = np.linalg.det(Q)
+        # sigma_m = np.power(detQ,0.25)
+        # sigma_p = np.sqrt(0.5*trQ)
+        # asymQx = Q[...,0,0] - Q[...,1,1]
+        # asymQy = 2*Q[...,0,1]
+        # asymQ = np.sqrt(asymQx**2 + asymQy**2)
+        # a = np.sqrt(0.5*(trQ + asymQ))
+        # b = np.sqrt(0.5*(trQ - asymQ))
+        # print 'a2: {0}'.format(a)
+        # print 'b2: {0}'.format(b)
         # Combine the components into our final profile.
         self.profile = galsim.Add(components)
         # Apply transforms to build the final model.
@@ -278,7 +318,9 @@ class GalaxyBuilder(object):
         # Calculate shapes hlr = sqrt(a*b) and q = b/a of Sersic components.
         if disk_flux > 0:
             a_d,b_d = entry['a_d'],entry['b_d']
+            print 'a_d,b_d: {0},{1}'.format(a_d,b_d)
             disk_hlr_arcsecs = math.sqrt(a_d*b_d)
+            #print 'disk_hlr_arcsecs: ', disk_hlr_arcsecs
             disk_q = b_d/a_d
         else:
             disk_hlr_arcsecs,disk_q = None,None

@@ -138,7 +138,7 @@ def main():
     if args.bias:
         import math
         #print out galaxy id + each of the params
-        slice_labels = ['dflux','dx','dy','ds','dg1','dg2']
+        slice_labels = ['flux','x','y','s','g1','g2']
         for i in range(len(bias)):
             print slice_labels[i]
             print 'std:', math.sqrt(covariance[i][i])

@@ -10,6 +10,7 @@ import galsim
 
 import analysis
 
+import matplotlib.pyplot as plt
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
@@ -46,7 +47,7 @@ class GalaxyRenderer(object):
         """
         Draw the galaxy with the specified transforms applied.
 
-        We use :meth:`descwl.galaxy.Galaxy.get_transformed_model` to apply all
+        We use :meth:`descwl.galaxy.Galaxy.get_transformed_mo del` to apply all
         transforms except for `df`, which we implement internally using rescaling.
         The transformed model is convolved with the survey PSF, rendered into the
         stamp specified in our constructor, and masked (zero pixels in the untransformed
@@ -194,6 +195,12 @@ class Engine(object):
             galaxy.model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
             self.survey.psf_model
             ],gsparams=self.galsim_params)
+
+        if galaxy.identifier == 402700632300:
+            image = model.drawImage(scale=.2, nx=22,
+                           ny=19)
+            image.savefig('galaxy.pdf', bbox_inches='tight', dpi=defaults.DPI)
+
 
         # Render the model in our postage stamp.
         self.stamp.setOrigin(x_min,y_min)
