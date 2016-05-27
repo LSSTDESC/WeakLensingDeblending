@@ -84,9 +84,9 @@ class Reader(object):
         dec_max = self.dec_center + dec_size
         # Iterate over all catalog entries.
         for entry in self.table:
-            if self.only_id and entry['id'] not in self.only_id:
+            if self.only_id and entry['galtileid'] not in self.only_id:
                 continue
-            if self.skip_id and entry['id'] in self.skip_id:
+            if self.skip_id and entry['galtileid'] in self.skip_id:
                 continue
             ra,dec = entry['ra'],entry['dec']
             if ra > 180:
