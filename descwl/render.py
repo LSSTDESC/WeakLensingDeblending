@@ -12,6 +12,8 @@ import analysis
 
 import matplotlib.pyplot as plt
 
+import pickle 
+
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
     """
@@ -197,14 +199,23 @@ class Engine(object):
             ],gsparams=self.galsim_params)
 
         if galaxy.identifier == 402700632300:
-            image = model.drawImage(scale=.2, nx=22,
-                           ny=19)
-            image.savefig('galaxy.pdf', bbox_inches='tight', dpi=defaults.DPI)
+            print galaxy.model
+            print repr(galaxy.model)
+            pickle.dump(galaxy.model.drawImage(scale=.2, nx=22, ny=19), open("galaxy_model.p","wb"))
+            pickle.dump(model.drawImage(scale=.2, nx=22, ny=19), open("model.p", "wb"))
+            pickle.dump(galaxy.profile.drawImage(scale=.2, nx=22, ny=19), open("galaxy_profile.p", "wb"))
+            pickle.dump(self.survey.psf_model.drawImage(scale=.2, nx=22, ny=19), open("psf_model.p", "wb"))
+
+
+        #     image = model.drawImage(scale=.2, nx=22,
+        #                    ny=19)
+        #     image.savefig('galaxy.pdf', bbox_inches='tight', dpi=defaults.DPI)
 
 
         # Render the model in our postage stamp.
         self.stamp.setOrigin(x_min,y_min)
-        model.drawImage(image = self.stamp, use_true_center = True)
+        final = model.drawImage(image = self.stamp, use_true_center = True)
+        pickle.dump(final, open("final.p", "wb"))
 
         # Identify pixels with flux above our cut and within our truncation radius
         # and zero all other pixel fluxes.

@@ -78,8 +78,8 @@ z        float32 Catalog source redshift
 ab_mag   float32 Catalog source AB magnitude in the simulated filter band
 ri_color float32 Catalog source color calculated as (r-i) AB magnitude difference
 flux     float32 Total detected flux in electrons
-sigma_m  float32 Galaxy half-light radius in arcseconds calculated as \|Q\|**0.25
-sigma_p  float32 Galaxy half-light radius in arcseconds calculated as (0.5*trQ)**0.5
+sigma_m  float32 Galaxy size arcseconds calculated as \|Q\|**0.25
+sigma_p  float32 Galaxy size in arcseconds calculated as (0.5*trQ)**0.5
 e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
 e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
 a        float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
