@@ -49,7 +49,7 @@ class GalaxyRenderer(object):
         """
         Draw the galaxy with the specified transforms applied.
 
-        We use :meth:`descwl.galaxy.Galaxy.get_transformed_mo del` to apply all
+        We use :meth:`descwl.galaxy.Galaxy.get_transformed_model` to apply all
         transforms except for `df`, which we implement internally using rescaling.
         The transformed model is convolved with the survey PSF, rendered into the
         stamp specified in our constructor, and masked (zero pixels in the untransformed
@@ -162,7 +162,6 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
-
         #make sure logic makes sense. 
         if no_partials and calculate_bias:
             raise RuntimeError("Cannot calculate bias with partials")
@@ -198,24 +197,16 @@ class Engine(object):
             self.survey.psf_model
             ],gsparams=self.galsim_params)
 
-        if galaxy.identifier == 402700632300:
-            print galaxy.model
-            print repr(galaxy.model)
-            pickle.dump(galaxy.model.drawImage(scale=.2, nx=22, ny=19), open("galaxy_model.p","wb"))
-            pickle.dump(model.drawImage(scale=.2, nx=22, ny=19), open("model.p", "wb"))
-            pickle.dump(galaxy.profile.drawImage(scale=.2, nx=22, ny=19), open("galaxy_profile.p", "wb"))
-            pickle.dump(self.survey.psf_model.drawImage(scale=.2, nx=22, ny=19), open("psf_model.p", "wb"))
 
 
-        #     image = model.drawImage(scale=.2, nx=22,
-        #                    ny=19)
-        #     image.savefig('galaxy.pdf', bbox_inches='tight', dpi=defaults.DPI)
+        print 
+        print 'model:',model
+        print
 
 
         # Render the model in our postage stamp.
         self.stamp.setOrigin(x_min,y_min)
-        final = model.drawImage(image = self.stamp, use_true_center = True)
-        pickle.dump(final, open("final.p", "wb"))
+        final = model.drawImage(image=self.stamp, use_true_center = True)
 
         # Identify pixels with flux above our cut and within our truncation radius
         # and zero all other pixel fluxes.
@@ -235,6 +226,7 @@ class Engine(object):
             x_min+x_min_inset,x_max-x_max_inset,
             y_min+y_min_inset,y_max-y_max_inset)
         cropped_stamp = self.stamp[cropped_bounds]
+        pickle.dump(cropped_stamp, open('cropped_stamp.p','wb'))
 
         # Add the rendered model to the survey image.
         survey_overlap = cropped_bounds & self.survey.image.bounds
