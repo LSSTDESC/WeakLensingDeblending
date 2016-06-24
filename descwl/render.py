@@ -12,8 +12,6 @@ import analysis
 
 import matplotlib.pyplot as plt
 
-import pickle 
-
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
     """
@@ -197,13 +195,6 @@ class Engine(object):
             self.survey.psf_model
             ],gsparams=self.galsim_params)
 
-
-
-        print 
-        print 'model:',model
-        print
-
-
         # Render the model in our postage stamp.
         self.stamp.setOrigin(x_min,y_min)
         final = model.drawImage(image=self.stamp, use_true_center = True)
@@ -226,7 +217,6 @@ class Engine(object):
             x_min+x_min_inset,x_max-x_max_inset,
             y_min+y_min_inset,y_max-y_max_inset)
         cropped_stamp = self.stamp[cropped_bounds]
-        pickle.dump(cropped_stamp, open('cropped_stamp.p','wb'))
 
         # Add the rendered model to the survey image.
         survey_overlap = cropped_bounds & self.survey.image.bounds

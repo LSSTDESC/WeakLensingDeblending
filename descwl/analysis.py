@@ -271,8 +271,30 @@ class OverlapResults(object):
 
 
     def get_bias_tensor_images(self,index1,index2,background):
-        """Get Bias-matrix images for a set of two galaxies"""
-        npar = len(self.slice_labels) #this are the actual number of partials
+        """Return bias tensor images for a pair of galaxies.
+
+        The bias tensor images are required in the calculation of the bias of parameters of 
+        the galaxies. Bias tensor images are derived from the first partials and second partials
+        of the six parameters. 
+
+
+        Args:
+            index1(int): Index of the first galaxy to use.
+            index2(int): Index of the second galaxy to use, which might the same as index1.
+            background(galsim.Image): Background image that combines all sources that overlap
+                the two galaxies and completely contains them.
+
+        Returns:
+            tuple: Tuple (images,overlap) where images is a :class:`numpy.ndarray` with shape
+                (npar,npar,npar,height,width), where npar=6 and (height,width) are the dimensions
+                of the overlap between the two galaxies, and overlap gives the bounding box of the
+                overlap in the full survey image. Returns None,None if the two galaxies do not overlap.
+
+        Raises:
+            RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
+                background image, or no partial derivative images are available.
+        """
+        npar = len(self.slice_labels)
         if self.num_slices != len(self.slice_labels) and self.num_slices != 21:
             raise RuntimeError('No partial derivative images are available.')
         # Calculate the overlap bounds.
@@ -298,11 +320,11 @@ class OverlapResults(object):
         partials1 = np.zeros((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
         second_partials2 = np.zeros((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
-        #dictionary to get in what bucket is which partial
+        #dictionary for positions of partials.
         positions = make_positions() 
         slice_labels = OverlapResults.slice_labels
 
-        #fill partial and second partials, 
+        #fill partials and second partials, 
         for islice in range(1,npar):
             datacube_index1 = islice
             partials1[islice] = self.get_stamp(index1,datacube_index1)[overlap].array 
@@ -320,7 +342,7 @@ class OverlapResults(object):
                 second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
                                                                                           .array)
 
-                #complete second partial array with i,j-->j,i just in case (necessary?) 
+                #complete second partial array with i,j-->j,i just in case.
                 if islice!=jslice:
                     second_partials2[jslice][islice] = second_partials2[islice][jslice]
 
@@ -332,10 +354,22 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)
         return images,overlap
 
-    def get_bias_images(self, index1, bakcground):
-        pass
-
     def get_bias(self, selected, covariance):
+        """Return bias of the 6 parameters in vector form.
+
+        The bias is obtained from contracting the bias tensor with the appropiate covariance 
+        matrix elements. 
+
+
+        Args:
+            selected(iterable): Array of integer indices for the sources to include in the
+                calculated matrices.
+            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+
+        Returns:
+            array: bias which is a vector with dimensions (nbias) 
+                   containing the biases of the selected galaxies. 
+        """
         nsel = len(selected)
         npar = len(self.slice_labels)
         nbias = nsel*npar
@@ -344,7 +378,9 @@ class OverlapResults(object):
         bias = np.zeros(nbias, dtype=np.float64)
 
         #take care of dimensionality problems with l.
-        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to refer to the same galaxy.)
+        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of 
+        #size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to 
+        #refer to the same galaxy.)
 
         reduced_covariance = np.zeros((nsel*npar,npar), dtype=np.float64)
         for i in range(nsel):
@@ -355,6 +391,22 @@ class OverlapResults(object):
         return bias
 
     def get_bias_tensor(self,selected,covariance):
+        """Return bias tensor from the selected galaxies. 
+
+        Uses the function get_bias_tensor_images() and then contracts these images to obtain the 
+        actual bias tensor. 
+
+
+        Args:
+            selected(iterable): Array of integer indices for the sources to include in the
+                calculated matrices.
+            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+
+        Returns:
+            array: bias_tensor with dimensions (ntensor,ntensor,npar) containing 
+                   bias_tensor elements. 
+        """
+
         background = self.get_subimage(selected)
         nsel = len(selected)
         npar = len(self.slice_labels)
@@ -369,12 +421,6 @@ class OverlapResults(object):
 
                 bias_tensor_sums = np.sum(images,axis=(3,4),dtype = np.float64)
                 bias_tensor[npar*row:npar*(row+1),npar*col:npar*(col+1),:] = bias_tensor_sums
-
-                # if index1 != index2:
-                #     images2, overlap = self.get_bias_matrix_images(index2,index1,background)
-                #     #bias_tensor_sums2 = np.sum(images2,axis=(3,4),dtype = np.float64)
-                #     bias_tensor[npar*col:npar*(col+1),npar*row:npar*(row+1),0:npar] = (
-                #                                                                 bias_tensor_sums2)
 
         return bias_tensor
 
