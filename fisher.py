@@ -37,8 +37,6 @@ def main():
         help = 'Show covariance matrix elements (instead of Fisher matrix images).')
     parser.add_argument('--correlation', action = 'store_true',
         help = 'Show correlation matrix elements (instead of Fisher matrix images).')
-    parser.add_argument('--bias', action = 'store_true',
-        help = 'Show bias of each of the selected galaxies parameters.')
 
     display_group = parser.add_argument_group('Display options')
     display_group.add_argument('--figure-size', type = float,
@@ -110,6 +108,7 @@ def main():
             print 'No such group with ID %d' % args.group
             return -1
         title = 'group-%d' % args.group
+        
     # Sort selected galaxies in increasing rank order.
     sort_order = np.argsort(results.table['grp_rank'][selected])
     selected = selected[sort_order]
@@ -131,23 +130,6 @@ def main():
             matrix = covariance
         else:
             matrix = correlation
-
-    #do bias calculations
-    bias = results.get_bias(selected, covariance)
-
-    if args.bias:
-        import math
-        #print out galaxy id + each of the params
-        slice_labels = ['flux','x','y','s','g1','g2']
-        for i in range(len(bias)):
-            print slice_labels[i]
-            print 'std:', math.sqrt(covariance[i][i])
-            print 'bias:', bias[i]
-            print 'bias/std:',bias[i]/math.sqrt(covariance[i][i])
-
-        # print selected 
-        # print covariance
-        # print bias
 
     # Print a summary table of RMS errors on each parameter.
     if args.verbose and correlation is not None:

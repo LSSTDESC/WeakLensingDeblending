@@ -77,7 +77,7 @@ def main():
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
 
-        results = analyzer.finalize(args.verbose,trace)
+        results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
         output.finalize(results,trace)
 
     except RuntimeError,e:

@@ -681,7 +681,7 @@ class OverlapAnalyzer(object):
                 bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
-    def finalize(self,verbose,trace):
+    def finalize(self,verbose,trace,calculate_bias):
         """Finalize analysis of all added galaxies.
 
         Args:
@@ -695,55 +695,121 @@ class OverlapAnalyzer(object):
         trace('OverlapAnalyzer.finalize begin')
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
-        data = np.empty(num_galaxies,dtype=[
-            ('db_id',np.int64),
-            ('grp_id',np.int64),
-            ('grp_size',np.int16),
-            ('grp_rank',np.int16),
-            ('visible',np.int16),
-            # Stamp bounding box.
-            ('xmin',np.int32),
-            ('xmax',np.int32),
-            ('ymin',np.int32),
-            ('ymax',np.int32),
-            # Source properties.
-            ('f_disk', np.float32),
-            ('f_bulge', np.float32),
-            ('dx',np.float32),
-            ('dy',np.float32),
-            ('z',np.float32),
-            ('ab_mag',np.float32),
-            ('ri_color',np.float32),
-            ('flux',np.float32),
-            ('sigma_m',np.float32),
-            ('sigma_p',np.float32),
-            ('e1',np.float32),
-            ('e2',np.float32),
-            ('a',np.float32),
-            ('b',np.float32),
-            ('beta',np.float32),
-            ('psf_sigm',np.float32),
-            # Pixel-level properties.
-            ('purity',np.float32),
-            ('snr_sky',np.float32),
-            ('snr_iso',np.float32),
-            ('snr_grp',np.float32),
-            ('snr_isof',np.float32),
-            ('snr_grpf',np.float32),
-            ('ds',np.float32),
-            ('dg1',np.float32),
-            ('dg2',np.float32),
-            ('ds_grp',np.float32),
-            ('dg1_grp',np.float32),
-            ('dg2_grp',np.float32),
-            # HSM analysis results.
-            ('hsm_sigm',np.float32),
-            ('hsm_e1',np.float32),
-            ('hsm_e2',np.float32),
-            # Systematics fit results.
-            ('g1_fit',np.float32),
-            ('g2_fit',np.float32),
-            ])
+
+        if calculate_bias: 
+            data = np.empty(num_galaxies,dtype=[
+                ('db_id',np.int64),
+                ('grp_id',np.int64),
+                ('grp_size',np.int16),
+                ('grp_rank',np.int16),
+                ('visible',np.int16),
+                # Stamp bounding box.
+                ('xmin',np.int32),
+                ('xmax',np.int32),
+                ('ymin',np.int32),
+                ('ymax',np.int32),
+                # Source properties.
+                ('f_disk', np.float32),
+                ('f_bulge', np.float32),
+                ('dx',np.float32),
+                ('dy',np.float32),
+                ('z',np.float32),
+                ('ab_mag',np.float32),
+                ('ri_color',np.float32),
+                ('flux',np.float32),
+                ('sigma_m',np.float32),
+                ('sigma_p',np.float32),
+                ('e1',np.float32),
+                ('e2',np.float32),
+                ('a',np.float32),
+                ('b',np.float32),
+                ('beta',np.float32),
+                ('psf_sigm',np.float32),
+                # Pixel-level properties.
+                ('purity',np.float32),
+                ('snr_sky',np.float32),
+                ('snr_iso',np.float32),
+                ('snr_grp',np.float32),
+                ('snr_isof',np.float32),
+                ('snr_grpf',np.float32),
+                ('ds',np.float32),
+                ('dg1',np.float32),
+                ('dg2',np.float32),
+                ('bias_f', np.float32),
+                ('bias_s', np.float32),
+                ('bias_g1',np.float32),
+                ('bias_g2',np.float32),
+                ('bias_x',np.float32),
+                ('bias_y',np.float32),
+                ('bias_f_grp', np.float32),
+                ('bias_s_grp', np.float32),
+                ('bias_g1_grp',np.float32),
+                ('bias_g2_grp',np.float32),
+                ('bias_x_grp',np.float32),
+                ('bias_y_grp',np.float32),
+                ('ds_grp',np.float32),
+                ('dg1_grp',np.float32),
+                ('dg2_grp',np.float32),
+                # HSM analysis results.
+                ('hsm_sigm',np.float32),
+                ('hsm_e1',np.float32),
+                ('hsm_e2',np.float32),
+                # Systematics fit results.
+                ('g1_fit',np.float32),
+                ('g2_fit',np.float32),
+                ])
+
+        else:
+                data = np.empty(num_galaxies,dtype=[
+                ('db_id',np.int64),
+                ('grp_id',np.int64),
+                ('grp_size',np.int16),
+                ('grp_rank',np.int16),
+                ('visible',np.int16),
+                # Stamp bounding box.
+                ('xmin',np.int32),
+                ('xmax',np.int32),
+                ('ymin',np.int32),
+                ('ymax',np.int32),
+                # Source properties.
+                ('f_disk', np.float32),
+                ('f_bulge', np.float32),
+                ('dx',np.float32),
+                ('dy',np.float32),
+                ('z',np.float32),
+                ('ab_mag',np.float32),
+                ('ri_color',np.float32),
+                ('flux',np.float32),
+                ('sigma_m',np.float32),
+                ('sigma_p',np.float32),
+                ('e1',np.float32),
+                ('e2',np.float32),
+                ('a',np.float32),
+                ('b',np.float32),
+                ('beta',np.float32),
+                ('psf_sigm',np.float32),
+                # Pixel-level properties.
+                ('purity',np.float32),
+                ('snr_sky',np.float32),
+                ('snr_iso',np.float32),
+                ('snr_grp',np.float32),
+                ('snr_isof',np.float32),
+                ('snr_grpf',np.float32),
+                ('ds',np.float32),
+                ('dg1',np.float32),
+                ('dg2',np.float32),
+                ('ds_grp',np.float32),
+                ('dg1_grp',np.float32),
+                ('dg2_grp',np.float32),
+                # HSM analysis results.
+                ('hsm_sigm',np.float32),
+                ('hsm_e1',np.float32),
+                ('hsm_e2',np.float32),
+                # Systematics fit results.
+                ('g1_fit',np.float32),
+                ('g2_fit',np.float32),
+                ])
+
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
         # Initialize integer arrays of bounding box limits.
@@ -792,15 +858,6 @@ class OverlapAnalyzer(object):
             data['e1'][index] = e1
             data['e2'][index] = e2
             data['beta'][index] = beta
-            # sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(self.survey.psf_second_moments)
-            # print 'model.identifier:', model.identifier
-            # print 'sigma_m_psf:', sigma_m_psf
-            # print 'sigma_p_psf:', sigma_p_psf
-            # print 'a_psf', a_psf
-            # print 'b_psf:', b_psf
-            # print 'beta_psf:', beta_psf
-            # print 'e1_psf:', e1_psf 
-            # print 'e2_psf:', e2_psf
             # Re-calculate sizes and shapes with the PSF second moments added.
             sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
                 model.second_moments + self.survey.psf_second_moments)
@@ -849,6 +906,8 @@ class OverlapAnalyzer(object):
         ds_index = results.slice_labels.index('ds')
         dg1_index = results.slice_labels.index('dg1')
         dg2_index = results.slice_labels.index('dg2')
+        dx_index = results.slice_labels.index('dx')
+        dy_index = results.slice_labels.index('dy')
         # Loop over groups to calculate pixel-level quantities.
         for i,grp_id in enumerate(grp_id_set):
             trace('grp_id %d is %d of %d' % (grp_id,i,len(grp_id_set)))
@@ -858,6 +917,9 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
+
+            if calculate_bias:
+                bias = results.get_bias(group_indices, covariance)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
@@ -896,12 +958,28 @@ class OverlapAnalyzer(object):
                 data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                 data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                 data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
+                if calculate_bias:
+                    data['bias_f_grp'][galaxy] = bias[base+dflux_index]
+                    data['bias_s_grp'][galaxy] = bias[base+ds_index]
+                    data['bias_g1_grp'][galaxy] = bias[base+dg1_index]
+                    data['bias_g2_grp'][galaxy] = bias[base+dg2_index]
+                    data['bias_x_grp'][galaxy] = bias[base+dx_index]
+                    data['bias_y_grp'][galaxy] = bias[base+dy_index]
+
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
                     data['ds'][galaxy] = data['ds_grp'][galaxy]
                     data['dg1'][galaxy] = data['dg1_grp'][galaxy]
                     data['dg2'][galaxy] = data['dg2_grp'][galaxy]
+                    if calculate_bias:
+                        data['bias_f'][galaxy] = data['bias_f_grp'][galaxy]
+                        data['bias_s'][galaxy] = data['bias_s_grp'][galaxy]
+                        data['bias_g1'][galaxy] = data['bias_g1_grp'][galaxy]
+                        data['bias_g2'][galaxy] = data['bias_g2_grp'][galaxy]
+                        data['bias_x'][galaxy] = data['bias_x_grp'][galaxy]
+                        data['bias_y'][galaxy] = data['bias_y_grp'][galaxy]
+
                 else:
                     # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
@@ -914,6 +992,14 @@ class OverlapAnalyzer(object):
                     data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
                     data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
 
+                    if calculate_bias:
+                        iso_bias = results.get_bias([galaxy], iso_covariance)
+                        data['bias_f'][galaxy] = iso_bias[base+dflux_index]
+                        data['bias_s'][galaxy] = iso_bias[base+ds_index]
+                        data['bias_g1'][galaxy] = iso_bias[base+dg1_index]
+                        data['bias_g2'][galaxy] = iso_bias[base+dg2_index]
+                        data['bias_x'][galaxy] = iso_bias[base+dx_index]
+                        data['bias_y'][galaxy] = iso_bias[base+dy_index]
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
             data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
