@@ -8,7 +8,7 @@
 *.log
 *.pdf
 
-notebooks/
+mynotebooks/
 
 # Sphinx documentation
 docs/_build/
