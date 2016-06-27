@@ -8,6 +8,8 @@
 *.log
 *.pdf
 
+notebooks/
+
 # Sphinx documentation
 docs/_build/
 
