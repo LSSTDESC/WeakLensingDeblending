@@ -8,6 +8,10 @@
 *.log
 *.pdf
 
+*.fits
+
+LSST_i
+
 mynotebooks/
 
 # Sphinx documentation
