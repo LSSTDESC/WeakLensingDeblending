@@ -994,12 +994,12 @@ class OverlapAnalyzer(object):
 
                     if calculate_bias:
                         iso_bias = results.get_bias([galaxy], iso_covariance)
-                        data['bias_f'][galaxy] = iso_bias[base+dflux_index]
-                        data['bias_s'][galaxy] = iso_bias[base+ds_index]
-                        data['bias_g1'][galaxy] = iso_bias[base+dg1_index]
-                        data['bias_g2'][galaxy] = iso_bias[base+dg2_index]
-                        data['bias_x'][galaxy] = iso_bias[base+dx_index]
-                        data['bias_y'][galaxy] = iso_bias[base+dy_index]
+                        data['bias_f'][galaxy] = iso_bias[dflux_index]
+                        data['bias_s'][galaxy] = iso_bias[ds_index]
+                        data['bias_g1'][galaxy] = iso_bias[dg1_index]
+                        data['bias_g2'][galaxy] = iso_bias[dg2_index]
+                        data['bias_x'][galaxy] = iso_bias[dx_index]
+                        data['bias_y'][galaxy] = iso_bias[dy_index]
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
             data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
