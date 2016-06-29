@@ -696,8 +696,7 @@ class OverlapAnalyzer(object):
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
 
-        if calculate_bias: 
-            data = np.empty(num_galaxies,dtype=[
+        dtype=[
                 ('db_id',np.int64),
                 ('grp_id',np.int64),
                 ('grp_size',np.int16),
@@ -735,6 +734,20 @@ class OverlapAnalyzer(object):
                 ('ds',np.float32),
                 ('dg1',np.float32),
                 ('dg2',np.float32),
+                ('ds_grp',np.float32),
+                ('dg1_grp',np.float32),
+                ('dg2_grp',np.float32),
+                # HSM analysis results.
+                ('hsm_sigm',np.float32),
+                ('hsm_e1',np.float32),
+                ('hsm_e2',np.float32),
+                # Systematics fit results.
+                ('g1_fit',np.float32),
+                ('g2_fit',np.float32),
+                ]
+
+        if calculate_bias: 
+            dtype.extend([              
                 ('bias_f', np.float32),
                 ('bias_s', np.float32),
                 ('bias_g1',np.float32),
@@ -747,68 +760,9 @@ class OverlapAnalyzer(object):
                 ('bias_g2_grp',np.float32),
                 ('bias_x_grp',np.float32),
                 ('bias_y_grp',np.float32),
-                ('ds_grp',np.float32),
-                ('dg1_grp',np.float32),
-                ('dg2_grp',np.float32),
-                # HSM analysis results.
-                ('hsm_sigm',np.float32),
-                ('hsm_e1',np.float32),
-                ('hsm_e2',np.float32),
-                # Systematics fit results.
-                ('g1_fit',np.float32),
-                ('g2_fit',np.float32),
                 ])
 
-        else:
-                data = np.empty(num_galaxies,dtype=[
-                ('db_id',np.int64),
-                ('grp_id',np.int64),
-                ('grp_size',np.int16),
-                ('grp_rank',np.int16),
-                ('visible',np.int16),
-                # Stamp bounding box.
-                ('xmin',np.int32),
-                ('xmax',np.int32),
-                ('ymin',np.int32),
-                ('ymax',np.int32),
-                # Source properties.
-                ('f_disk', np.float32),
-                ('f_bulge', np.float32),
-                ('dx',np.float32),
-                ('dy',np.float32),
-                ('z',np.float32),
-                ('ab_mag',np.float32),
-                ('ri_color',np.float32),
-                ('flux',np.float32),
-                ('sigma_m',np.float32),
-                ('sigma_p',np.float32),
-                ('e1',np.float32),
-                ('e2',np.float32),
-                ('a',np.float32),
-                ('b',np.float32),
-                ('beta',np.float32),
-                ('psf_sigm',np.float32),
-                # Pixel-level properties.
-                ('purity',np.float32),
-                ('snr_sky',np.float32),
-                ('snr_iso',np.float32),
-                ('snr_grp',np.float32),
-                ('snr_isof',np.float32),
-                ('snr_grpf',np.float32),
-                ('ds',np.float32),
-                ('dg1',np.float32),
-                ('dg2',np.float32),
-                ('ds_grp',np.float32),
-                ('dg1_grp',np.float32),
-                ('dg2_grp',np.float32),
-                # HSM analysis results.
-                ('hsm_sigm',np.float32),
-                ('hsm_e1',np.float32),
-                ('hsm_e2',np.float32),
-                # Systematics fit results.
-                ('g1_fit',np.float32),
-                ('g2_fit',np.float32),
-                ])
+        data = np.empty(num_galaxies, dtype=dtype)
 
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
@@ -950,7 +904,7 @@ class OverlapAnalyzer(object):
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
-                base = index*6 #number of partials, better way to do this???
+                base = index*len(results.slice_labels) #number of first partials
                 data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
