@@ -7,7 +7,7 @@ The following `iPython notebooks <http://ipython.org/notebook.html>`_ are includ
  * `ShearEstimatorPlots <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/ShearEstimatorPlots.ipynb>`_: Plots related to shear estimation.
  * `Figures <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/Figures.ipynb>`_: Figures for documenting the package.
  * `Source Extractor Comparisons <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/SEXtractorComparisons.ipynb>`_: Comparisons with Source Extractor object detection.
- * `BiasEstimationPlots <http://nbviewer.jupyter.org/gist/ismael2395/ab03e35e149df780af1b91467167ecfd>`_: Plots related to bias estimation. 
+ * `BiasEstimationPlots <http://nbviewer.jupyter.org/gist/ismael2395/6976faafffedd77353619ab75c53a7f0>`_: Plots related to bias estimation. 
 
 You can also edit and run these notebooks locally if you have ipython installed. First `start the server <http://ipython.org/ipython-doc/stable/notebook/notebook.html#starting-the-notebook-server>`_ in its own window (where it log messages will appear)::
 
