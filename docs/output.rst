@@ -95,15 +95,21 @@ snr_iso  float32 Same as snr_sky but including signal variance (b)
 snr_grp  float32 Same as snr_sky but including signal+overlap variance (c)
 snr_isof float32 Same as snr_grp but including correlations with fit parameters for this source (d)
 snr_grpf float32 Same as snr_grp but including correlations with fit parameters for all sources (e)
+-------- ------- ------------------------------------------------------------------------------------
+**Error on parameters** (Square root of covariance matrix elements calculated from the Fisher Formalism)
+-----------------------------------------------------------------------------------------------------
 ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
 dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2 (d)
 dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1 (d)
 ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
 dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
+-------- ------- ------------------------------------------------------------------------------------
+**Bias on parameters** (Calculated from Fisher Formalism)
+-----------------------------------------------------------------------------------------------------
 bias_f   float32 Bias on galaxy's flux marginalized over scale,x,y,g1,g2.
 bias_s   float32 Bias on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2
-bias_g1  float32 Bias on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2
+bias_g1  float32 Bias  on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2
 bias_g2  float32 Bias on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1
 bias_x   float32 Bias on source's centroid in x relative to image center in arcseconds marginalized over flux,y,scale,g1,g2
 bias_y   float32 Bias on source's centroid in y relative to image center in arcseconds marginalized over flux,x,scale,g1,g2
