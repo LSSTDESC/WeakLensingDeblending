@@ -10,11 +10,10 @@
 
 *.fits
 
-LSST_i
-
 notes.txt
 
 mynotebooks/
+data/
 
 # Sphinx documentation
 docs/_build/

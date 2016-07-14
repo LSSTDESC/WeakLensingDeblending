@@ -65,7 +65,6 @@ def main():
             print output.description()
 
         trace('initialized')
-
         for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
             try:
@@ -76,7 +75,6 @@ def main():
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
-
         results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
         output.finalize(results,trace)
 
