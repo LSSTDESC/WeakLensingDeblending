@@ -1,0 +1,53 @@
+Read 858502 catalog entries from OneDegSq.fits
+Simulating LSST i-band survey with {'exposure_time': 6900.0, 'sky_brightness': 20.0, 'mirror_diameter': 8.36, 'airmass': 1.2, 'zero_point': 41.5, 'survey_name': 'LSST', 'image_width': 18000, 'filter_band': 'i', 'pixel_scale': 0.2, 'atmospheric_psf_beta': 0.0, 'cosmic_shear_g2': 0.01, 'zenith_psf_fwhm': 0.67, 'image_height': 18000, 'effective_area': 33.212, 'extinction': 0.07, 'atmospheric_psf_e1': 0.0, 'cosmic_shear_g1': 0.01, 'atmospheric_psf_e2': 0.0} (obs.frac. = 0.628)
+Will render all pixels with at least 33.5 detected electrons.
+PSF dilution factor is 0.049718.
+Simulation output will be saved to section_final2T1.fits
+Traceback (most recent call last):
+  File "./simulate.py", line 86, in <module>
+    main()
+  File "./simulate.py", line 72, in main
+    stamps,bounds = render_engine.render_galaxy(galaxy, args.no_partials, args.calculate_bias)
+  File "/nfs/slac/g/ki/ki19/deuce/AEGIS/ismael/WeakLensingDeblending/descwl/render.py", line 280, in render_galaxy
+    pname_j: +delta_j}).copy()
+  File "/nfs/slac/g/ki/ki19/deuce/AEGIS/ismael/WeakLensingDeblending/descwl/render.py", line 82, in draw
+    convolved.drawImage(image = self.stamp)
+  File "/nfs/slac/g/ki/ki19/jmeyers3/software/lib/python2.7/site-packages/galsim/base.py", line 1137, in drawImage
+    image.added_flux = prof.SBProfile.draw(imview.image, gain, wmult)
+KeyboardInterrupt
+
+------------------------------------------------------------
+Sender: LSF System <lsf@fell0114>
+Subject: Job 645401: <./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --image-width 18000 --image-height 18000 --output-name section_final2T1 --calculate_bias --cosmic-shear-g1 0.01 --cosmic-shear-g2 0.01 --verbose> in cluster <slac> Exited
+
+Job <./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --image-width 18000 --image-height 18000 --output-name section_final2T1 --calculate_bias --cosmic-shear-g1 0.01 --cosmic-shear-g2 0.01 --verbose> was submitted from host <ki-ls08> by user <imendoza> in cluster <slac>.
+Job was executed on host(s) <fell0114>, in queue <long>, as user <imendoza> in cluster <slac>.
+</u/ki/imendoza> was used as the home directory.
+</nfs/slac/g/ki/ki19/deuce/AEGIS/ismael/WeakLensingDeblending> was used as the working directory.
+Started at Fri Jul 29 11:58:04 2016
+Results reported on Fri Jul 29 14:34:11 2016
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+./simulate.py --catalog-name OneDegSq.fits --survey-name LSST --image-width 18000 --image-height 18000 --output-name section_final2T1 --calculate_bias --cosmic-shear-g1 0.01 --cosmic-shear-g2 0.01 --verbose
+------------------------------------------------------------
+
+TERM_OWNER: job killed by owner.
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   9356.39 sec.
+    Max Memory :                                 2962 MB
+    Average Memory :                             2361.74 MB
+    Total Requested Memory :                     -
+    Delta Memory :                               -
+    Max Processes :                              4
+    Max Threads :                                13
+    Run time :                                   9367 sec.
+    Turnaround time :                            9368 sec.
+
+The output (if any) is above this job summary.
+
