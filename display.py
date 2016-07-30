@@ -17,8 +17,6 @@ import galsim
 
 import descwl
 
-import ipdb 
-
 def main():
     # Initialize and parse command-line arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -115,8 +113,6 @@ def main():
         help = 'Matplotlib color name to use for outlining text.')
 
     args = parser.parse_args()
-
-    ipdb.set_trace()
 
     if args.no_display and not args.output_name:
         print 'No display our output requested.'
