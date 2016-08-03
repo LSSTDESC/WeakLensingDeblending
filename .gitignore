@@ -15,6 +15,7 @@ notes.txt
 
 mynotebooks/
 data/
+old/ 
 
 # Sphinx documentation
 docs/_build/
