@@ -1,0 +1,2 @@
+#these jobs will create 1/16 of regions of the oneSQDegree of David but including tables of bias on shear and things that I implemented. 
+#they are combined in the next jobs (combine_fits) in the appropiate format. 
