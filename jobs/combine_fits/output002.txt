@@ -1,0 +1,36 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsf@hequ0119>
+Subject: Job 171373: <python jobs2.py> in cluster <slac> Done
+
+Job <python jobs2.py> was submitted from host <ki-ls08> by user <imendoza> in cluster <slac>.
+Job was executed on host(s) <hequ0119>, in queue <medium>, as user <imendoza> in cluster <slac>.
+</u/ki/imendoza> was used as the home directory.
+</nfs/slac/g/ki/ki19/deuce/AEGIS/ismael/WeakLensingDeblending/jobs/combine_fits> was used as the working directory.
+Started at Thu Aug  4 13:35:08 2016
+Results reported on Thu Aug  4 13:58:53 2016
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python jobs2.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   1350.46 sec.
+    Max Memory :                                 4218 MB
+    Average Memory :                             1903.13 MB
+    Total Requested Memory :                     -
+    Delta Memory :                               -
+    Max Swap :                                   4902 MB
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   1424 sec.
+    Turnaround time :                            1429 sec.
+
+The output (if any) is above this job summary.
+
