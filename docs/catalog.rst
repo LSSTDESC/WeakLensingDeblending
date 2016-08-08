@@ -1,6 +1,8 @@
 Source Catalogs
 ===============
 
+.. _catalog-format:
+
 Galaxy Catalog Format
 ---------------------
 
@@ -30,12 +32,12 @@ a_d                  Semi-major axis of disk 50% isophote (arcseconds)
 b_d                  Semi-minor axis of disk 50% isophote (arcseconds)
 pa_bulge             Position angle of bulge (degrees)
 pa_disk              Position angle of disk (degrees)
-u_ab                 Apparent AB magnitude in the LSST u-band, including extinction effects 
-g_ab                 Apparent AB magnitude in the LSST g-band, including extinction effects 
-r_ab                 Apparent AB magnitude in the LSST r-band, including extinction effects 
-i_ab                 Apparent AB magnitude in the LSST i-band, including extinction effects 
-z_ab                 Apparent AB magnitude in the LSST z-band, including extinction effects 
-y_ab                 Apparent AB magnitude in the LSST y-band, including extinction effects 
+u_ab                 Apparent AB magnitude in the LSST u-band, including extinction effects
+g_ab                 Apparent AB magnitude in the LSST g-band, including extinction effects
+r_ab                 Apparent AB magnitude in the LSST r-band, including extinction effects
+i_ab                 Apparent AB magnitude in the LSST i-band, including extinction effects
+z_ab                 Apparent AB magnitude in the LSST z-band, including extinction effects
+y_ab                 Apparent AB magnitude in the LSST y-band, including extinction effects
 ==================== ==========================================================================
 
 The catalog file is read using a :py:class:`astropy.io.ascii.Basic` reader (created with default options) so can be embellished with comments and blank lines for readability, as supported by that class.

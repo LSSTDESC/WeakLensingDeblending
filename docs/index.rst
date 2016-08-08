@@ -18,6 +18,8 @@ The code is hosted on `github <https://github.com/DarkEnergyScienceCollaboration
 .. toctree::
    :maxdepth: 2
 
+   quickstart
+   faq
    install
    catalog
    examples
