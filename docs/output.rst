@@ -52,85 +52,85 @@ Analysis Results
 HDU[1] contains a binary table where each row represents one simulated source and the columns are described in the table below. Q refers to the second-moment tensor of the galaxy's combined (bulge + disk + AGN) 50% isophote, including any cosmic shear but not the PSF. M refers to the second-moment tensor estimated using adaptive pixel
 moments and including the PSF. Note that the `e1,e2` and `hsm_e1,hsm_e2` parameters use different ellipticity conventions. HSM below refers to algorithms described in Hirata & Seljak (2003; MNRAS, 343, 459) and tested/characterized using real data in Mandelbaum et al. (2005; MNRAS, 361, 1287).
 
-======== ======= ====================================================================================
-Name     Type    Description
-======== ======= ====================================================================================
-db_id    int64   Unique identifier for this source in the LSST DM catalog database
-grp_id   int64   Group identifier (db_id of group member with largest snr_grp)
-grp_size int16   Number of sources in this group (equal to 1 for isolated sources)
-grp_rank int16   Rank position of this source in its group based on decreasing snr_iso
-visible  int16   Is this source's centroid within (1) our outside (0) the simulated image bounds?
--------- ------- ------------------------------------------------------------------------------------
+=========== ======= ====================================================================================
+Name        Type    Description
+=========== ======= ====================================================================================
+db_id       int64   Unique identifier for this source in the LSST DM catalog database
+grp_id      int64   Group identifier (db_id of group member with largest snr_grp)
+grp_size    int16   Number of sources in this group (equal to 1 for isolated sources)
+grp_rank    int16   Rank position of this source in its group based on decreasing snr_iso
+visible     int16   Is this source's centroid within (1) our outside (0) the simulated image bounds?
+----------- ------- ------------------------------------------------------------------------------------
 **Stamp Bounding Box**
------------------------------------------------------------------------------------------------------
-xmin     int32   Pixel offset of left edge of bounding box relative to left edge of survey image
-xmax     int32   Pixel offset of right edge of bounding box relative to left edge of survey image
-ymin     int32   Pixel offset of bottom edge of bounding box relative to bottom edge of survey image
-ymax     int32   Pixel offset of top edge of bounding box relative to bottom edge of survey image
--------- ------- ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+xmin        int32   Pixel offset of left edge of bounding box relative to left edge of survey image
+xmax        int32   Pixel offset of right edge of bounding box relative to left edge of survey image
+ymin        int32   Pixel offset of bottom edge of bounding box relative to bottom edge of survey image
+ymax        int32   Pixel offset of top edge of bounding box relative to bottom edge of survey image
+----------- ------- ------------------------------------------------------------------------------------
 **Source Properties**
------------------------------------------------------------------------------------------------------
-f_disk   float32 Fraction of total galaxy flux to due a Sersic n=1 disk component
-f_bulge  float32 Fraction of total galaxy flux to due a Sersic n=4 bulge component
-dx       float32 Source centroid in x relative to image center in arcseconds
-dy       float32 Source centroid in y relative to image center in arcseconds
-z        float32 Catalog source redshift
-ab_mag   float32 Catalog source AB magnitude in the simulated filter band
-ri_color float32 Catalog source color calculated as (r-i) AB magnitude difference
-flux     float32 Total detected flux in electrons
-sigma_m  float32 Galaxy size arcseconds calculated as \|Q\|**0.25
-sigma_p  float32 Galaxy size in arcseconds calculated as (0.5*trQ)**0.5
-e1       float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
-e2       float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
-a        float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
-b        float32 Semi-minor axis of 50% isophote ellipse in arcseconds, derived from Q
-beta     float32 Position angle of second-moment ellipse in radians, or zero when a = b
-psf_sigm float32 PSF-convolved half-light radius in arcseconds calculated as \|Q\|**0.25
--------- ------- ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+f_disk      float32 Fraction of total galaxy flux to due a Sersic n=1 disk component
+f_bulge     float32 Fraction of total galaxy flux to due a Sersic n=4 bulge component
+dx          float32 Source centroid in x relative to image center in arcseconds
+dy          float32 Source centroid in y relative to image center in arcseconds
+z           float32 Catalog source redshift
+ab_mag      float32 Catalog source AB magnitude in the simulated filter band
+ri_color    float32 Catalog source color calculated as (r-i) AB magnitude difference
+flux        float32 Total detected flux in electrons
+sigma_m     float32 Galaxy size arcseconds calculated as \|Q\|**0.25
+sigma_p     float32 Galaxy size in arcseconds calculated as (0.5*trQ)**0.5
+e1          float32 Real part (+) of galaxy ellipticity spinor (Q11-Q22)/(Q11+Q22+2\|Q\|**0.5)
+e2          float32 Imaginary part (x) of galaxy ellipticity spinor (2*Q12)/(Q11+Q22+2\|Q\|**0.5)
+a           float32 Semi-major axis of 50% isophote ellipse in arcseconds, derived from Q
+b           float32 Semi-minor axis of 50% isophote ellipse in arcseconds, derived from Q
+beta        float32 Position angle of second-moment ellipse in radians, or zero when a = b
+psf_sigm    float32 PSF-convolved half-light radius in arcseconds calculated as \|Q\|**0.25
+----------- ------- ------------------------------------------------------------------------------------
 **Pixel-Level Properties**
------------------------------------------------------------------------------------------------------
-purity   float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
-snr_sky  float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit (a)
-snr_iso  float32 Same as snr_sky but including signal variance (b)
-snr_grp  float32 Same as snr_sky but including signal+overlap variance (c)
-snr_isof float32 Same as snr_grp but including correlations with fit parameters for this source (d)
-snr_grpf float32 Same as snr_grp but including correlations with fit parameters for all sources (e)
--------- ------- ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+purity      float32 Purity of this source in the range 0-1 (equals 1 when grp_size is 1)
+snr_sky     float32 S/N ratio calculated by ignoring any overlaps in the sky-dominated limit (a)
+snr_iso     float32 Same as snr_sky but including signal variance (b)
+snr_grp     float32 Same as snr_sky but including signal+overlap variance (c)
+snr_isof    float32 Same as snr_grp but including correlations with fit parameters for this source (d)
+snr_grpf    float32 Same as snr_grp but including correlations with fit parameters for all sources (e)
+----------- ------- ------------------------------------------------------------------------------------
 **Error on parameters** (Square root of covariance matrix elements calculated from the Fisher Formalism)
------------------------------------------------------------------------------------------------------
-ds       float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
-dg1      float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2 (d)
-dg2      float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1 (d)
-ds_grp   float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
-dg1_grp  float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
-dg2_grp  float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
--------- ------- ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+ds          float32 Error on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2 (d)
+dg1         float32 Error on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2 (d)
+dg2         float32 Error on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1 (d)
+ds_grp      float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
+dg1_grp     float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
+dg2_grp     float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
+----------- ------- ------------------------------------------------------------------------------------
 **Bias on parameters** (Calculated from Fisher Formalism)
------------------------------------------------------------------------------------------------------
-bias_f   float32 Bias on galaxy's flux marginalized over scale,x,y,g1,g2.
-bias_s   float32 Bias on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2
-bias_g1  float32 Bias  on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2
-bias_g2  float32 Bias on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1
-bias_x   float32 Bias on source's centroid in x relative to image center in arcseconds marginalized over flux,y,scale,g1,g2
-bias_y   float32 Bias on source's centroid in y relative to image center in arcseconds marginalized over flux,x,scale,g1,g2
+--------------------------------------------------------------------------------------------------------
+bias_f      float32 Bias on galaxy's flux marginalized over scale,x,y,g1,g2.
+bias_s      float32 Bias on scale dilation factor (nominal s=1) marginalized over flux,x,y,g1,g2
+bias_g1     float32 Bias  on shear + component (nominal g1=0) marginalized over flux,x,y,scale,g2
+bias_g2     float32 Bias on shear x component (nominal g2=0) marginalized over flux,x,y,scale,g1
+bias_x      float32 Bias on source's centroid in x relative to image center in arcseconds marginalized over flux,y,scale,g1,g2
+bias_y      float32 Bias on source's centroid in y relative to image center in arcseconds marginalized over flux,x,scale,g1,g2
 bias_f_grp  float32 Same as bias_f but also marginalizing over parameters of any overlapping sources.
 bias_s_grp  float32 Same as bias_s but also marginalizing over parameters of any overlapping sources.
 bias_g1_grp float32 Same as bias_g1 but also marginalizing over parameters of any overlapping sources.
 bias_g2_grp float32 Same as bias_g2 but also marginalizing over parameters of any overlapping sources.
 bias_x_grp  float32 Same as bias_x but also marginalizing over parameters of any overlapping sources.
 bias_y_grp  float32 Same as bias_y but also marginalizing over parameters of any overlapping sources.
--------- ------- ------------------------------------------------------------------------------------
+----------- ------- ------------------------------------------------------------------------------------
 **HSM Analysis Results** (ignoring overlaps)
------------------------------------------------------------------------------------------------------
-hsm_sigm float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
-hsm_e1   float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments
-hsm_e2   float32 Galaxy shape e1=(2*M12)/(M11+M22) from PSF-convolved adaptive second moments
--------- ------- ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+hsm_sigm    float32 Galaxy size \|M\|**0.25 in arcseconds from PSF-convolved adaptive second moments
+hsm_e1      float32 Galaxy shape e1=(M11-M22)/(M11+M22) from PSF-convolved adaptive second moments
+hsm_e2      float32 Galaxy shape e1=(2*M12)/(M11+M22) from PSF-convolved adaptive second moments
+----------- ------- ------------------------------------------------------------------------------------
 **Systematics Fit Results**
------------------------------------------------------------------------------------------------------
-g1_fit   float32  Best-fit value of g1 from simultaneous fit to noise-free image
-g2_fit   float32  Best-fit value of g2 from simultaneous fit to noise-free image
-======== ======= ====================================================================================
+--------------------------------------------------------------------------------------------------------
+g1_fit      float32 Best-fit value of g1 from simultaneous fit to noise-free image
+g2_fit      float32 Best-fit value of g2 from simultaneous fit to noise-free image
+=========== ======= ====================================================================================
 
 The figure below illustrates the different Fisher-matrix error-estimation models (a-e) used to define the pixel-level properties and referred to in the table above. The green bands show the variance used in the Fisher-matrix denominator and the arrows indicate the parameters that are considered floating for calculating marginalized parameter errors. Vertical arrows denote flux parameters and horizontal arrows denote the size and shape parameters (dx,dy,ds,dg1,dg2).
 
