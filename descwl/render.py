@@ -10,7 +10,6 @@ import galsim
 
 import analysis
 
-import matplotlib.pyplot as plt
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
@@ -160,7 +159,7 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
-        #make sure logic makes sense. 
+        #make sure logic makes sense.
         if no_partials and calculate_bias:
             raise RuntimeError("Cannot calculate bias with partials")
 
@@ -251,18 +250,18 @@ class Engine(object):
 
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
-        datacube[0] = cropped_stamp.array #flux partial is the same. 
+        datacube[0] = cropped_stamp.array #flux partial is the same.
 
         #calculate partials, if requested.
         if not no_partials:
             #The nominal image doubles as the flux partial derivative.
             for i,(pname_i,delta_i) in enumerate(variations):
-                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() - 
+                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() -
                                        galaxy.renderer.draw(**{pname_i: -delta_i}))
                 datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
 
-                #calculate second partials, if requested. 
-                if calculate_bias:        
+                #calculate second partials, if requested.
+                if calculate_bias:
                     for j,(pname_j,delta_j) in enumerate(variations):
                         if(i==j):
                             galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
@@ -272,18 +271,18 @@ class Engine(object):
                                                                     (2*delta_i)**2)
 
                         elif(j>i):
-                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i,
                                                                   pname_j: +delta_j}).copy()
-                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i,
                                                                        pname_j: -delta_j}).copy()
-                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i,
                                                                        pname_j: +delta_j}).copy()
-                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i,
                                                                          pname_j: -delta_j})
 
-                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown - 
+                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown -
                                              galaxy_idown_jup - galaxy_iup_jdown)
-                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array / 
+                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array /
                                                                     (4*delta_i*delta_j))
 
         if self.verbose_render:
@@ -316,10 +315,10 @@ class Engine(object):
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
 
-        #add one for partials and bias. 
-        parser.add_argument('--no_partials', action = 'store_true', 
+        #add one for partials and bias.
+        parser.add_argument('--no_partials', action = 'store_true',
             help = 'Do not store partial derivative images of the galaxy in data cubes')
-        parser.add_argument('--calculate_bias', action = 'store_true', 
+        parser.add_argument('--calculate_bias', action = 'store_true',
             help = 'Store necessary images in datacubes to calculate bias of galaxy.')
 
 
