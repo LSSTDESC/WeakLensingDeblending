@@ -14,7 +14,6 @@ v0.3
 
 v0.2
 ----
-- Download from `here <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/releases/tag/v0.2>`_.
 - Refactor code and add sphinx documentation.
 - Rename `galsimcat.py` as `simulate.py` and `lsst2wl.py` as `dbquery.py`.
 - Add new programs `display.py`, `fisher.py`.
@@ -26,5 +25,4 @@ v0.2
 
 v0.1
 ----
-- Download from `here <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/releases/tag/v0.1>`_.
 - Version used to prepare results for the `Dec 2013 LSST DESC meeting <https://indico.bnl.gov/conferenceDisplay.py?confId=691>`_ in Pittsburgh.
