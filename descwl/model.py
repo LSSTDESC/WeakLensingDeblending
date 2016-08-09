@@ -9,6 +9,7 @@ import numpy.linalg
 
 import galsim
 
+
 def sersic_second_moments(n,hlr,q,beta):
     """Calculate the second-moment tensor of a sheared Sersic radial profile.
 
@@ -41,6 +42,7 @@ def sersic_second_moments(n,hlr,q,beta):
     Q22 = 1 + e_mag_sq - 2*e1
     Q12 = 2*e2
     return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2/(1-e_mag_sq)**2
+    #return np.array(((Q11,Q12),(Q12,Q22)))*cn*hlr**2
 
 def moments_size_and_shape(Q):
     """Calculate size and shape parameters from a second-moment tensor.
@@ -154,12 +156,11 @@ class Galaxy(object):
         self.disk_fraction = disk_flux/total_flux
         self.bulge_fraction = bulge_flux/total_flux
         if disk_flux > 0:
-            disk = galsim.Exponential(
-                flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(
-                q = disk_q, beta = beta_radians*galsim.radians)
+            disk = galsim.Exponential(flux = disk_flux, half_light_radius = disk_hlr_arcsecs).shear(q = disk_q, beta = beta_radians*galsim.radians)
             components.append(disk)
             self.second_moments += self.disk_fraction*sersic_second_moments(
                 n=1,hlr=disk_hlr_arcsecs,q=disk_q,beta=beta_radians)
+
         if bulge_flux > 0:
             bulge = galsim.DeVaucouleurs(
                 flux = bulge_flux, half_light_radius = bulge_hlr_arcsecs).shear(
@@ -173,10 +174,13 @@ class Galaxy(object):
         if agn_flux > 0:
             agn = galsim.Gaussian(flux = agn_flux, sigma = 1e-8)
             components.append(agn)
+
         # Combine the components into our final profile.
         self.profile = galsim.Add(components)
         # Apply transforms to build the final model.
+
         self.model = self.get_transformed_model()
+
         # Shear the second moments, if necessary.
         if self.cosmic_shear_g1 != 0 or self.cosmic_shear_g2 != 0:
             self.second_moments = sheared_second_moments(
@@ -203,6 +207,7 @@ class Galaxy(object):
             galsim.GSObject: New model constructed using our source profile with
                 the requested transforms applied.
         """
+
         return (self.profile
             .dilate(1 + ds)
             .shear(g1 = self.cosmic_shear_g1 + dg1,g2 = self.cosmic_shear_g2 + dg2)

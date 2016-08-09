@@ -14,6 +14,24 @@ import descwl.model
 
 from distutils.version import LooseVersion
 
+#create dictionary of mapping from corresponding partial names to position in datacube.
+def make_positions():
+
+    slice_labels = OverlapResults.slice_labels
+
+    positions = {}
+
+    for i,pname_i in enumerate(slice_labels[1:]):
+        positions[pname_i] = i+1
+        for j,pname_j in enumerate(slice_labels[1:]):
+            if(j>=i):
+                positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
+    positions[slice_labels[0]] = 0
+    return positions
+
+def make_inv_positions():
+    return {value:key for key,value in make_positions().iteritems()}
+
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
 
@@ -46,7 +64,8 @@ class OverlapResults(object):
         self.bounds = bounds
         self.num_slices = num_slices
         if len(self.stamps) > 0:
-            if self.num_slices not in (1,len(self.slice_labels)):
+             #3rd case allows second partials
+            if self.num_slices not in (1,len(self.slice_labels), 21): 
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
         self.noise_seed = None
@@ -214,8 +233,8 @@ class OverlapResults(object):
             RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
                 background image, or no partial derivative images are available.
         """
-        npar = self.num_slices
-        if npar != len(self.slice_labels):
+        npar = len(self.slice_labels) #this are the actual number of partials
+        if self.num_slices != len(self.slice_labels) and self.num_slices != 21:
             raise RuntimeError('No partial derivative images are available.')
         # Calculate the overlap bounds.
         try:
@@ -250,6 +269,161 @@ class OverlapResults(object):
         images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
         return images,overlap
 
+
+    def get_bias_tensor_images(self,index1,index2,background):
+        """Return bias tensor images for a pair of galaxies.
+
+        The bias tensor images are required in the calculation of the bias of parameters of 
+        the galaxies. Bias tensor images are derived from the first partials and second partials
+        of the six parameters. 
+
+
+        Args:
+            index1(int): Index of the first galaxy to use.
+            index2(int): Index of the second galaxy to use, which might the same as index1.
+            background(galsim.Image): Background image that combines all sources that overlap
+                the two galaxies and completely contains them.
+
+        Returns:
+            tuple: Tuple (images,overlap) where images is a :class:`numpy.ndarray` with shape
+                (npar,npar,npar,height,width), where npar=6 and (height,width) are the dimensions
+                of the overlap between the two galaxies, and overlap gives the bounding box of the
+                overlap in the full survey image. Returns None,None if the two galaxies do not overlap.
+
+        Raises:
+            RuntimeError: Invalid index1 or index2, or galaxies are not contained with the
+                background image, or no partial derivative images are available.
+        """
+        npar = len(self.slice_labels)
+        if self.num_slices != len(self.slice_labels) and self.num_slices != 21:
+            raise RuntimeError('No partial derivative images are available.')
+        # Calculate the overlap bounds.
+        try:
+            overlap = self.bounds[index1] & self.bounds[index2]
+        except IndexError:
+            raise RuntimeError('Invalid index1=%d or index2=%d.' % (index1,index2))
+        # Check that the background image contains each galaxy.
+        if not background.bounds.includes(self.bounds[index1]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index1)
+        if not background.bounds.includes(self.bounds[index2]):
+            raise RuntimeError('Galaxy %d is not contained within the background image.' % index2)
+        # Is there any overlap between the two galaxies?
+        if overlap.area() == 0:
+            return None,None
+        product = self.get_stamp(index1,0)[overlap]*self.get_stamp(index2,0)[overlap]
+        if not np.any(product.array):
+            return None,None
+
+        # Fill arrays of partial derivatives within the overlap region.
+        width = overlap.xmax - overlap.xmin + 1
+        height = overlap.ymax - overlap.ymin + 1
+        partials1 = np.zeros((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
+        second_partials2 = np.zeros((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
+
+        #dictionary for positions of partials.
+        positions = make_positions() 
+        slice_labels = OverlapResults.slice_labels
+
+        #fill partials and second partials, 
+        for islice in range(1,npar):
+            datacube_index1 = islice
+            partials1[islice] = self.get_stamp(index1,datacube_index1)[overlap].array 
+            
+            #fill in second partials with respect to flux.
+            second_partials2[islice][0] = (self.get_stamp(index2,islice)[overlap].array/
+                                           self.table['flux'][index2])
+            second_partials2[0][islice] = second_partials2[islice][0]
+
+
+            for jslice in range(islice,npar):
+                param_i = slice_labels[islice]
+                param_j = slice_labels[jslice]
+                datacube_index2 = positions[param_i,param_j]
+                second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
+                                                                                          .array)
+
+                #complete second partial array with i,j-->j,i just in case.
+                if islice!=jslice:
+                    second_partials2[jslice][islice] = second_partials2[islice][jslice]
+
+        #fill in partial with respect to flux
+        partials1[0] = self.get_stamp(index1,0)[overlap].array/self.table['flux'][index1]
+
+        mu0 = background[overlap].array + self.survey.mean_sky_level
+        fisher_norm = mu0**-1 + 0.5*mu0**-2
+        images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)
+        return images,overlap
+
+    def get_bias(self, selected, covariance):
+        """Return bias of the 6 parameters in vector form.
+
+        The bias is obtained from contracting the bias tensor with the appropiate covariance 
+        matrix elements. 
+
+
+        Args:
+            selected(iterable): Array of integer indices for the sources to include in the
+                calculated matrices.
+            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+
+        Returns:
+            array: bias which is a vector with dimensions (nbias) 
+                   containing the biases of the selected galaxies. 
+        """
+        nsel = len(selected)
+        npar = len(self.slice_labels)
+        nbias = nsel*npar
+
+        bias_tensor = self.get_bias_tensor(selected, covariance)
+        bias = np.zeros(nbias, dtype=np.float64)
+
+        #take care of dimensionality problems with l.
+        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of 
+        #size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to 
+        #refer to the same galaxy.)
+
+        reduced_covariance = np.zeros((nsel*npar,npar), dtype=np.float64)
+        for i in range(nsel):
+            reduced_covariance[npar*i:npar*(i+1),:]=covariance[npar*i:npar*(i+1),npar*i:npar*(i+1)]
+
+        bias = (-.5)*np.einsum('ij,kl,jkl->i',covariance, reduced_covariance, bias_tensor)
+
+        return bias
+
+    def get_bias_tensor(self,selected,covariance):
+        """Return bias tensor from the selected galaxies. 
+
+        Uses the function get_bias_tensor_images() and then contracts these images to obtain the 
+        actual bias tensor. 
+
+
+        Args:
+            selected(iterable): Array of integer indices for the sources to include in the
+                calculated matrices.
+            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+
+        Returns:
+            array: bias_tensor with dimensions (ntensor,ntensor,npar) containing 
+                   bias_tensor elements. 
+        """
+
+        background = self.get_subimage(selected)
+        nsel = len(selected)
+        npar = len(self.slice_labels)
+        ntensor = nsel*npar
+        bias_tensor = np.zeros((ntensor,ntensor,npar), dtype=np.float64)
+        for row,index1 in enumerate(selected):
+            for col,index2 in enumerate(selected):
+                images, overlap = self.get_bias_tensor_images(index1,index2,background)
+
+                if overlap is None:
+                    continue
+
+                bias_tensor_sums = np.sum(images,axis=(3,4),dtype = np.float64)
+                bias_tensor[npar*row:npar*(row+1),npar*col:npar*(col+1),:] = bias_tensor_sums
+
+        return bias_tensor
+
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
@@ -275,7 +449,7 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
-        npar = self.num_slices
+        npar = len(self.slice_labels)
         nfisher = nsel*npar
         fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
         for row,index1 in enumerate(selected):
@@ -341,7 +515,7 @@ class OverlapResults(object):
                     if row == col: continue
                     fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
                     covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
-                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
+                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice] 
             return fisher,covariance,variance,correlation
 
     def match_sextractor(self,catalog_name,column_name = 'match'):
@@ -507,7 +681,7 @@ class OverlapAnalyzer(object):
                 bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
-    def finalize(self,verbose,trace):
+    def finalize(self,verbose,trace,calculate_bias):
         """Finalize analysis of all added galaxies.
 
         Args:
@@ -521,55 +695,75 @@ class OverlapAnalyzer(object):
         trace('OverlapAnalyzer.finalize begin')
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
-        data = np.empty(num_galaxies,dtype=[
-            ('db_id',np.int64),
-            ('grp_id',np.int64),
-            ('grp_size',np.int16),
-            ('grp_rank',np.int16),
-            ('visible',np.int16),
-            # Stamp bounding box.
-            ('xmin',np.int32),
-            ('xmax',np.int32),
-            ('ymin',np.int32),
-            ('ymax',np.int32),
-            # Source properties.
-            ('f_disk', np.float32),
-            ('f_bulge', np.float32),
-            ('dx',np.float32),
-            ('dy',np.float32),
-            ('z',np.float32),
-            ('ab_mag',np.float32),
-            ('ri_color',np.float32),
-            ('flux',np.float32),
-            ('sigma_m',np.float32),
-            ('sigma_p',np.float32),
-            ('e1',np.float32),
-            ('e2',np.float32),
-            ('a',np.float32),
-            ('b',np.float32),
-            ('beta',np.float32),
-            ('psf_sigm',np.float32),
-            # Pixel-level properties.
-            ('purity',np.float32),
-            ('snr_sky',np.float32),
-            ('snr_iso',np.float32),
-            ('snr_grp',np.float32),
-            ('snr_isof',np.float32),
-            ('snr_grpf',np.float32),
-            ('ds',np.float32),
-            ('dg1',np.float32),
-            ('dg2',np.float32),
-            ('ds_grp',np.float32),
-            ('dg1_grp',np.float32),
-            ('dg2_grp',np.float32),
-            # HSM analysis results.
-            ('hsm_sigm',np.float32),
-            ('hsm_e1',np.float32),
-            ('hsm_e2',np.float32),
-            # Systematics fit results.
-            ('g1_fit',np.float32),
-            ('g2_fit',np.float32),
-            ])
+
+        dtype=[
+                ('db_id',np.int64),
+                ('grp_id',np.int64),
+                ('grp_size',np.int16),
+                ('grp_rank',np.int16),
+                ('visible',np.int16),
+                # Stamp bounding box.
+                ('xmin',np.int32),
+                ('xmax',np.int32),
+                ('ymin',np.int32),
+                ('ymax',np.int32),
+                # Source properties.
+                ('f_disk', np.float32),
+                ('f_bulge', np.float32),
+                ('dx',np.float32),
+                ('dy',np.float32),
+                ('z',np.float32),
+                ('ab_mag',np.float32),
+                ('ri_color',np.float32),
+                ('flux',np.float32),
+                ('sigma_m',np.float32),
+                ('sigma_p',np.float32),
+                ('e1',np.float32),
+                ('e2',np.float32),
+                ('a',np.float32),
+                ('b',np.float32),
+                ('beta',np.float32),
+                ('psf_sigm',np.float32),
+                # Pixel-level properties.
+                ('purity',np.float32),
+                ('snr_sky',np.float32),
+                ('snr_iso',np.float32),
+                ('snr_grp',np.float32),
+                ('snr_isof',np.float32),
+                ('snr_grpf',np.float32),
+                ('ds',np.float32),
+                ('dg1',np.float32),
+                ('dg2',np.float32),
+                ('ds_grp',np.float32),
+                ('dg1_grp',np.float32),
+                ('dg2_grp',np.float32),
+                # HSM analysis results.
+                ('hsm_sigm',np.float32),
+                ('hsm_e1',np.float32),
+                ('hsm_e2',np.float32),
+                # Systematics fit results.
+                ('g1_fit',np.float32),
+                ('g2_fit',np.float32),
+                ]
+
+        if calculate_bias: 
+            dtype.extend([              
+                ('bias_f', np.float32),
+                ('bias_s', np.float32),
+                ('bias_g1',np.float32),
+                ('bias_g2',np.float32),
+                ('bias_x',np.float32),
+                ('bias_y',np.float32),
+                ('bias_f_grp', np.float32),
+                ('bias_s_grp', np.float32),
+                ('bias_g1_grp',np.float32),
+                ('bias_g2_grp',np.float32),
+                ('bias_x_grp',np.float32),
+                ('bias_y_grp',np.float32),
+                ])
+
+        data = np.empty(num_galaxies, dtype=dtype)
+
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
         # Initialize integer arrays of bounding box limits.
@@ -658,7 +852,7 @@ class OverlapAnalyzer(object):
         results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
         # Check that we have partial derivatives available.
-        if num_slices != len(results.slice_labels):
+        if num_slices != len(results.slice_labels) and num_slices != 21:
             raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
         sky = self.survey.mean_sky_level
@@ -666,6 +860,8 @@ class OverlapAnalyzer(object):
         ds_index = results.slice_labels.index('ds')
         dg1_index = results.slice_labels.index('dg1')
         dg2_index = results.slice_labels.index('dg2')
+        dx_index = results.slice_labels.index('dx')
+        dy_index = results.slice_labels.index('dy')
         # Loop over groups to calculate pixel-level quantities.
         for i,grp_id in enumerate(grp_id_set):
             trace('grp_id %d is %d of %d' % (grp_id,i,len(grp_id_set)))
@@ -675,6 +871,9 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
+
+            if calculate_bias:
+                bias = results.get_bias(group_indices, covariance)
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
@@ -705,7 +904,7 @@ class OverlapAnalyzer(object):
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
                 # Calculate this galaxy's SNR in various ways.
-                base = index*num_slices
+                base = index*len(results.slice_labels) #number of first partials
                 data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
                 # Variances will be np.inf if this galaxy was dropped from the group for the
                 # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
@@ -713,12 +912,28 @@ class OverlapAnalyzer(object):
                 data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                 data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                 data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
+                if calculate_bias:
+                    data['bias_f_grp'][galaxy] = bias[base+dflux_index]
+                    data['bias_s_grp'][galaxy] = bias[base+ds_index]
+                    data['bias_g1_grp'][galaxy] = bias[base+dg1_index]
+                    data['bias_g2_grp'][galaxy] = bias[base+dg2_index]
+                    data['bias_x_grp'][galaxy] = bias[base+dx_index]
+                    data['bias_y_grp'][galaxy] = bias[base+dy_index]
+
                 if grp_size == 1:
                     data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
                     data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
                     data['ds'][galaxy] = data['ds_grp'][galaxy]
                     data['dg1'][galaxy] = data['dg1_grp'][galaxy]
                     data['dg2'][galaxy] = data['dg2_grp'][galaxy]
+                    if calculate_bias:
+                        data['bias_f'][galaxy] = data['bias_f_grp'][galaxy]
+                        data['bias_s'][galaxy] = data['bias_s_grp'][galaxy]
+                        data['bias_g1'][galaxy] = data['bias_g1_grp'][galaxy]
+                        data['bias_g2'][galaxy] = data['bias_g2_grp'][galaxy]
+                        data['bias_x'][galaxy] = data['bias_x_grp'][galaxy]
+                        data['bias_y'][galaxy] = data['bias_y_grp'][galaxy]
+
                 else:
                     # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
@@ -731,6 +946,14 @@ class OverlapAnalyzer(object):
                     data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
                     data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
 
+                    if calculate_bias:
+                        iso_bias = results.get_bias([galaxy], iso_covariance)
+                        data['bias_f'][galaxy] = iso_bias[dflux_index]
+                        data['bias_s'][galaxy] = iso_bias[ds_index]
+                        data['bias_g1'][galaxy] = iso_bias[dg1_index]
+                        data['bias_g2'][galaxy] = iso_bias[dg2_index]
+                        data['bias_x'][galaxy] = iso_bias[dx_index]
+                        data['bias_y'][galaxy] = iso_bias[dy_index]
             # Order group members by decreasing isolated S/N.
             sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
             data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)

@@ -8,6 +8,10 @@ import numpy as np
 
 import galsim
 
+import analysis
+
+import matplotlib.pyplot as plt
+
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
     """
@@ -136,7 +140,7 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False):
+    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
@@ -156,6 +160,10 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
+        #make sure logic makes sense. 
+        if no_partials and calculate_bias:
+            raise RuntimeError("Cannot calculate bias with partials")
+
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
             raise SourceNotVisible
@@ -189,7 +197,7 @@ class Engine(object):
 
         # Render the model in our postage stamp.
         self.stamp.setOrigin(x_min,y_min)
-        model.drawImage(image = self.stamp, use_true_center = True)
+        final = model.drawImage(image=self.stamp, use_true_center = True)
 
         # Identify pixels with flux above our cut and within our truncation radius
         # and zero all other pixel fluxes.
@@ -232,21 +240,51 @@ class Engine(object):
             ]
 
         # Prepare the datacube that we will return.
-        if no_partials:
-            ncube = 1
-        else:
-            # The nominal image doubles as the flux partial derivative.
+        ncube = 1
+
+        positions = analysis.make_positions()
+        if not no_partials:
             ncube = 1+len(variations)
+            if calculate_bias:
+                 #15 is number of second partials for 5 parameters (no flux).
+                ncube = 1 + len(variations) + 15
+
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
-        datacube[0] = cropped_stamp.array
+        datacube[0] = cropped_stamp.array #flux partial is the same. 
 
-        # Calculate partial derivative images, if requested.
+        #calculate partials, if requested.
         if not no_partials:
-            for i,(pname,delta) in enumerate(variations):
-                variation_stamp = (galaxy.renderer.draw(**{pname: +delta}).copy() - 
-                    galaxy.renderer.draw(**{pname: -delta}))
-                datacube[i+1] = variation_stamp.array/(2*delta)
+            #The nominal image doubles as the flux partial derivative.
+            for i,(pname_i,delta_i) in enumerate(variations):
+                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() - 
+                                       galaxy.renderer.draw(**{pname_i: -delta_i}))
+                datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
+
+                #calculate second partials, if requested. 
+                if calculate_bias:        
+                    for j,(pname_j,delta_j) in enumerate(variations):
+                        if(i==j):
+                            galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
+                            galaxy_2idown = galaxy.renderer.draw(**{pname_i: -2*delta_i}).copy()
+                            variation_i_i = galaxy_2iup + galaxy_2idown - 2*galaxy.renderer.draw()
+                            datacube[positions[pname_i,pname_i]] = ((variation_i_i).array/
+                                                                    (2*delta_i)**2)
+
+                        elif(j>i):
+                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                                                                  pname_j: +delta_j}).copy()
+                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                                                                       pname_j: -delta_j}).copy()
+                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                                                                       pname_j: +delta_j}).copy()
+                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                                                                         pname_j: -delta_j})
+
+                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown - 
+                                             galaxy_idown_jup - galaxy_iup_jdown)
+                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array / 
+                                                                    (4*delta_i*delta_j))
 
         if self.verbose_render:
             print 'Rendered galaxy model for id = %d with z = %.3f' % (
@@ -255,7 +293,6 @@ class Engine(object):
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
-
         return datacube,cropped_bounds
 
     @staticmethod
@@ -278,6 +315,13 @@ class Engine(object):
             help = 'Do not simulate the tails of objects just outside the field.')
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
+
+        #add one for partials and bias. 
+        parser.add_argument('--no_partials', action = 'store_true', 
+            help = 'Do not store partial derivative images of the galaxy in data cubes')
+        parser.add_argument('--calculate_bias', action = 'store_true', 
+            help = 'Store necessary images in datacubes to calculate bias of galaxy.')
+
 
     @classmethod
     def from_args(cls,survey,args):

@@ -108,6 +108,7 @@ def main():
             print 'No such group with ID %d' % args.group
             return -1
         title = 'group-%d' % args.group
+        
     # Sort selected galaxies in increasing rank order.
     sort_order = np.argsort(results.table['grp_rank'][selected])
     selected = selected[sort_order]

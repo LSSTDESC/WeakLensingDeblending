@@ -65,19 +65,17 @@ def main():
             print output.description()
 
         trace('initialized')
-
         for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
             try:
                 galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                stamps,bounds = render_engine.render_galaxy(galaxy)
+                stamps,bounds = render_engine.render_galaxy(galaxy, args.no_partials, args.calculate_bias)
                 analyzer.add_galaxy(galaxy,stamps,bounds)
                 trace('render')
 
             except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                 pass
-
-        results = analyzer.finalize(args.verbose,trace)
+        results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
         output.finalize(results,trace)
 
     except RuntimeError,e:
