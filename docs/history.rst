@@ -1,10 +1,16 @@
 Revision History
 ================
 
+v0.4
+----
+- Implement Fisher-matrix bias calculations.
+- Add quickstart and FAQ documentation pages.
+- Update notebook links (nbviewer -> github) and docs (ipython -> jupyter).
+
 v0.3
 ----
 - Add tutorial notebook.
-- Add HSM size and shape analysis for each galaxy (ignoring overlaps)
+- Add HSM size and shape analysis for each galaxy (ignoring overlaps).
 
 v0.2
 ----
