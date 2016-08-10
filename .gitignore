@@ -7,6 +7,16 @@
 *.png
 *.log
 *.pdf
+*.txt
+
+*.fits
+
+notes.txt
+
+mynotebooks/
+data/
+old/ 
+jobs/
 
 # Sphinx documentation
 docs/_build/
