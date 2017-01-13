@@ -178,9 +178,10 @@ class Survey(object):
         },
         'LSST': {
             # http://www.lsst.org/lsst/science/optical_design
+            # Updated: https://www.lsst.org/scientists/keynumbers
             '*': {
                 'mirror_diameter': 8.36,
-                'effective_area': 33.212,
+                'effective_area': 32.4,
                 'image_width': 4096,
                 'image_height': 4096,
                 'pixel_scale': 0.2,
