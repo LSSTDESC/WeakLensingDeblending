@@ -46,6 +46,7 @@ def main():
     trace('begin')
 
     try:
+<<<<<<< HEAD
         if args.catalog_name!=None:
             catalog = descwl.catalog_star.Reader.from_args(args)
         if args.star_catalog_name!=None:
@@ -63,6 +64,22 @@ def main():
         if args.star_catalog_name!=None:
             star_builder = descwl.model_star.StarBuilder.from_args(survey,args)
 
+=======
+
+        catalog = descwl.catalog_star.Reader.from_args(args)
+        star_catalog = descwl.catalog_star.ReaderStar.from_args(args)
+        if args.verbose:
+            print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
+            print 'Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name)
+        survey = descwl.survey.Survey.from_args(args)
+        if args.verbose:
+            print survey.description()
+
+        galaxy_builder = descwl.model_star.GalaxyBuilder.from_args(survey,args)
+		
+        star_builder = descwl.model_star.StarBuilder.from_args(survey,args)
+        
+>>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
         render_engine = descwl.render_star.Engine.from_args(survey,args)
         if args.verbose:
             print render_engine.description()
@@ -74,6 +91,7 @@ def main():
             print output.description()
 
         trace('initialized')
+<<<<<<< HEAD
         if args.catalog_name!=None:
             for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
@@ -96,6 +114,31 @@ def main():
 
                 except (descwl.model_star.SourceNotVisible,descwl.render_star.SourceNotVisible):
                     pass
+=======
+
+        for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
+
+            try:
+                galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
+                stamps,bounds = render_engine.render_galaxy(galaxy)
+                analyzer.add_galaxy(galaxy,stamps,bounds)
+                trace('render')
+
+            except (descwl.model_star.SourceNotVisible,descwl.render_star.SourceNotVisible):
+                pass
+
+        
+        for entry,dx,dy in star_catalog.potentially_visible_entries(survey,render_engine):
+
+            try:
+                star = star_builder.from_catalog(entry,dx,dy,survey.filter_band)
+                stamps,bounds = render_engine.render_star(star)
+                analyzer.add_star(star,stamps,bounds)
+                trace('render')
+
+            except (descwl.model_star.SourceNotVisible,descwl.render_star.SourceNotVisible):
+                pass
+>>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
 
         results = analyzer.finalize(args.verbose,trace)
         output.finalize(results,trace)
