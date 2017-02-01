@@ -34,35 +34,21 @@ class Reader(object):
         RuntimeError: Missing required catalog_name arg.
     """
     def __init__(self,catalog_name,ra_center = 0.0,dec_center = 0.0,only_id = [],skip_id = []):
-<<<<<<< HEAD
-        #if not catalog_name:
-        #    raise RuntimeError('Missing required catalog_name arg.')
-
-=======
-        if not catalog_name:
-            raise RuntimeError('Missing required catalog_name arg.')
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
         self.catalog_name = catalog_name
         self.ra_center = ra_center
         self.dec_center = dec_center
         self.only_id = only_id
         self.skip_id = skip_id
         name,ext = os.path.splitext(catalog_name)
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
         if ext == '.fits':
             self.table = astropy.table.Table.read(catalog_name, format = 'fits')
         else:
             self.table = astropy.table.Table.read(catalog_name, format='ascii.basic')
-<<<<<<< HEAD
 
-=======
+
+
         
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     def potentially_visible_entries(self,survey,render_options):
         """Iterate over potentially visible catalog entries.
 
@@ -114,11 +100,11 @@ class Reader(object):
             dx_arcsecs = (ra - self.ra_center)/arcsec2deg*ra_scale
             dy_arcsecs = (dec - self.dec_center)/arcsec2deg
             yield entry,dx_arcsecs,dy_arcsecs
-<<<<<<< HEAD
 
-=======
+
+
         
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Reader`.
@@ -186,28 +172,19 @@ class ReaderStar(object):
         RuntimeError: Missing required catalog_name arg.
     """
     def __init__(self,star_catalog_name,ra_center = 0.0,dec_center = 0.0,only_star_id = [],skip_id = []):
-        #if not star_catalog_name:
-        #    raise RuntimeError('Missing required catalog_name arg.')
+
+
         self.star_catalog_name = star_catalog_name
         self.ra_center = ra_center
         self.dec_center = dec_center
         self.only_star_id = only_star_id
         self.skip_id = skip_id
         name,ext = os.path.splitext(star_catalog_name)
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
         if ext == '.fits':
             self.table = astropy.table.Table.read(star_catalog_name, format = 'fits')
         else:
             self.table = astropy.table.Table.read(star_catalog_name, format='ascii.basic')
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def potentially_visible_entries(self,survey,render_options):
         """Iterate over potentially visible catalog entries.
 
@@ -259,11 +236,7 @@ class ReaderStar(object):
             dx_arcsecs = (ra - self.ra_center)/arcsec2deg*ra_scale
             dy_arcsecs = (dec - self.dec_center)/arcsec2deg
             yield entry,dx_arcsecs,dy_arcsecs
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Reader`.
@@ -280,11 +253,7 @@ class ReaderStar(object):
             help = 'Name of star catalog file')
         parser.add_argument('--only_star-id', type = int, action = 'append', metavar = 'ID',
             help = 'Use row with ID from the input catalog. May be repeated. All other rows will be ignored.')
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     @classmethod
     def from_args(cls,args):
         """Create a new :class:`Reader` object from a set of arguments.
@@ -304,7 +273,7 @@ class ReaderStar(object):
         # Filter the dictionary to only include constructor parameters.
         filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
         return cls(**filtered_dict)
-<<<<<<< HEAD
-=======
+
+
                 
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+

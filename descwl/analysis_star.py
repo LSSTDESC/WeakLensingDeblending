@@ -12,11 +12,6 @@ import lmfit
 
 import descwl.model_star
 
-<<<<<<< HEAD
-=======
-from memory_profiler import profile
-
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
 
@@ -39,11 +34,8 @@ class OverlapResults(object):
     Raises:
         RuntimeError: Image datacubes have unexpected number of slices.
     """
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     def __init__(self,survey,table,stamps,bounds,num_slices):
         self.survey = survey
         self.table = table
@@ -77,11 +69,7 @@ class OverlapResults(object):
         generator = galsim.random.BaseDeviate(seed = self.noise_seed)
         noise = galsim.PoissonNoise(rng = generator, sky_level = self.survey.mean_sky_level)
         self.survey.image.addNoise(noise)
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def select(self,*selectors,**options):
         """Select objects.
 
@@ -133,11 +121,8 @@ class OverlapResults(object):
         if format == 'index':
             selection = np.arange(self.num_objects)[selection]
         return selection
-<<<<<<< HEAD
 
-=======
-   
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     def _select(self,selector):
         # This private method implements select() for a single selector.
         if selector == 'ALL':
@@ -149,11 +134,8 @@ class OverlapResults(object):
                 return eval(selector,self.locals)
             except NameError,e:
                 raise RuntimeError('%s in selector %r.' % (e.message,selector))
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     def get_stamp(self,index,datacube_index=0):
         """Return the simulated postage stamp for a single object.
 
@@ -169,11 +151,7 @@ class OverlapResults(object):
         Raises:
             RuntimeError: No such galaxy in the results.
         """
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
         if index < 0 or index >= len(self.stamps):
             raise RuntimeError('No such object with index=%d.' % index)
         bounds = self.bounds[index]
@@ -186,11 +164,7 @@ class OverlapResults(object):
             xmin = bounds.xmin,ymin = bounds.ymin,
             scale = self.survey.pixel_scale,make_const = False)
         return image
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def get_subimage(self,indices,datacube_index=0):
         """Return simulated subimage of a set of objects.
 
@@ -219,11 +193,7 @@ class OverlapResults(object):
             overlap = subimage_bounds & stamp.bounds
             subimage[overlap] += stamp[overlap]
         return subimage
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def get_fisher_images(self,index1,index2,background):
         """Return Fisher-matrix images for a pair of galaxies.
 
@@ -251,11 +221,7 @@ class OverlapResults(object):
         """
         npar = self.num_slices
         if (npar != len(self.slice_labels) and npar !=len(self.slice_labels_star)):
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
             raise RuntimeError('No partial derivative images are available.')
         # Calculate the overlap bounds.
         try:
@@ -290,11 +256,7 @@ class OverlapResults(object):
         # Calculate the Fisher images as the outer product of the partial-derivative images.
         images = np.einsum('yx,iyx,jyx->ijyx',fisher_norm,partials1,partials2)
         return images,overlap
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def get_matrices(self,selected):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
@@ -357,11 +319,8 @@ class OverlapResults(object):
                 reduced_correlation[np.ix_(m,m)]=reduced_correlation_aux
                 del reduced_correlation_aux
                 del reduced_variance_aux
-<<<<<<< HEAD
-                del reduced_covariance_aux
-=======
                 del reduced_covariance_aux    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
                 break
             except (np.linalg.LinAlgError,AssertionError),e:
                 # We can't calculate a covariance for this set of objects, so drop the next
@@ -401,13 +360,7 @@ class OverlapResults(object):
                     covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
                     correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
             return fisher,covariance,variance,correlation
-<<<<<<< HEAD
 
-
-=======
-   
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def match_sextractor(self,catalog_name,column_name = 'match'):
         """Match detected objects to simulated sources.
 
@@ -447,11 +400,8 @@ class OverlapResults(object):
         min_distance,truth_indices = kdtree.query(xy_found)
         matched = (truth_indices < num_truth)
         indices = truth_indices[matched]
-<<<<<<< HEAD
-        distance = min_distance[matched]
-=======
         distance = min_distance[matched]        
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
         # Add a table column with indices of matched detected objects or -1 for unmatched sources.
         if column_name:
             match_lookup = np.empty(len(self.table),dtype = int)
@@ -468,21 +418,13 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-<<<<<<< HEAD
 
-=======
-    #@profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def __init__(self,survey):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
         self.bounds = [ ]
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -495,11 +437,7 @@ class OverlapAnalyzer(object):
         self.models.append(model)
         self.stamps.append(stamps)
         self.bounds.append(bounds)
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def add_star(self,model,stamps,bounds):
         """
         Args:
@@ -511,11 +449,7 @@ class OverlapAnalyzer(object):
         self.models.append(model)
         self.stamps.append(stamps)
         self.bounds.append(bounds)
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def fit_galaxies(self,indices,observed_image,fixed_parameters = None):
         """Simultaneously fit a set of galaxy parameters to an observed image.
 
@@ -593,11 +527,7 @@ class OverlapAnalyzer(object):
             bestfit_values[i,4] = parameters['dg1_%d'%i].value
             bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
     def fit_stars(self,indices,observed_image,fixed_parameters = None):
         """Simultaneously fit a set of star parameters to an observed image.
 
@@ -681,11 +611,7 @@ class OverlapAnalyzer(object):
             bestfit_values[i,4] = parameters['dg1_%d'%i].value
             bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
-<<<<<<< HEAD
-    
-=======
-    @profile
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
+
     def finalize(self,verbose,trace):
         """Finalize analysis of all added stars.
 
@@ -785,11 +711,6 @@ class OverlapAnalyzer(object):
             data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
             # Save model parameters.
             if(getattr(model,'disk_fraction',None)!=None):
-<<<<<<< HEAD
-                #print data['db_id'][index], 'GALAXY'
-=======
-                print data['db_id'][index], 'GALAXY'
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
                 # Calculate this galaxy's sizes and shapes from its second-moments tensor.
@@ -809,11 +730,6 @@ class OverlapAnalyzer(object):
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
             else:
-<<<<<<< HEAD
-                #print data['db_id'][index], 'STAR'
-=======
-                print data['db_id'][index], 'STAR'
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
                 data['f_disk'][index]=0
                 data['f_bulge'][index]=0
                 data['sigma_m'][index] = 0
@@ -980,11 +896,6 @@ class OverlapAnalyzer(object):
                                 deblended[bbox] += alpha*overlap
                     # Fit the deblended image of this galaxy.
                     use_count[i1] += 1
-<<<<<<< HEAD
-
-=======
-                   
->>>>>>> 20af9f87af1c3bda1783c876ad9940fe3d1e27dc
                     if(getattr(model,'disk_fraction',None)!=None):
                         try:
                             bestfit = self.fit_galaxies([g1],deblended)
