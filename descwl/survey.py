@@ -129,7 +129,9 @@ class Survey(object):
         Returns:
             float: Flux in detected electrons.
         """
-        ab_magnitude += self.extinction*(self.airmass - 1.)
+        X0=1.0
+        if self.survey_name=='LSST': X0=1.2
+        ab_magnitude += self.extinction*(self.airmass - X0)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
     def get_image_coordinates(self,dx_arcsecs,dy_arcsecs):
@@ -172,61 +174,65 @@ class Survey(object):
             'atmospheric_psf_e2': 0.0,
             'cosmic_shear_g1': 0.0,
             'cosmic_shear_g2': 0.0,
-            'airmass': 1.2,
+            'airmass': 1.0,
         },
         'LSST': {
             # http://www.lsst.org/lsst/science/optical_design
+            # Updated: https://www.lsst.org/scientists/keynumbers
             '*': {
                 'mirror_diameter': 8.36,
-                'effective_area': 33.212,
+                'effective_area': 32.4,
                 'image_width': 4096,
                 'image_height': 4096,
                 'pixel_scale': 0.2,
+                'airmass':1.2,
             },
             # See http://arxiv.org/pdf/0805.2366v4.pdf, Table 2 for:
             # exposure_time, sky_brightness, zenith_psf_fwhm, extinction.
             # Zero points are calculated from
             #  https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/issues/1
+            # zenith_psf_fwhm recomputed at airmass 1.2 following:
+            # zenith_psf_fwhm(X)=zenith_psf_fwhm(X=1.0)*X**0.6
             'y': {
                 'exposure_time': 6900.,
                 'sky_brightness': 18.6,
-                'zenith_psf_fwhm': 0.63,
-                'zero_point': 15.0,
+                'zenith_psf_fwhm': 0.702,
+                'zero_point': 10.85,
                 'extinction': 0.138,
             },
             'z': {
                 'exposure_time': 6900.,
                 'sky_brightness': 19.6,
-                'zenith_psf_fwhm': 0.65,
-                'zero_point': 28.6,
+                'zenith_psf_fwhm': 0.725,
+                'zero_point': 23.24,
                 'extinction': 0.043,
             },
             'i': {
                 'exposure_time': 6900.,
-                'sky_brightness': 20.0,
-                'zenith_psf_fwhm': 0.67,
-                'zero_point': 41.5,
+                'sky_brightness': 20.5,
+                'zenith_psf_fwhm': 0.747,
+                'zero_point': 33.17,
                 'extinction': 0.07,
             },
             'r': {
                 'exposure_time': 6900.,
-                'sky_brightness': 21.3,
-                'zenith_psf_fwhm': 0.70,
-                'zero_point': 55.8,
+                'sky_brightness': 21.2,
+                'zenith_psf_fwhm': 0.781,
+                'zero_point': 44.80,
                 'extinction': 0.10,
             },
             'g': {
                 'exposure_time': 6900.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.73,
-                'zero_point': 70.5,
+                'zenith_psf_fwhm': 0.814,
+                'zero_point': 51.97,
                 'extinction': 0.163,
             },
             'u': {
                 'exposure_time': 6900.,
                 'sky_brightness': 22.9,
-                'zenith_psf_fwhm': 0.77,
-                'zero_point': 24.3,
+                'zenith_psf_fwhm': 0.859,
+                'zero_point': 9.39,
                 'extinction': 0.451,
             },
         },
