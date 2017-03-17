@@ -901,7 +901,7 @@ class OverlapAnalyzer(object):
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
                 # Calculate this galaxy's sizes and shapes from its second-moments tensor.
-                sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model_star.moments_size_and_shape(
+                sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
                     model.second_moments)
                 # Save values to the analysis results.
                 data['sigma_m'][index] = sigma_m
@@ -912,7 +912,7 @@ class OverlapAnalyzer(object):
                 data['e2'][index] = e2
                 data['beta'][index] = beta
                 # Re-calculate sizes and shapes with the PSF second moments added.
-                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model_star.moments_size_and_shape(
+                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
                     model.second_moments + self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
@@ -927,7 +927,7 @@ class OverlapAnalyzer(object):
                 data['e2'][index] = 0
                 data['beta'][index] = 0
                 # Re-calculate sizes and shapes with the PSF second moments added.
-                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model_star.moments_size_and_shape(
+                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
                     self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
