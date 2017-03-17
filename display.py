@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
-    descwl.output_star.Reader.add_args(parser)
+    descwl.output.Reader.add_args(parser)
     parser.add_argument('--no-display', action = 'store_true',
         help = 'Do not display the image on screen.')
     parser.add_argument('-o','--output-name',type = str, default = None, metavar = 'FILE',
@@ -123,7 +123,7 @@ def main():
 
     # Load the analysis results file we will display from.
     try:
-        reader = descwl.output_star.Reader.from_args(defer_stamp_loading = True,args = args)
+        reader = descwl.output.Reader.from_args(defer_stamp_loading = True,args = args)
         results = reader.results
         if args.verbose:
             print results.survey.description()
