@@ -131,7 +131,8 @@ class Survey(object):
         """
         zeropoint_airmass=1.0
         if self.survey=='DES': zeropoint_airmass=1.3
-        if self.survey_name=='LSST': zeropoint_airmass=1.2
+        if self.survey_name=='LSST' or self.survey_name=='HSC':
+             zeropoint_airmass=1.2
         ab_magnitude += self.extinction*(self.airmass -zeropoint_airmass)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
@@ -312,7 +313,6 @@ class Survey(object):
                 #sky from: http://www.naoj.org/Observing/Instruments/SCam/exptime.html
                 #extinction from http://tmt.mtk.nao.ac.jp/ETC_readme.html
                 #Filter throughputs from speclite
-                # Calculating zeropoints with:
 
                 '*': {
                     'mirror_diameter': 8.2,
@@ -325,35 +325,35 @@ class Survey(object):
                     'exposure_time': 600.,
                     'sky_brightness': 21.4,
                     'zenith_psf_fwhm': 0.72,
-                    'zero_point': 102.72,
+                    'zero_point': 91.11,
                     'extinction': 0.13,
                 },
                 'r' : {
                     'exposure_time': 600.,
                     'sky_brightness': 20.6,
                     'zenith_psf_fwhm': 0.67,
-                    'zero_point': 108.08,
+                    'zero_point': 87.74,
                     'extinction': 0.11,
                 },
                 'i': {
                     'exposure_time': 1200.,
                     'sky_brightness': 19.7,
                     'zenith_psf_fwhm': 0.56,
-                    'zero_point': 77.99,
+                    'zero_point': 69.80,
                     'extinction': 0.07,
                 },
                 'z' : {
                     'exposure_time': 1200.,
                     'sky_brightness': 18.3,
                     'zenith_psf_fwhm': 0.63,
-                    'zero_point': 34.08,
+                    'zero_point': 29.56,
                     'extinction': 0.05,
                 },
                 'y': {
                     'exposure_time': 1200.,
                     'sky_brightness': 17.9,
                     'zenith_psf_fwhm': 0.64,
-                    'zero_point': 23.66,
+                    'zero_point': 21.53,
                     'extinction': 0.05,
                 },
         }
