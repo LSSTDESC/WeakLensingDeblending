@@ -130,7 +130,7 @@ class Survey(object):
             float: Flux in detected electrons.
         """
         zeropoint_airmass=1.0
-        if self.survey=='DES': zeropoint_airmass=1.3
+        if self.survey_name=='DES': zeropoint_airmass=1.3
         if self.survey_name=='LSST' or self.survey_name=='HSC':
              zeropoint_airmass=1.2
         ab_magnitude += self.extinction*(self.airmass -zeropoint_airmass)
@@ -306,6 +306,7 @@ class Survey(object):
                 'zero_point': 10.72,
                 'extinction': 0.10,
             },
+        },
             'HSC': {
                 # http://www.subarutelescope.org/Introduction/telescope.html
                 #http://www.naoj.org/Projects/HSC/forobservers.html
@@ -384,7 +385,7 @@ class Survey(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
-        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT'], default = 'LSST',
+        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT','HSC'], default = 'LSST',
             help = 'Use default camera and observing parameters appropriate for this survey.')
         parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
             help = 'LSST imaging band to simulate')
