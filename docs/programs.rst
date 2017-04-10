@@ -43,6 +43,10 @@ The main simulation parameter is the pixel signal-to-noise threshold, `min-snr`:
 
 	./simulate.py --min-snr 0.1 ...
 
+You can simulate the overlap between a galaxy catalog and a stellar catalog using::
+
+        ./simulate.py --catalog-name GALAXY_CATALOG --star-catalog-name STAR_CATALOG
+
 Sources are simulated over a footprint that includes exactly those pixels whose noise-free mean signal is above this threshold. Any source with at least one pixel meeting this criterion is considered 'visible' and others are discarded from the subsequent analysis and output. The threshold is in units of the full-depth mean sky noise level and the default value is 0.05.
 
 For a full list of the available options, use::

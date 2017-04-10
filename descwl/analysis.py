@@ -65,7 +65,7 @@ class OverlapResults(object):
         self.num_slices = num_slices
         if len(self.stamps) > 0:
              #3rd case allows second partials
-            if self.num_slices not in (1,len(self.slice_labels), 21): 
+            if self.num_slices not in (1,len(self.slice_labels), 21):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
         self.noise_seed = None
@@ -273,9 +273,9 @@ class OverlapResults(object):
     def get_bias_tensor_images(self,index1,index2,background):
         """Return bias tensor images for a pair of galaxies.
 
-        The bias tensor images are required in the calculation of the bias of parameters of 
+        The bias tensor images are required in the calculation of the bias of parameters of
         the galaxies. Bias tensor images are derived from the first partials and second partials
-        of the six parameters. 
+        of the six parameters.
 
 
         Args:
@@ -321,14 +321,14 @@ class OverlapResults(object):
         second_partials2 = np.zeros((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
         #dictionary for positions of partials.
-        positions = make_positions() 
+        positions = make_positions()
         slice_labels = OverlapResults.slice_labels
 
-        #fill partials and second partials, 
+        #fill partials and second partials,
         for islice in range(1,npar):
             datacube_index1 = islice
-            partials1[islice] = self.get_stamp(index1,datacube_index1)[overlap].array 
-            
+            partials1[islice] = self.get_stamp(index1,datacube_index1)[overlap].array
+
             #fill in second partials with respect to flux.
             second_partials2[islice][0] = (self.get_stamp(index2,islice)[overlap].array/
                                            self.table['flux'][index2])
@@ -357,18 +357,18 @@ class OverlapResults(object):
     def get_bias(self, selected, covariance):
         """Return bias of the 6 parameters in vector form.
 
-        The bias is obtained from contracting the bias tensor with the appropiate covariance 
-        matrix elements. 
+        The bias is obtained from contracting the bias tensor with the appropiate covariance
+        matrix elements.
 
 
         Args:
             selected(iterable): Array of integer indices for the sources to include in the
                 calculated matrices.
-            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+            covariance(array): An array containing the covariance matrix of the selected galaxies.
 
         Returns:
-            array: bias which is a vector with dimensions (nbias) 
-                   containing the biases of the selected galaxies. 
+            array: bias which is a vector with dimensions (nbias)
+                   containing the biases of the selected galaxies.
         """
         nsel = len(selected)
         npar = len(self.slice_labels)
@@ -378,8 +378,8 @@ class OverlapResults(object):
         bias = np.zeros(nbias, dtype=np.float64)
 
         #take care of dimensionality problems with l.
-        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of 
-        #size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to 
+        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of
+        #size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to
         #refer to the same galaxy.)
 
         reduced_covariance = np.zeros((nsel*npar,npar), dtype=np.float64)
@@ -391,20 +391,20 @@ class OverlapResults(object):
         return bias
 
     def get_bias_tensor(self,selected,covariance):
-        """Return bias tensor from the selected galaxies. 
+        """Return bias tensor from the selected galaxies.
 
-        Uses the function get_bias_tensor_images() and then contracts these images to obtain the 
-        actual bias tensor. 
+        Uses the function get_bias_tensor_images() and then contracts these images to obtain the
+        actual bias tensor.
 
 
         Args:
             selected(iterable): Array of integer indices for the sources to include in the
                 calculated matrices.
-            covariance(array): An array containing the covariance matrix of the selected galaxies. 
+            covariance(array): An array containing the covariance matrix of the selected galaxies.
 
         Returns:
-            array: bias_tensor with dimensions (ntensor,ntensor,npar) containing 
-                   bias_tensor elements. 
+            array: bias_tensor with dimensions (ntensor,ntensor,npar) containing
+                   bias_tensor elements.
         """
 
         background = self.get_subimage(selected)
@@ -515,7 +515,7 @@ class OverlapResults(object):
                     if row == col: continue
                     fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
                     covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
-                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice] 
+                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
             return fisher,covariance,variance,correlation
 
     def match_sextractor(self,catalog_name,column_name = 'match'):
@@ -557,7 +557,7 @@ class OverlapResults(object):
         min_distance,truth_indices = kdtree.query(xy_found)
         matched = (truth_indices < num_truth)
         indices = truth_indices[matched]
-        distance = min_distance[matched]        
+        distance = min_distance[matched]
         # Add a table column with indices of matched detected objects or -1 for unmatched sources.
         if column_name:
             match_lookup = np.empty(len(self.table),dtype = int)
@@ -589,6 +589,18 @@ class OverlapAnalyzer(object):
             stamps(:class:`numpy.ndarray`): Array of shape (nstamp,width,height) containing
                 pixel values for nstamp stamps of dimensions (width,height).
             bounds(galsim.BoundsI): Bounds of the stamps in the full simulated survey image.
+        """
+        self.models.append(model)
+        self.stamps.append(stamps)
+        self.bounds.append(bounds)
+
+    def add_star(self,model,stamps,bounds):
+        """
+        Args:
+            model(:class:`descwl.model.Star`): The star model used for rendering
+            stamps(:class:`numpy.ndarray`): Array of shape (nstamp,width,height) containing
+                pixel values for nstamp stamps of dimensions (width,height).
+            bounds(galsim.BoundsI): Bounds of the stamps in the full simulated survey image
         """
         self.models.append(model)
         self.stamps.append(stamps)
@@ -658,7 +670,8 @@ class OverlapAnalyzer(object):
                 model_image[overlap[i]] += model_stamp[overlap[i]]
             return (data - model_image.array.flat)/sigmas
         # Do the minimization.
-        minimum = lmfit.minimize(residuals,parameters)
+        minimizer = lmfit.Minimizer(residuals,parameters,nan_policy='omit')
+        minimum = minimizer.minimize()
         if not minimum.success:
             raise RuntimeError('fit_galaxies did not find a minimum.')
         # Copy the best-fit parameter values into the returned array.
@@ -681,13 +694,100 @@ class OverlapAnalyzer(object):
                 bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
+    def fit_stars(self,indices,observed_image,fixed_parameters = None):
+        """Simultaneously fit a set of star parameters to an observed image.
+
+        Fits are performed on noise-free images, so there are no meaningful errors to report
+        and only best-fit parameter values are returned.  This method is intended to support
+        systematics studies where shifts in best-fit parameters are the quantities of interest.
+        See the :meth:`descwl.render_star.StarRenderer.draw` method for details on how the fit
+        parameters are defined and how each galaxy model is rendered as these parameters
+        are varied.
+
+        Args:
+            indices(iterable): List of num_stars integer star indices to include in the fit.
+                Index values correspond to the order in which stars were added using
+                :meth:`add_star`.
+            observed_image(galsim.Image): A GalSim image that defines the observed pixels
+                that will be fit and the region into which star models will be renderered.
+            fixed_parameters(dict): An optional dictionary of parameter values to fix in the
+                fit, or None if all parameters should be floating.
+
+        Returns:
+            numpy.ndarray: Array with shape (num_stars,6) containing the best-fit values
+                of the following six parameters: df,dx,dy,ds,dg1,dg2. See the
+                :meth:`descwl.render.StarRenderer.draw` method for details on how these
+                parameters are defined.
+
+        Raises:
+            RuntimeError: Invalid galaxy index or fit did not find a minimum.
+        """
+        num_stars = len(indices)
+        # Define the fit parameters we will use.
+        parameters = lmfit.Parameters()
+        for i in range(num_stars):
+            parameters.add('df_%d' % i,value = 0.)
+            parameters.add('dx_%d' % i,value = 0.)
+            parameters.add('dy_%d' % i,value = 0.)
+            parameters.add('ds_%d' % i,value = 0.)
+            parameters.add('dg1_%d' % i,value = 0.,min=-2e-5,max=2e-5)
+            parameters.add('dg2_%d' % i,value = 0.,min=-2e-5,max=2e-5)
+            parameters['ds_%d' %i].value = 1e-5
+            parameters['ds_%d' %i].vary = False
+            parameters['dg1_%d' %i].value = 1e-5
+            parameters['dg1_%d' %i].vary = False
+            parameters['dg2_%d' %i].value = 1e-5
+            parameters['dg2_%d' %i].vary = False
+            # Fix parameters as requested.
+        if fixed_parameters:
+            for name,value in fixed_parameters.iteritems():
+                parameters[name].value = value
+                parameters[name].vary = False
+        # Initialize rendering.
+        model_image = observed_image.copy()
+        overlap = [ ]
+        for i,star in enumerate(indices):
+            try:
+                bbox = self.bounds[star]
+            except (TypeError,ValueError):
+                raise RuntimeError('Invalid star index in fit_dystd: %r' % star)
+            overlap.append(model_image.bounds & bbox)
+        data = observed_image.array.flatten()
+        sigmas = np.sqrt(data + self.survey.mean_sky_level)
+        # Define a function that evaluates the pixel residuals to be minimized.
+        def residuals(p):
+            model_image.array[:] = 0.
+            for i,star in enumerate(indices):
+                model_stamp = self.models[star].renderer.draw(df = p['df_%d'%i].value,
+                    dx = p['dx_%d'%i].value,dy = p['dy_%d'%i].value,ds = p['ds_%d'%i].value,
+                    dg1 = p['dg1_%d'%i].value,dg2 = p['dg2_%d'%i].value)
+                model_image[overlap[i]] += model_stamp[overlap[i]]
+            return (data - model_image.array.flat)/sigmas
+        # Do the minimization.
+        minimizer = lmfit.Minimizer(residuals,parameters,nan_policy='omit')
+        minimum = minimizer.minimize()
+        if not minimum.success:
+            raise RuntimeError('fit_stars did not find a minimum.')
+        # Copy the best-fit parameter values into the returned array.
+        bestfit_values = np.empty((num_stars,6))
+        for i in range(num_stars):
+            bestfit_values[i,0] = parameters['df_%d'%i].value
+            bestfit_values[i,1] = parameters['dx_%d'%i].value
+            bestfit_values[i,2] = parameters['dy_%d'%i].value
+            bestfit_values[i,3] = parameters['ds_%d'%i].value
+            bestfit_values[i,4] = parameters['dg1_%d'%i].value
+            bestfit_values[i,5] = parameters['dg2_%d'%i].value
+        return bestfit_values
+
     def finalize(self,verbose,trace,calculate_bias):
-        """Finalize analysis of all added galaxies.
+        """Finalize analysis of all added stars and galaxies.
 
         Args:
             verbose(bool): Print a summary of analysis results.
             trace(callable): Function to call for tracing resource usage. Will be
                 called with a brief :class:`str` description of each checkpoint.
+            calculate_bias(bool): If True it will perform the Fisher's bias
+            calculation.
 
         Returns:
             :class:`OverlapResults`: Overlap analysis results.
@@ -695,7 +795,6 @@ class OverlapAnalyzer(object):
         trace('OverlapAnalyzer.finalize begin')
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
-
         dtype=[
                 ('db_id',np.int64),
                 ('grp_id',np.int64),
@@ -746,8 +845,8 @@ class OverlapAnalyzer(object):
                 ('g2_fit',np.float32),
                 ]
 
-        if calculate_bias: 
-            dtype.extend([              
+        if calculate_bias:
+            dtype.extend([
                 ('bias_f', np.float32),
                 ('bias_s', np.float32),
                 ('bias_g1',np.float32),
@@ -798,25 +897,40 @@ class OverlapAnalyzer(object):
             data['flux'][index] = model.model.getFlux()
             # Is this galaxy's centroid visible in the survey image?
             data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
-            # Save model parameters.
-            data['f_disk'][index] = model.disk_fraction
-            data['f_bulge'][index] = model.bulge_fraction
-            # Calculate this galaxy's sizes and shapes from its second-moments tensor.
-            sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
-                model.second_moments)
-            # Save values to the analysis results.
-            data['sigma_m'][index] = sigma_m
-            data['sigma_p'][index] = sigma_p
-            data['a'][index] = a
-            data['b'][index] = b
-            data['e1'][index] = e1
-            data['e2'][index] = e2
-            data['beta'][index] = beta
-            # Re-calculate sizes and shapes with the PSF second moments added.
-            sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
-                model.second_moments + self.survey.psf_second_moments)
-            # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
-            data['psf_sigm'][index] = sigma_m_psf
+            if(getattr(model,'disk_fraction',None)!=None):
+                data['f_disk'][index] = model.disk_fraction
+                data['f_bulge'][index] = model.bulge_fraction
+                # Calculate this galaxy's sizes and shapes from its second-moments tensor.
+                sigma_m,sigma_p,a,b,beta,e1,e2 = descwl.model.moments_size_and_shape(
+                    model.second_moments)
+                # Save values to the analysis results.
+                data['sigma_m'][index] = sigma_m
+                data['sigma_p'][index] = sigma_p
+                data['a'][index] = a
+                data['b'][index] = b
+                data['e1'][index] = e1
+                data['e2'][index] = e2
+                data['beta'][index] = beta
+                # Re-calculate sizes and shapes with the PSF second moments added.
+                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
+                    model.second_moments + self.survey.psf_second_moments)
+                # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
+                data['psf_sigm'][index] = sigma_m_psf
+            else:
+                data['f_disk'][index]=0
+                data['f_bulge'][index]=0
+                data['sigma_m'][index] = 0
+                data['sigma_p'][index] = 0
+                data['a'][index] = 0
+                data['b'][index] = 0
+                data['e1'][index] = 0
+                data['e2'][index] = 0
+                data['beta'][index] = 0
+                # Re-calculate sizes and shapes with the PSF second moments added.
+                sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
+                    self.survey.psf_second_moments)
+                # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
+                data['psf_sigm'][index] = sigma_m_psf
             # Loop over earlier galaxies with overlapping bounding boxes.
             for pre_index in np.arange(index)[overlapping_bounds[index,:index]]:
                 pre_bounds = self.bounds[pre_index]
@@ -885,6 +999,7 @@ class OverlapAnalyzer(object):
                 data['hsm_sigm'][galaxy] = np.nan
                 data['hsm_e1'][galaxy] = np.nan
                 data['hsm_e2'][galaxy] = np.nan
+
                 if(not(self.no_hsm)):
                     try:
                         hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
@@ -999,13 +1114,20 @@ class OverlapAnalyzer(object):
                                 deblended[bbox] += alpha*overlap
                     # Fit the deblended image of this galaxy.
                     use_count[i1] += 1
-                    try:
-                        bestfit = self.fit_galaxies([g1],deblended)
-                        data['g1_fit'][g1] = bestfit[0,4]
-                        data['g2_fit'][g1] = bestfit[0,5]
-                    except RuntimeError,e:
-                        print str(e)
-
+                    if(getattr(model,'disk_fraction',None)!=None):
+                        try:
+                            bestfit = self.fit_galaxies([g1],deblended)
+                            data['g1_fit'][g1] = bestfit[0,4]
+                            data['g2_fit'][g1] = bestfit[0,5]
+                        except RuntimeError,e:
+                            print str(e)
+                    else:
+                        try:
+                            bestfit = self.fit_stars([g1],deblended)
+                            data['g1_fit'][g1] = 0
+                            data['g2_fit'][g1] = 0
+                        except RuntimeError,e:
+                            print str(e)
         trace('OverlapAnalyzer.finalize end')
         return results
     @staticmethod
@@ -1024,7 +1146,7 @@ class OverlapAnalyzer(object):
             help = 'Fraction of flux given to the other object. Values range from -1 (overlapping flux to faintest source) to +1 \
             (overlapping flux to brightest source)')
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
-        
+
     @classmethod
     def from_args(cls,args):
         """Create a new :class:`Reader` object from a set of arguments.
