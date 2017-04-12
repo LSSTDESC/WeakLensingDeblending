@@ -1,0 +1,36 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsf@hequ0143>
+Subject: Job 444858: <python jobs3.py> in cluster <slac> Done
+
+Job <python jobs3.py> was submitted from host <ki-ls10> by user <imendoza> in cluster <slac>.
+Job was executed on host(s) <hequ0143>, in queue <medium>, as user <imendoza> in cluster <slac>.
+</u/ki/imendoza> was used as the home directory.
+</nfs/slac/g/ki/ki19/deuce/AEGIS/ismael/combine_fits> was used as the working directory.
+Started at Tue Aug 16 17:41:54 2016
+Results reported on Tue Aug 16 18:07:40 2016
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python jobs3.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   1401.82 sec.
+    Max Memory :                                 4271 MB
+    Average Memory :                             2029.66 MB
+    Total Requested Memory :                     -
+    Delta Memory :                               -
+    Max Swap :                                   5015 MB
+    Max Processes :                              3
+    Max Threads :                                12
+    Run time :                                   1546 sec.
+    Turnaround time :                            1547 sec.
+
+The output (if any) is above this job summary.
+
