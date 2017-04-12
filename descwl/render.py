@@ -10,7 +10,6 @@ import galsim
 
 import analysis
 
-import matplotlib.pyplot as plt
 
 class SourceNotVisible(Exception):
     """Custom exception to indicate that a source has no visible pixels above threshold.
@@ -75,6 +74,64 @@ class GalaxyRenderer(object):
         if parameters != self.last_parameters:
             # We always render and cache using the nominal flux df=0.
             model = self.galaxy.get_transformed_model(**parameters)
+            convolved = galsim.Convolve([
+                model.shift(dx = -self.dx_arcsec,dy = -self.dy_arcsec),
+                self.psf_model
+                ],gsparams = self.gsparams)
+            convolved.drawImage(image = self.stamp)
+            self.stamp.array[self.mask] = 0.
+            self.last_parameters = parameters
+        # Return a copy of our cached image, applying flux rescaling if necessary.
+        return (1.+df)*self.stamp
+
+class StarRenderer(object):
+    """Rendering engine for a single star.
+    Args:
+        star(descwl.model_star.Star): Model of the star we will render.
+        stamp(galsim.Image): Previously rendered image of this star with no transforms
+            applied. Zero pixels in this image are used to define a mask where all
+            subsequently rendered images will have pixels values set to zero. The input
+            stamp is copied and not modified. The stamp bounds determine the region of the
+            full survey image that we will render into.
+        survey(descwl.survey.Survey): Survey that rendered images will simulate. Used to
+            determine the mapping from survey positions to stamp positions and specify
+            the PSF to use.
+    """
+    def __init__(self,star,stamp,survey):
+        self.star = star
+        self.stamp = stamp.copy()
+        self.mask = (self.stamp.array == 0)
+        self.dx_arcsec = 0.5*(self.stamp.bounds.xmin + self.stamp.bounds.xmax+1 -
+            survey.image_width)*survey.pixel_scale
+        self.dy_arcsec = 0.5*(self.stamp.bounds.ymin + self.stamp.bounds.ymax+1 -
+            survey.image_height)*survey.pixel_scale
+        self.psf_model = survey.psf_model
+        self.gsparams = galsim.GSParams(maximum_fft_size=1<<16)
+        self.last_parameters = {'dx':0.,'dy':0.,'ds':0.,'dg1':0.,'dg2':0.}
+
+    def draw(self,df=0.,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
+        """
+        Draw the star with the specified transforms applied.
+        We use :meth:`descwl.model_star.star.Star.get_transformed_model` to apply all
+        transforms except for `df`, which we implement internally using rescaling.
+        The transformed model is convolved with the survey PSF, rendered into the
+        stamp specified in our constructor, and masked (zero pixels in the untransformed
+        rendering are forced to zero). Repeated calls with the same transform parameters
+        return a cached image immediately. The same is true if only the `df` parameter
+        is changed from the last call.
+        Args:
+            df(float): Relative amount to scale the total galaxy flux.
+            dx(float): Amount to shift centroid in x, in arcseconds.
+            dy(float): Amount to shift centroid in y, in arcseconds.
+
+        Returns:
+            galsim.Image: Rendering of the transformed galaxy.
+        """
+        # We do not include df here since we implement it by rescaling df=0 images.
+        parameters = {'dx':dx,'dy':dy,'ds':ds,'dg1':dg1,'dg2':dg2}
+        if parameters != self.last_parameters:
+            # We always render and cache using the nominal flux df=0.
+            model = self.star.get_transformed_model(**parameters)
             convolved = galsim.Convolve([
                 model.shift(dx = -self.dx_arcsec,dy = -self.dy_arcsec),
                 self.psf_model
@@ -160,7 +217,7 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
-        #make sure logic makes sense. 
+        #make sure logic makes sense.
         if no_partials and calculate_bias:
             raise RuntimeError("Cannot calculate bias with partials")
 
@@ -251,18 +308,18 @@ class Engine(object):
 
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
-        datacube[0] = cropped_stamp.array #flux partial is the same. 
+        datacube[0] = cropped_stamp.array #flux partial is the same.
 
         #calculate partials, if requested.
         if not no_partials:
             #The nominal image doubles as the flux partial derivative.
             for i,(pname_i,delta_i) in enumerate(variations):
-                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() - 
+                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() -
                                        galaxy.renderer.draw(**{pname_i: -delta_i}))
                 datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
 
-                #calculate second partials, if requested. 
-                if calculate_bias:        
+                #calculate second partials, if requested.
+                if calculate_bias:
                     for j,(pname_j,delta_j) in enumerate(variations):
                         if(i==j):
                             galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
@@ -272,18 +329,18 @@ class Engine(object):
                                                                     (2*delta_i)**2)
 
                         elif(j>i):
-                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i,
                                                                   pname_j: +delta_j}).copy()
-                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i, 
+                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i,
                                                                        pname_j: -delta_j}).copy()
-                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i,
                                                                        pname_j: +delta_j}).copy()
-                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i, 
+                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i,
                                                                          pname_j: -delta_j})
 
-                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown - 
+                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown -
                                              galaxy_idown_jup - galaxy_iup_jdown)
-                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array / 
+                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array /
                                                                     (4*delta_i*delta_j))
 
         if self.verbose_render:
@@ -293,6 +350,125 @@ class Engine(object):
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
             print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
                 model.centroid().x,model.centroid().y)
+        return datacube,cropped_bounds
+
+    def render_star(self,star,no_partials = False):
+        """Render a star model for a simulated survey.
+        Args:
+            star(descwl.model.Star): Model of the star to render.
+            no_partials(bool): Do not calculate partial derivative images.
+        Returns:
+            tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
+                (nstamp,width,height) pixel values that represents nstamp postage-stamp images
+                with the same dimensions (width,height) determined by the rendering options
+                provided. The returned `bounds` give the position of these stamps within the
+                full simulated survey image as a `galsim.BoundsI` object. Note that these bounds
+                might extend beyond the survey image, but will always have some overlap where
+                the source is above threshold.
+        Raises:
+            SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
+                simulated survey.
+        """
+        # Skip sources that are too faint to possibly be above our cut after PSF convolution.
+        if star.model.getFlux()*self.psf_dilution < self.pixel_cut:
+            raise SourceNotVisible
+
+        # Calculate the offset of the source center from the bottom-left corner of the
+        # simulated image in floating-point pixel units.
+        centroid = star.model.centroid()
+        x_center_pixels,y_center_pixels = self.survey.get_image_coordinates(centroid.x,centroid.y)
+
+        # Calculate the corresponding central pixel indices in the full image, where (0,0) is the
+        # bottom-left corner.
+        x_center_index = int(math.floor(x_center_pixels))
+        y_center_index = int(math.floor(y_center_pixels))
+
+        # Calculate the bounding box to use for simulating this galaxy.
+        x_min = x_center_index - self.padding
+        x_max = x_center_index + self.padding
+        y_min = y_center_index - self.padding
+        y_max = y_center_index + self.padding
+
+        # Calculate the offset of the bounding box center from the image center in arcsecs.
+        dx_stamp_arcsec = 0.5*(x_min + x_max+1 - self.survey.image_width)*self.survey.pixel_scale
+        dy_stamp_arcsec = 0.5*(y_min + y_max+1 - self.survey.image_height)*self.survey.pixel_scale
+
+        # Shift the model to the bounding box center and convolve with the survey PSF.
+        # We do not convolve by the pixel response since drawImage takes care of this.
+        model = galsim.Convolve([
+            star.model.shift(dx=-dx_stamp_arcsec,dy=-dy_stamp_arcsec),
+            self.survey.psf_model
+            ],gsparams=self.galsim_params)
+
+        # Render the model in our postage stamp.
+        self.stamp.setOrigin(x_min,y_min)
+        model.drawImage(image = self.stamp, use_true_center = True)
+
+        # Identify pixels with flux above our cut and within our truncation radius
+        # and zero all other pixel fluxes.
+        keep_mask = (self.stamp.array*self.truncation_mask > self.pixel_cut)
+        if np.sum(keep_mask) == 0:
+            raise SourceNotVisible
+        self.stamp.array[np.logical_not(keep_mask)] = 0.
+
+        # Crop the bounding box.
+        x_projection = (np.sum(keep_mask,axis=0) > 0)
+        y_projection = (np.sum(keep_mask,axis=1) > 0)
+        x_min_inset = np.argmax(x_projection)
+        x_max_inset = np.argmax(x_projection[::-1])
+        y_min_inset = np.argmax(y_projection)
+        y_max_inset = np.argmax(y_projection[::-1])
+        cropped_bounds = galsim.BoundsI(
+            x_min+x_min_inset,x_max-x_max_inset,
+            y_min+y_min_inset,y_max-y_max_inset)
+        cropped_stamp = self.stamp[cropped_bounds]
+
+        # Add the rendered model to the survey image.
+        survey_overlap = cropped_bounds & self.survey.image.bounds
+        if survey_overlap.area() == 0:
+            raise SourceNotVisible
+        self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
+
+        # Give this Star its own StarRenderer.
+        star.renderer = StarRenderer(star,cropped_stamp,self.survey)
+
+        # Define the parameter variations we consider for building Fisher matrices.
+        # The names appearing below are args of Galaxy.get_transformed_model().
+        # We do not include 'flux' below since the nominal image is already the
+        # partial derivative wrt flux (after dividing by flux).
+        variations = [
+            ('dx',self.survey.pixel_scale/3.), # arcsecs
+            ('dy',self.survey.pixel_scale/3.), # arcsecs
+            ('ds',0.05), # relative dilation (flux preserving)
+            ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
+            ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+            ]
+
+        # Prepare the datacube that we will return.
+        if no_partials:
+            ncube = 1
+        else:
+            # The nominal image doubles as the flux partial derivative.
+            ncube = 1+len(variations)
+        height,width = cropped_stamp.array.shape
+        datacube = np.empty((ncube,height,width))
+        datacube[0] = cropped_stamp.array
+
+        # Calculate partial derivative images, if requested.
+        if not no_partials:
+            for i,(pname,delta) in enumerate(variations):
+                variation_stamp = (star.renderer.draw(**{pname: +delta}).copy() -
+                    star.renderer.draw(**{pname: -delta}))
+                datacube[i+1] = variation_stamp.array/(2*delta)
+
+        if self.verbose_render:
+            print 'Rendered star model for id = %d with z = %.3f' % (
+                star.identifier,star.redshift)
+            print 'bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
+                x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
+            print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
+                model.centroid().x,model.centroid().y)
+
         return datacube,cropped_bounds
 
     @staticmethod
@@ -316,10 +492,10 @@ class Engine(object):
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
 
-        #add one for partials and bias. 
-        parser.add_argument('--no_partials', action = 'store_true', 
+        #add one for partials and bias.
+        parser.add_argument('--no-partials', action = 'store_true',
             help = 'Do not store partial derivative images of the galaxy in data cubes')
-        parser.add_argument('--calculate_bias', action = 'store_true', 
+        parser.add_argument('--calculate-bias', action = 'store_true',
             help = 'Store necessary images in datacubes to calculate bias of galaxy.')
 
 

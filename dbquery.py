@@ -2,7 +2,7 @@
 """Query the LSST DM simulation galaxy catalog.
 
 Documentation for this program is available at
-http://weaklensingdeblending.readthedocs.org/en/latest/programs.html#dbquery
+http://weaklensingdeblending.readthedocs.io/en/latest/programs.html#dbquery
 """
 
 import argparse
@@ -94,23 +94,23 @@ def main():
         driver = "mssql+pymssql"
         host='localhost'
         port=51433
-        dbUrl = url.URL(driver, host=host, port=port, database='LSST', 
+        dbUrl = url.URL(driver, host=host, port=port, database='LSST',
                         username='LSST-2', password='L$$TUser')
-    
+
         engine = create_engine(dbUrl)
         session = scoped_session(sessionmaker(autoflush=True, bind=engine))
         metadata = MetaData(bind=engine)
-        
+
         results = session.execute(query).fetchall()
-    
+
         # old _mssql way
         #conn = _mssql.connect(
         #    server='fatboy.npl.washington.edu', port=51433,
         #    user='LSST-2', password='L$$TUser',
         #    database='LSST')
-        #    
+        #
         #conn.execute_query(query)
-        
+
         nrows = 0
         for row in results: #conn:
             # Filter out any SQL NULLs
@@ -138,9 +138,9 @@ def main():
                 for col in nulls:
                     print '%10d %s' % (nulls[col],col)
             print '%d rows with (ra,dec) outside window were clipped' % clipCount
-    
-    
-    
+
+
+
     # removed as not using mssql:
     #except _mssql.MssqlDatabaseException,e:
     #    print 'Database Exception'

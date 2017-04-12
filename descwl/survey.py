@@ -129,7 +129,11 @@ class Survey(object):
         Returns:
             float: Flux in detected electrons.
         """
-        ab_magnitude += self.extinction*(self.airmass - 1.)
+        zeropoint_airmass=1.0
+        if self.survey_name=='DES': zeropoint_airmass=1.3
+        if self.survey_name=='LSST' or self.survey_name=='HSC':
+             zeropoint_airmass=1.2
+        ab_magnitude += self.extinction*(self.airmass -zeropoint_airmass)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
     def get_image_coordinates(self,dx_arcsecs,dy_arcsecs):
@@ -172,61 +176,65 @@ class Survey(object):
             'atmospheric_psf_e2': 0.0,
             'cosmic_shear_g1': 0.0,
             'cosmic_shear_g2': 0.0,
-            'airmass': 1.2,
+            'airmass': 1.0,
         },
         'LSST': {
             # http://www.lsst.org/lsst/science/optical_design
+            # Updated: https://www.lsst.org/scientists/keynumbers
             '*': {
                 'mirror_diameter': 8.36,
-                'effective_area': 33.212,
+                'effective_area': 32.4,
                 'image_width': 4096,
                 'image_height': 4096,
                 'pixel_scale': 0.2,
+                'airmass':1.2,
             },
             # See http://arxiv.org/pdf/0805.2366v4.pdf, Table 2 for:
             # exposure_time, sky_brightness, zenith_psf_fwhm, extinction.
             # Zero points are calculated from
             #  https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/issues/1
+            # zenith_psf_fwhm recomputed at airmass 1.2 following:
+            # zenith_psf_fwhm(X)=zenith_psf_fwhm(X=1.0)*X**0.6
             'y': {
                 'exposure_time': 6900.,
                 'sky_brightness': 18.6,
-                'zenith_psf_fwhm': 0.63,
-                'zero_point': 15.0,
+                'zenith_psf_fwhm': 0.702,
+                'zero_point': 10.85,
                 'extinction': 0.138,
             },
             'z': {
                 'exposure_time': 6900.,
                 'sky_brightness': 19.6,
-                'zenith_psf_fwhm': 0.65,
-                'zero_point': 28.6,
+                'zenith_psf_fwhm': 0.725,
+                'zero_point': 23.24,
                 'extinction': 0.043,
             },
             'i': {
                 'exposure_time': 6900.,
-                'sky_brightness': 20.0,
-                'zenith_psf_fwhm': 0.67,
-                'zero_point': 41.5,
+                'sky_brightness': 20.5,
+                'zenith_psf_fwhm': 0.747,
+                'zero_point': 33.17,
                 'extinction': 0.07,
             },
             'r': {
                 'exposure_time': 6900.,
-                'sky_brightness': 21.3,
-                'zenith_psf_fwhm': 0.70,
-                'zero_point': 55.8,
+                'sky_brightness': 21.2,
+                'zenith_psf_fwhm': 0.781,
+                'zero_point': 44.80,
                 'extinction': 0.10,
             },
             'g': {
                 'exposure_time': 6900.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.73,
-                'zero_point': 70.5,
+                'zenith_psf_fwhm': 0.814,
+                'zero_point': 51.97,
                 'extinction': 0.163,
             },
             'u': {
                 'exposure_time': 6900.,
                 'sky_brightness': 22.9,
-                'zenith_psf_fwhm': 0.77,
-                'zero_point': 24.3,
+                'zenith_psf_fwhm': 0.859,
+                'zero_point': 9.39,
                 'extinction': 0.451,
             },
         },
@@ -234,6 +242,8 @@ class Survey(object):
             # http://www.ctio.noao.edu/noao/content/Basic-Optical-Parameters
             # http://www.ctio.noao.edu/noao/content/DECam-What
             # http://www.darkenergysurvey.org/survey/des-description.pdf
+            # skybrightness from http://www.ctio.noao.edu/noao/node/1218
+            # extinction from https://arxiv.org/pdf/1701.00502.pdf table 6
             '*': {
                 'mirror_diameter': 3.934,
                 'effective_area': 10.014,
@@ -243,22 +253,38 @@ class Survey(object):
             },
             'i': {
                 'exposure_time': 1000.,
-                'sky_brightness': 20.1,
+                'sky_brightness': 20.5,
                 'zenith_psf_fwhm': 0.79,
-                'zero_point': 12.5,
-                'extinction': 0.07,
+                'zero_point': 13.94,
+                'extinction': 0.05,
             },
             'r' : {
                 'exposure_time': 800.,
-                'sky_brightness': 21.1,
+                'sky_brightness': 21.4,
                 'zenith_psf_fwhm': 0.79,
-                'zero_point': 16.8,
-                'extinction': 0.10,
+                'zero_point': 15.65,
+                'extinction': 0.09,
+            },
+            'g' : {
+                'exposure_time': 800.,
+                'sky_brightness': 22.3,
+                'zenith_psf_fwhm': 0.79,
+                'zero_point': 12.29,
+                'extinction': 0.17,
+            },
+            'z' : {
+                'exposure_time': 800.,
+                'sky_brightness': 18.7, #Value from SDSS
+                'zenith_psf_fwhm': 0.79,
+                'zero_point': 10.81,
+                'extinction': 0.06,
             },
         },
         'CFHT': {
             # http://www.cfht.hawaii.edu/Instruments/Imaging/Megacam/generalinformation.html
             # http://www.cfht.hawaii.edu/Instruments/ObservatoryManual/om-focplndat.gif
+            # Calculating zeropoints with:
+            #http://www1.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/community/CFHTLS-SG/docs/extra/filters.html
             '*': {
                 'mirror_diameter': 3.592,
                 'effective_area': 8.022,
@@ -270,16 +296,67 @@ class Survey(object):
                 'exposure_time': 4300.,
                 'sky_brightness': 20.3,
                 'zenith_psf_fwhm': 0.64,
-                'zero_point': 10.0,
+                'zero_point': 8.46,
                 'extinction': 0.07,
             },
             'r' : {
                 'exposure_time': 2000.,
                 'sky_brightness': 20.8,
                 'zenith_psf_fwhm': 0.71,
-                'zero_point': 13.5,
+                'zero_point': 10.72,
                 'extinction': 0.10,
             },
+        },
+            'HSC': {
+                # http://www.subarutelescope.org/Introduction/telescope.html
+                #http://www.naoj.org/Projects/HSC/forobservers.html
+                # https://arxiv.org/pdf/1702.08449.pdf
+                #sky from: http://www.naoj.org/Observing/Instruments/SCam/exptime.html
+                #extinction from http://tmt.mtk.nao.ac.jp/ETC_readme.html
+                #Filter throughputs from speclite
+
+                '*': {
+                    'mirror_diameter': 8.2,
+                    'effective_area': 52.81, #I couldn't find the effective aperture
+                    'image_width': 4096,
+                    'image_height': 2048,
+                    'pixel_scale': 0.17,
+                },
+                'g': {
+                    'exposure_time': 600.,
+                    'sky_brightness': 21.4,
+                    'zenith_psf_fwhm': 0.72,
+                    'zero_point': 91.11,
+                    'extinction': 0.13,
+                },
+                'r' : {
+                    'exposure_time': 600.,
+                    'sky_brightness': 20.6,
+                    'zenith_psf_fwhm': 0.67,
+                    'zero_point': 87.74,
+                    'extinction': 0.11,
+                },
+                'i': {
+                    'exposure_time': 1200.,
+                    'sky_brightness': 19.7,
+                    'zenith_psf_fwhm': 0.56,
+                    'zero_point': 69.80,
+                    'extinction': 0.07,
+                },
+                'z' : {
+                    'exposure_time': 1200.,
+                    'sky_brightness': 18.3,
+                    'zenith_psf_fwhm': 0.63,
+                    'zero_point': 29.56,
+                    'extinction': 0.05,
+                },
+                'y': {
+                    'exposure_time': 1200.,
+                    'sky_brightness': 17.9,
+                    'zenith_psf_fwhm': 0.64,
+                    'zero_point': 21.53,
+                    'extinction': 0.05,
+                },
         }
     }
 
@@ -308,7 +385,7 @@ class Survey(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
-        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT'], default = 'LSST',
+        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT','HSC'], default = 'LSST',
             help = 'Use default camera and observing parameters appropriate for this survey.')
         parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
             help = 'LSST imaging band to simulate')

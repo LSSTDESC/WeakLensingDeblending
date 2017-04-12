@@ -116,7 +116,7 @@ class Galaxy(object):
             simulated.
         ri_color(float): Catalog source color calculated as (r-i) AB magnitude difference.
         cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
-        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).        
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
@@ -347,6 +347,161 @@ class GalaxyBuilder(object):
 
         Returns:
             :class:`GalaxyBuilder`: A newly constructed Reader object.
+        """
+        # Look up the named constructor parameters.
+        pnames = (inspect.getargspec(cls.__init__)).args[1:]
+        # Get a dictionary of the arguments provided.
+        args_dict = vars(args)
+        # Filter the dictionary to only include constructor parameters.
+        filtered_dict = { key:args_dict[key] for key in (set(pnames) & set(args_dict)) }
+        return cls(survey,**filtered_dict)
+
+class Star(object):
+    """Source model for a star.
+
+    Stars are modeled using a PSF-like component.
+
+    Args:
+        identifier(int): Unique integer identifier for this galaxy in the source catalog.
+        redshift(float): Catalog redshift of this galaxy.
+        ab_magnitude(float): Catalog AB magnitude of this galaxy in the filter band being
+            simulated.
+        ri_color(float): Catalog source color calculated as (r-i) AB magnitude difference.
+        dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
+            in arcseconds.
+        dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
+            in arcseconds.
+        star_flux(float): Total flux in detected electrons of PSF-like component.
+    """
+    def __init__(self,identifier,redshift,ab_magnitude,ri_color,
+        dx_arcsecs,dy_arcsecs,star_flux):
+        self.identifier = identifier
+        self.redshift = redshift
+        self.ab_magnitude = ab_magnitude
+        self.ri_color = ri_color
+        self.dx_arcsecs = dx_arcsecs
+        self.dy_arcsecs = dy_arcsecs
+        components = [ ]
+        total_flux = star_flux
+        # GalSim does not currently provide a "delta-function" component to model the AGN
+        # so we use a very narrow Gaussian. See this GalSim issue for details:
+        # https://github.com/GalSim-developers/GalSim/issues/533
+        if star_flux > 0:
+            star = galsim.Gaussian(flux = star_flux, sigma = 1e-8)
+            components.append(star)
+        # Combine the components into our final profile.
+        self.profile = galsim.Add(components)
+        # Apply transforms to build the final model.
+        self.model = self.get_transformed_model()
+
+    def get_transformed_model(self,dx=0.,dy=0.,ds=0.,dg1=0.,dg2=0.):
+        """Apply transforms to our model.
+
+        The nominal model returned by `get_transformed_model()` is available via
+        the `model` attribute.
+
+        Args:
+            dx(float): Amount to shift centroid in x, in arcseconds.
+            dy(float): Amount to shift centroid in y, in arcseconds.
+            ds(float): Relative amount to scale the galaxy profile in the
+                radial direction while conserving flux, before applying shear
+                or convolving with the PSF.
+            dg1(float): Amount to adjust the + shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+            dg2(float): Amount to adjust the x shear applied to the galaxy profile,
+                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+
+        Returns:
+            galsim.GSObject: New model constructed using our source profile with
+                the requested transforms applied.
+        """
+        return (self.profile
+            .dilate(1 + ds)
+            .shear(g1 = dg1,g2 = dg2)
+            .shift(dx = self.dx_arcsecs + dx,dy = self.dy_arcsecs + dy))
+
+class StarBuilder(object):
+    """Build star source models.
+
+    Args:
+        survey(descwl.survey.Survey): Survey to use for flux normalization and cosmic shear.
+        verbose_star-model(bool): Provide verbose output from model building process.
+    """
+    def __init__(self,survey,verbose_model):
+        self.survey = survey
+        self.verbose_model = verbose_model
+
+    def from_catalog(self,entry,dx_arcsecs,dy_arcsecs,filter_band):
+        """Build a :class:Star object from a catalog entry.
+
+        Args:
+            entry(astropy.table.Row): A single row from a star :mod:`descwl.catalog`.
+            dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
+                in arcseconds.
+            dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
+                in arcseconds.
+            filter_band(str): The LSST filter band to use for calculating flux, which must
+                be one of 'u','g','r','i','z','y'.
+
+        Returns:
+            :class:`Star`: A newly created star source model.
+
+        Raises:
+            SourceNotVisible: All of the star's components are being ignored.
+            RuntimeError: Catalog entry is missing AB flux value in requested filter band.
+        """
+        # Calculate the object's total flux in detected electrons.
+        try:
+            ab_magnitude = entry[filter_band + '_ab']
+            ri_color = entry['r_ab'] - entry['i_ab']
+        except KeyError:
+            raise RuntimeError('Catalog entry is missing required AB magnitudes.')
+        total_flux = self.survey.get_flux(ab_magnitude)
+        # Calculate the flux of each component in detected electrons.
+        total_fluxnorm = entry['fluxnorm_star']
+        star_flux = total_flux
+        # Is there any flux to simulate?
+        if star_flux == 0:
+            raise SourceNotVisible
+        # Calculate the position of angle of the Sersic components, which are assumed to be the same.
+        identifier = entry['startileid']
+        redshift = entry['redshift']
+        if self.verbose_model:
+            print 'Building star model for id=%d with z=%.3f' % (identifier,redshift)
+            print 'flux = %.3g detected electrons (%s-band AB = %.1f)' % (
+                total_flux,filter_band,ab_magnitude)
+            print 'centroid at (%.6f,%.6f) arcsec relative to image center' % (
+                dx_arcsecs,dy_arcsecs)
+
+        return Star(identifier,redshift,ab_magnitude,ri_color,
+            dx_arcsecs,dy_arcsecs,star_flux)
+
+    @staticmethod
+    def add_args(parser):
+        """Add command-line arguments for constructing a new :class:`StarBuilder`.
+
+        The added arguments are our constructor parameters with '_' replaced by '-' in the names.
+
+        Args:
+            parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
+                add_argument method.
+        """
+
+        parser.add_argument('--verbose-star-model', action = 'store_true',
+            help = 'Provide verbose output from model building process.')
+
+    @classmethod
+    def from_args(cls,survey,args):
+        """Create a new :class:`StarBuilder` object from a set of arguments.
+
+        Args:
+            survey(descwl.survey.Survey): Survey to build source models for.
+            args(object): A set of arguments accessed as a :py:class:`dict` using the
+                built-in :py:func:`vars` function. Any extra arguments beyond those defined
+                in :func:`add_args` will be silently ignored.
+
+        Returns:
+            :class:`StarBuilder`: A newly constructed ReaderStar object.
         """
         # Look up the named constructor parameters.
         pnames = (inspect.getargspec(cls.__init__)).args[1:]

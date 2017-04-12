@@ -21,12 +21,18 @@ def main():
     catalog_group = parser.add_argument_group('Catalog input',
         'Specify an input catalog of source parameters for simulation.')
     descwl.catalog.Reader.add_args(catalog_group)
+    catalog_star_group = parser.add_argument_group('Star catalog input',
+        'Specify an input star catalog for simulation')
+    descwl.catalog.ReaderStar.add_args(catalog_star_group)
     survey_group = parser.add_argument_group('Survey parameters',
         'Specify survey camera and observing parameters.')
     descwl.survey.Survey.add_args(survey_group)
     model_group = parser.add_argument_group('Source model options',
         'Specify options for building source models from catalog parameters.')
     descwl.model.GalaxyBuilder.add_args(model_group)
+    model_star_group = parser.add_argument_group('Source model options',
+        'Specify options for building source models from catalog parameters.')
+    descwl.model.StarBuilder.add_args(model_star_group)
     render_group = parser.add_argument_group('Model rendering options',
         'Specify options for rendering models as simulated survey observations.')
     descwl.render.Engine.add_args(render_group)
@@ -43,38 +49,57 @@ def main():
     trace('begin')
 
     try:
-
-        catalog = descwl.catalog.Reader.from_args(args)
+        if args.catalog_name!=None:
+            catalog = descwl.catalog.Reader.from_args(args)
+        if args.star_catalog_name!=None:
+            star_catalog = descwl.catalog.ReaderStar.from_args(args)
         if args.verbose:
-            print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
-
+            if args.catalog_name!=None:
+                print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
+            if args.star_catalog_name!=None:
+                print 'Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name)
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
             print survey.description()
-
-        galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
+        if args.catalog_name!=None:
+            galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
+        if args.star_catalog_name!=None:
+            star_builder = descwl.model.StarBuilder.from_args(survey,args)
 
         render_engine = descwl.render.Engine.from_args(survey,args)
         if args.verbose:
             print render_engine.description()
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey,args)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
             print output.description()
 
         trace('initialized')
-        for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
+        if args.catalog_name!=None:
+            for entry,dx,dy in catalog.potentially_visible_entries(survey,render_engine):
 
-            try:
-                galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                stamps,bounds = render_engine.render_galaxy(galaxy, args.no_partials, args.calculate_bias)
-                analyzer.add_galaxy(galaxy,stamps,bounds)
-                trace('render')
+                try:
+                    galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
+                    stamps,bounds = render_engine.render_galaxy(galaxy)
+                    analyzer.add_galaxy(galaxy,stamps,bounds)
+                    trace('render')
 
-            except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
-                pass
+                except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
+                    pass
+        if args.star_catalog_name!=None:
+            for entry,dx,dy in star_catalog.potentially_visible_entries(survey,render_engine):
+
+                try:
+                    star = star_builder.from_catalog(entry,dx,dy,survey.filter_band)
+                    stamps,bounds = render_engine.render_star(star)
+                    analyzer.add_star(star,stamps,bounds)
+                    trace('render')
+
+                except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
+                    pass
+
         results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
         output.finalize(results,trace)
 

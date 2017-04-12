@@ -1,16 +1,12 @@
 IPython Notebooks
 =================
 
-The following `iPython notebooks <http://ipython.org/notebook.html>`_ are included in the `notebooks/` directory and can be viewed online:
- * `GalaxyCatalogPlots <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/GalaxyCatalogPlots.ipynb>`_: Plots of galaxy catalog quantities.
- * `OutputCatalogPlots <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/OutputCatalogPlots.ipynb>`_: Plots of simulation output catalog quantities.
- * `ShearEstimatorPlots <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/ShearEstimatorPlots.ipynb>`_: Plots related to shear estimation.
- * `Figures <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/Figures.ipynb>`_: Figures for documenting the package.
- * `Source Extractor Comparisons <http://nbviewer.ipython.org/github/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/SEXtractorComparisons.ipynb>`_: Comparisons with Source Extractor object detection.
- * `BiasEstimationPlots <http://nbviewer.jupyter.org/gist/ismael2395/faa860bfee20712ee0217c83728b4b35>`_: Plots related to bias estimation. 
+The following notebooks are included in the `notebooks/` directory and can be viewed online:
+ * `GalaxyCatalogPlots <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/GalaxyCatalogPlots.ipynb>`_: Plots of galaxy catalog quantities.
+ * `OutputCatalogPlots <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/OutputCatalogPlots.ipynb>`_: Plots of simulation output catalog quantities.
+ * `ShearEstimatorPlots <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/ShearEstimatorPlots.ipynb>`_: Plots related to shear estimation.
+ * `Figures <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/Figures.ipynb>`_: Figures for documenting the package.
+ * `Source Extractor Comparisons <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/SEXtractorComparisons.ipynb>`_: Comparisons with Source Extractor object detection.
+ * `BiasEstimationPlots <https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/blob/master/notebooks/BiasEstimationPlots.ipynb>`_: Plots related to bias estimation.
 
-You can also edit and run these notebooks locally if you have ipython installed. First `start the server <http://ipython.org/ipython-doc/stable/notebook/notebook.html#starting-the-notebook-server>`_ in its own window (where it log messages will appear)::
-
-	ipython notebook
-
-This should open up a notebook browser where you can click on any of the notebooks to launch it.
+You can also edit and run these notebooks locally if you have `jupyter installed <https://jupyter.readthedocs.io/en/latest/install.html>`_ following `these instructions <https://jupyter.readthedocs.io/en/latest/running.html>`_.
