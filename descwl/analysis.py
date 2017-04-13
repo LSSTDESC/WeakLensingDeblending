@@ -1147,7 +1147,7 @@ class OverlapAnalyzer(object):
             help = 'Fraction of flux given to the other object. Values range from -1 (overlapping flux to faintest source) to +1 \
             (overlapping flux to brightest source)')
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
-        parser.add_argument('--no-lmfit', action='store_true', help='Skip LMFIT fitting')
+        parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
 
     @classmethod
     def from_args(cls,args):
