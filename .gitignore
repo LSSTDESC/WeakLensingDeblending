@@ -1,0 +1,15 @@
+*.pyc
+*.dat
+*.cat
+*.fits
+*.tgz
+*.gz
+*.png
+*.log
+*.pdf
+
+# Sphinx documentation
+docs/_build/
+
+# Python profiling output
+profile.out
