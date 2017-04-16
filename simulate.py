@@ -70,7 +70,7 @@ def main():
         if args.verbose:
             print render_engine.description()
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm,!args.add_lmfit)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
