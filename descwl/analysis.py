@@ -574,13 +574,14 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
         self.bounds = [ ]
         self.alpha = alpha
         self.no_hsm = no_hsm
+        self.no_lmfit = no_lmfit
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -1081,7 +1082,7 @@ class OverlapAnalyzer(object):
             data['g1_fit'][sorted_indices] = 0.
             data['g2_fit'][sorted_indices] = 0.
             detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
-            if np.count_nonzero(detected) > 0 and grp_size > 1:
+            if np.count_nonzero(detected) > 0 and grp_size > 1 and not self.no_lmfit:
                 use_count = np.zeros(grp_size,dtype = int)
                 # Loop over galaxies in order of decreasing snr_iso.
                 for i1,g1 in enumerate(sorted_indices):
@@ -1146,6 +1147,7 @@ class OverlapAnalyzer(object):
             help = 'Fraction of flux given to the other object. Values range from -1 (overlapping flux to faintest source) to +1 \
             (overlapping flux to brightest source)')
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
+        parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
 
     @classmethod
     def from_args(cls,args):
