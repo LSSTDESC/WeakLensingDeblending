@@ -196,42 +196,42 @@ class Survey(object):
             # zenith_psf_fwhm recomputed at airmass 1.2 following:
             # zenith_psf_fwhm(X)=zenith_psf_fwhm(X=1.0)*X**0.6
             'y': {
-                'exposure_time': 6900.,
+                'exposure_time': 4800.,
                 'sky_brightness': 18.6,
                 'zenith_psf_fwhm': 0.702,
                 'zero_point': 10.58,
                 'extinction': 0.138,
             },
             'z': {
-                'exposure_time': 6900.,
+                'exposure_time': 4800.,
                 'sky_brightness': 19.6,
                 'zenith_psf_fwhm': 0.725,
                 'zero_point': 22.68,
                 'extinction': 0.043,
             },
             'i': {
-                'exposure_time': 6900.,
+                'exposure_time': 5520.,
                 'sky_brightness': 20.5,
                 'zenith_psf_fwhm': 0.747,
                 'zero_point': 32.36,
                 'extinction': 0.07,
             },
             'r': {
-                'exposure_time': 6900.,
+                'exposure_time': 5520.,
                 'sky_brightness': 21.2,
                 'zenith_psf_fwhm': 0.781,
                 'zero_point': 43.70,
                 'extinction': 0.10,
             },
             'g': {
-                'exposure_time': 6900.,
+                'exposure_time': 2400.,
                 'sky_brightness': 22.3,
                 'zenith_psf_fwhm': 0.814,
                 'zero_point': 50.70,
                 'extinction': 0.163,
             },
             'u': {
-                'exposure_time': 6900.,
+                'exposure_time': 1680.,
                 'sky_brightness': 22.9,
                 'zenith_psf_fwhm': 0.859,
                 'zero_point': 9.16,
