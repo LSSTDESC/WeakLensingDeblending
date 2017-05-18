@@ -574,7 +574,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,add_noise,alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -582,6 +582,7 @@ class OverlapAnalyzer(object):
         self.alpha = alpha
         self.no_hsm = no_hsm
         self.no_lmfit = no_lmfit
+        self.add_noise = add_noise
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -992,6 +993,11 @@ class OverlapAnalyzer(object):
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
+                if self.add_noise:
+                    sigaux = signal.copy()
+                    generator = galsim.random.BaseDeviate(seed = 1)
+                    noise = galsim.PoissonNoise(rng = generator, sky_level = self.survey.mean_sky_level)
+                    sigaux.addNoise(noise)
                 # Calculate this galaxy's purity.
                 signal_plus_background = group_image[signal.bounds]
                 data['purity'][galaxy] = (
@@ -1001,9 +1007,12 @@ class OverlapAnalyzer(object):
                 data['hsm_e1'][galaxy] = np.nan
                 data['hsm_e2'][galaxy] = np.nan
 
-                if(not(self.no_hsm)):
+                if not self.no_hsm:
                     try:
-                        hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
+                        if self.add_noise:
+                            hsm_results = galsim.hsm.EstimateShear(sigaux,self.survey.psf_image)
+                        else:
+                            hsm_results = galsim.hsm.EstimateShear(signal,self.survey.psf_image)
                         data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
                         data['hsm_e1'][galaxy] = hsm_results.corrected_e1
                         data['hsm_e2'][galaxy] = hsm_results.corrected_e2
@@ -1012,10 +1021,15 @@ class OverlapAnalyzer(object):
                         # due to truncation of a faint galaxy at the limiting isophote.  Try to just
                         # calculate the PSF-convolved size in this case.
                         try:
-                            hsm_results = galsim.hsm.FindAdaptiveMom(signal)
-                            data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                            if self.add_noise:
+                                hsm_results = galsim.hsm.FindAdaptiveMom(sigaux)
+                                data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
+                            else:
+                                hsm_results = galsim.hsm.FindAdaptiveMom(signal)
+                                data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
                         except RuntimeError,e:
                             print str(e)
+
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
@@ -1148,7 +1162,7 @@ class OverlapAnalyzer(object):
             (overlapping flux to brightest source)')
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
         parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
-
+        parser.add_argument('--add-noise', action='store_true', help='Add Noise for HSM fitting')
     @classmethod
     def from_args(cls,args):
         """Create a new :class:`Reader` object from a set of arguments.
