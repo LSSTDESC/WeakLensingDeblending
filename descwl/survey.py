@@ -244,6 +244,7 @@ class Survey(object):
             # http://www.darkenergysurvey.org/survey/des-description.pdf
             # skybrightness from http://www.ctio.noao.edu/noao/node/1218
             # extinction from https://arxiv.org/pdf/1701.00502.pdf table 6
+            # fwhm values from https://arxiv.org/pdf/1407.3801.pdf
             '*': {
                 'mirror_diameter': 3.934,
                 'effective_area': 10.014,
@@ -254,28 +255,28 @@ class Survey(object):
             'i': {
                 'exposure_time': 1000.,
                 'sky_brightness': 20.5,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 0.96,
                 'zero_point': 13.94,
                 'extinction': 0.05,
             },
             'r' : {
                 'exposure_time': 800.,
                 'sky_brightness': 21.4,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.03,
                 'zero_point': 15.65,
                 'extinction': 0.09,
             },
             'g' : {
                 'exposure_time': 800.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.24,
                 'zero_point': 12.29,
                 'extinction': 0.17,
             },
             'z' : {
                 'exposure_time': 800.,
                 'sky_brightness': 18.7, #Value from SDSS
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.12,
                 'zero_point': 10.81,
                 'extinction': 0.06,
             },
