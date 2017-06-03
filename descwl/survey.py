@@ -193,47 +193,45 @@ class Survey(object):
             # exposure_time, sky_brightness, zenith_psf_fwhm, extinction.
             # Zero points are calculated from
             #  https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/issues/1
-            # zenith_psf_fwhm recomputed at airmass 1.2 following:
-            # zenith_psf_fwhm(X)=zenith_psf_fwhm(X=1.0)*X**0.6
             'y': {
                 'exposure_time': 4800.,
                 'sky_brightness': 18.6,
-                'zenith_psf_fwhm': 0.702,
+                'zenith_psf_fwhm': 0.63,
                 'zero_point': 10.58,
                 'extinction': 0.138,
             },
             'z': {
                 'exposure_time': 4800.,
                 'sky_brightness': 19.6,
-                'zenith_psf_fwhm': 0.725,
+                'zenith_psf_fwhm': 0.65,
                 'zero_point': 22.68,
                 'extinction': 0.043,
             },
             'i': {
                 'exposure_time': 5520.,
                 'sky_brightness': 20.5,
-                'zenith_psf_fwhm': 0.747,
+                'zenith_psf_fwhm': 0.67,
                 'zero_point': 32.36,
                 'extinction': 0.07,
             },
             'r': {
                 'exposure_time': 5520.,
                 'sky_brightness': 21.2,
-                'zenith_psf_fwhm': 0.781,
+                'zenith_psf_fwhm': 0.70,
                 'zero_point': 43.70,
                 'extinction': 0.10,
             },
             'g': {
                 'exposure_time': 2400.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.814,
+                'zenith_psf_fwhm': 0.73,
                 'zero_point': 50.70,
                 'extinction': 0.163,
             },
             'u': {
                 'exposure_time': 1680.,
                 'sky_brightness': 22.9,
-                'zenith_psf_fwhm': 0.859,
+                'zenith_psf_fwhm': 0.77,
                 'zero_point': 9.16,
                 'extinction': 0.451,
             },
