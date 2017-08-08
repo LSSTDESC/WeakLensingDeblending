@@ -42,7 +42,7 @@ class Survey(object):
         RuntimeError: Missing or extra arguments provided or unable to calculate PSF size.
     """
     def __init__(self,**args):
-        if external_psf != '': # external_psf needs to be some option that the ./simulate.py script etc takes.
+        if 1: # external_psf needs to be some option that the ./simulate.py script etc takes.
             if set(args.keys()) != set(Survey._parameter_names):
                 raise RuntimeError('Missing or extra arguments provided to Survey constructor.')
             self.args = args
@@ -83,10 +83,8 @@ class Survey(object):
             self.psf_model.drawImage(image = hires_psf_image)
         else:
             # get the external psf at this point.
-
-
-
-
+            pass
+            
         # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
         hires_sum = np.sum(hires_psf_image.array)
         hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
