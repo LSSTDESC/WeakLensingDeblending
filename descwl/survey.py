@@ -83,7 +83,7 @@ class Survey(object):
             self.psf_model.drawImage(image = hires_psf_image)
         else:
             # get the external psf at this point.
-            
+
 
 
 
@@ -99,6 +99,7 @@ class Survey(object):
         psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
         psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
         self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
+        print self.psf_second_moments, 'this is from survey.py'
         # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
         self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
         self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))

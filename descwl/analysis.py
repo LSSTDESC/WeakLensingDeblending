@@ -917,6 +917,7 @@ class OverlapAnalyzer(object):
                 sigma_m_psf,sigma_p_psf,a_psf,b_psf,beta_psf,e1_psf,e2_psf = descwl.model.moments_size_and_shape(
                     model.second_moments + self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
+                print self.survey.psf_second_moments, 'from analysis.py'
                 data['psf_sigm'][index] = sigma_m_psf
             else:
                 data['f_disk'][index]=0
