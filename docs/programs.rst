@@ -39,6 +39,12 @@ You can override any of these defaults on the command line, e.g.::
 
 You can also create new default survey configurations by editing the :mod:`descwl.survey` module.
 
+For the Simulation output to include the bias on the parameters calculated from the Fisher Formalism, one must include the command line argument:: 
+
+	./simulate.py --calculate-bias ... 
+	
+Running this command could significantly increase running time. 
+
 The main simulation parameter is the pixel signal-to-noise threshold, `min-snr`::
 
 	./simulate.py --min-snr 0.1 ...
