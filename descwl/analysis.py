@@ -574,7 +574,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,add_noise,alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,add_noise,alpha=1,minimum=None):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -583,6 +583,7 @@ class OverlapAnalyzer(object):
         self.no_hsm = no_hsm
         self.no_lmfit = no_lmfit
         self.add_noise = add_noise
+        self.minimum = minimum
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -608,7 +609,7 @@ class OverlapAnalyzer(object):
         self.stamps.append(stamps)
         self.bounds.append(bounds)
 
-    def fit_galaxies(self,indices,observed_image,fixed_parameters = None):
+    def fit_galaxies(self,indices,observed_image,fixed_parameters = None, ftol=1e-2):
         """Simultaneously fit a set of galaxy parameters to an observed image.
 
         Fits are performed on noise-free images, so there are no meaningful errors to report
@@ -672,8 +673,9 @@ class OverlapAnalyzer(object):
                 model_image[overlap[i]] += model_stamp[overlap[i]]
             return (data - model_image.array.flat)/sigmas
         # Do the minimization.
-        minimizer = lmfit.Minimizer(residuals,parameters,nan_policy='omit')
+        minimizer = lmfit.Minimizer(residuals,parameters,ftol=ftol,nan_policy='omit')
         minimum = minimizer.minimize()
+        self.minimum = minimum
         if not minimum.success:
             raise RuntimeError('fit_galaxies did not find a minimum.')
         # Copy the best-fit parameter values into the returned array.
@@ -825,6 +827,7 @@ class OverlapAnalyzer(object):
                 ('b',np.float32),
                 ('beta',np.float32),
                 ('psf_sigm',np.float32),
+                ('psf_sigp',np.float32),
                 # Pixel-level properties.
                 ('purity',np.float32),
                 ('snr_sky',np.float32),
@@ -918,6 +921,7 @@ class OverlapAnalyzer(object):
                     model.second_moments + self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
+                data['psf_sigp'][index] = sigma_p_psf
             else:
                 data['f_disk'][index]=0
                 data['f_bulge'][index]=0
@@ -933,6 +937,7 @@ class OverlapAnalyzer(object):
                     self.survey.psf_second_moments)
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
+                data['psf_sigp'][index] = sigma_p_psf
             # Loop over earlier galaxies with overlapping bounding boxes.
             for pre_index in np.arange(index)[overlapping_bounds[index,:index]]:
                 pre_bounds = self.bounds[pre_index]
