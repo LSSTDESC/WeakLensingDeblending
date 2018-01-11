@@ -13,3 +13,6 @@ docs/_build/
 
 # Python profiling output
 profile.out
+
+# Python build
+build/
