@@ -1,6 +1,6 @@
 """Model astronomical sources.
 """
-
+from __future__ import print_function
 import math
 import inspect
 
@@ -298,19 +298,19 @@ class GalaxyBuilder(object):
         identifier = entry['galtileid']
         redshift = entry['redshift']
         if self.verbose_model:
-            print 'Building galaxy model for id=%d with z=%.3f' % (identifier,redshift)
-            print 'flux = %.3g detected electrons (%s-band AB = %.1f)' % (
-                total_flux,filter_band,ab_magnitude)
-            print 'centroid at (%.6f,%.6f) arcsec relative to image center, beta = %.6f rad' % (
-                dx_arcsecs,dy_arcsecs,beta_radians)
+            print('Building galaxy model for id=%d with z=%.3f' % (identifier,redshift))
+            print('flux = %.3g detected electrons (%s-band AB = %.1f)' % (
+                total_flux,filter_band,ab_magnitude))
+            print('centroid at (%.6f,%.6f) arcsec relative to image center, beta = %.6f rad' % (
+                dx_arcsecs,dy_arcsecs,beta_radians))
             if disk_flux > 0:
-                print ' disk: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
-                    disk_flux/total_flux,disk_hlr_arcsecs,disk_q)
+                print(' disk: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
+                    disk_flux/total_flux,disk_hlr_arcsecs,disk_q))
             if bulge_flux > 0:
-                print 'bulge: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
-                    bulge_flux/total_flux,bulge_hlr_arcsecs,bulge_q)
+                print('bulge: frac = %.6f, hlr = %.6f arcsec, q = %.6f' % (
+                    bulge_flux/total_flux,bulge_hlr_arcsecs,bulge_q))
             if agn_flux > 0:
-                print '  AGN: frac = %.6f' % (agn_flux/total_flux)
+                print('  AGN: frac = %.6f' % (agn_flux/total_flux))
         return Galaxy(identifier,redshift,ab_magnitude,ri_color,
             self.survey.cosmic_shear_g1,self.survey.cosmic_shear_g2,
             dx_arcsecs,dy_arcsecs,beta_radians,disk_flux,disk_hlr_arcsecs,disk_q,
@@ -467,11 +467,11 @@ class StarBuilder(object):
         identifier = entry['startileid']
         redshift = entry['redshift']
         if self.verbose_model:
-            print 'Building star model for id=%d with z=%.3f' % (identifier,redshift)
-            print 'flux = %.3g detected electrons (%s-band AB = %.1f)' % (
-                total_flux,filter_band,ab_magnitude)
-            print 'centroid at (%.6f,%.6f) arcsec relative to image center' % (
-                dx_arcsecs,dy_arcsecs)
+            print('Building star model for id=%d with z=%.3f' % (identifier,redshift))
+            print('flux = %.3g detected electrons (%s-band AB = %.1f)' % (
+                total_flux,filter_band,ab_magnitude))
+            print('centroid at (%.6f,%.6f) arcsec relative to image center' % (
+                dx_arcsecs,dy_arcsecs))
 
         return Star(identifier,redshift,ab_magnitude,ri_color,
             dx_arcsecs,dy_arcsecs,star_flux)

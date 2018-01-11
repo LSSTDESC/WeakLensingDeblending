@@ -1,6 +1,6 @@
 """Render source models as simulated survey observations.
 """
-
+from __future__ import print_function
 import math
 import inspect
 
@@ -344,12 +344,12 @@ class Engine(object):
                                                                     (4*delta_i*delta_j))
 
         if self.verbose_render:
-            print 'Rendered galaxy model for id = %d with z = %.3f' % (
-                galaxy.identifier,galaxy.redshift)
-            print 'bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
-                x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
-            print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
-                model.centroid().x,model.centroid().y)
+            print('Rendered galaxy model for id = %d with z = %.3f' % (
+                galaxy.identifier,galaxy.redshift))
+            print('bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
+                x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1))
+            print(' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
+                model.centroid().x,model.centroid().y))
         return datacube,cropped_bounds
 
     def render_star(self,star,no_partials = False):
@@ -462,12 +462,12 @@ class Engine(object):
                 datacube[i+1] = variation_stamp.array/(2*delta)
 
         if self.verbose_render:
-            print 'Rendered star model for id = %d with z = %.3f' % (
-                star.identifier,star.redshift)
-            print 'bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
-                x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1)
-            print ' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
-                model.centroid().x,model.centroid().y)
+            print('Rendered star model for id = %d with z = %.3f' % (
+                star.identifier,star.redshift))
+            print('bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
+                x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1))
+            print(' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
+                model.centroid().x,model.centroid().y))
 
         return datacube,cropped_bounds
 
