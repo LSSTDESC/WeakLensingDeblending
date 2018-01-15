@@ -6,7 +6,7 @@ all overlapping groups with exactly two members, with some additional cuts on
 the galaxy properties, finally saving images of each pair to an output
 file 'pairs.fits'.
 """
-
+from __future__ import print_function
 import numpy as np
 import galsim
 import descwl
@@ -29,8 +29,8 @@ for index in selected:
 	grp_id = catalog['db_id'][index]
 	group = results.select('grp_id==%ld' % grp_id)
 	# Print the fluxes of each galaxy (in order of increasing SNR).
-	print 'fluxes for group id %ld are %.3f,%.3f electrons.' % (
-		grp_id,catalog['flux'][group[0]],catalog['flux'][group[1]])
+	print('fluxes for group id %ld are %.3f,%.3f electrons.' % (
+		grp_id,catalog['flux'][group[0]],catalog['flux'][group[1]]))
 	# Create and save an image of just this group.
 	image = results.get_subimage(group)
 	images_to_save.append(image)
@@ -42,5 +42,5 @@ for index in selected:
 		galaxy[stamp.bounds] = stamp
 		images_to_save.append(galaxy)
 
-print 'Saving %d images.' % len(images_to_save)
+print('Saving %d images.' % len(images_to_save))
 galsim.fits.writeMulti(images_to_save,file_name = 'pairs.fits')
