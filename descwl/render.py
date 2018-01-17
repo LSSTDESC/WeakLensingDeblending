@@ -8,7 +8,7 @@ import numpy as np
 
 import galsim
 
-import analysis
+from . import analysis
 
 
 class SourceNotVisible(Exception):
