@@ -4,10 +4,10 @@ This code was primarily developed to study the effects of overlapping sources on
 photometric redshift algorithms, and deblending algorithms.
 """
 
-import catalog
-import survey
-import model
-import render
-import analysis
-import output
-import trace
+from . import catalog
+from . import survey
+from . import model
+from . import render
+from . import analysis
+from . import output
+from . import trace
