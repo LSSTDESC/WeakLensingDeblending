@@ -1,5 +1,6 @@
 """Manage the parameters that define a simulated survey's camera design and observing conditions.
 """
+from __future__ import print_function, division
 
 import math
 
@@ -100,7 +101,7 @@ class Survey(object):
         try:
             hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
             self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
-        except RuntimeError,e:
+        except RuntimeError as e:
             raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
@@ -370,7 +371,7 @@ class Survey(object):
                 if filter_band == '*':
                     continue
                 defaults = Survey.get_defaults(survey_name,filter_band)
-                print '%s %s-band: %r' % (survey_name,filter_band,defaults)
+                print('%s %s-band: %r' % (survey_name,filter_band,defaults))
 
     @staticmethod
     def add_args(parser):

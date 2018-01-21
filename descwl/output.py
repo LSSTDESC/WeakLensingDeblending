@@ -3,6 +3,7 @@
 There is a separate :doc:`output page </output>` with details on what goes into the
 output and how it is formatted.
 """
+from __future__ import print_function, division
 
 import os
 import os.path
@@ -54,7 +55,7 @@ class Reader(object):
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
         try:
             self.fits = fitsio.FITS(self.input_name,mode = fitsio.READONLY)
-        except ValueError,e:
+        except ValueError as e:
             raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
         header = self.fits[0].read_header()
@@ -180,7 +181,7 @@ class Writer(object):
             try:
                 self.fits = astropy.io.fits.open(self.output_name,mode = 'ostream',memmap = False)
                 self.fits.append(astropy.io.fits.PrimaryHDU())
-            except IOError,e:
+            except IOError as e:
                 raise RuntimeError(str(e))
 
     def description(self):

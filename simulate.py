@@ -104,7 +104,7 @@ def main():
         results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
         output.finalize(results,trace)
 
-    except RuntimeError,e:
+    except RuntimeError as e:
         print(str(e))
         return -1
 

@@ -3,6 +3,7 @@
 There is a separate :doc:`catalog page </catalog>` with details on the expected catalog
 contents and formatting.
 """
+from __future__ import print_function, division
 
 import math
 import inspect
