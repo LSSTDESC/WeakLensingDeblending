@@ -300,7 +300,7 @@ class Engine(object):
         # Prepare the datacube that we will return.
         ncube = 1
 
-        positions = analysis.make_positions()
+        positions = descwl.analysis.make_positions()
         if not no_partials:
             ncube = 1+len(variations)
             if calculate_bias:

@@ -21,6 +21,8 @@ import galsim
 import descwl.survey
 import descwl.analysis
 
+from six import iteritems
+
 class Reader(object):
     """Simulation output reader.
 
@@ -213,7 +215,7 @@ class Writer(object):
         hdu.header['PSF_SIGM'] = self.survey.psf_sigma_m
         hdu.header['PSF_SIGP'] = self.survey.psf_sigma_p
         hdu.header['PSF_HSM'] = self.survey.psf_size_hsm
-        for key,value in results.survey.args.iteritems():
+        for key,value in iteritems(results.survey.args):
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
             hdu.header[key[-8:]] = value

@@ -18,6 +18,8 @@ import galsim
 
 import descwl
 
+from six import binary_type
+
 def main():
     # Initialize and parse command-line arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -128,7 +130,7 @@ def main():
         results = reader.results
         if args.verbose:
             print(results.survey.description())
-    except RuntimeError,e:
+    except RuntimeError as e:
         print(str(e))
         return -1
 
@@ -305,9 +307,9 @@ def main():
     # The argparse module escapes any \n or \t in string args, but we need these
     # to be unescaped in the annotation format string.
     if args.info:
-        args.info = args.info.decode('string-escape')
+        args.info = binary_type(args.info, 'utf-8').decode('unicode-escape')
     if args.match_info:
-        args.match_info = args.match_info.decode('string-escape')
+        args.match_info = binary_type(args.match_info, 'utf-8').decode('string-escape')
 
     num_selected = len(selected_indices)
     ellipse_centers = np.empty((num_selected,2))

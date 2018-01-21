@@ -9,6 +9,8 @@ import numpy.linalg
 
 import galsim
 
+from six import iteritems
+
 class Survey(object):
     """Survey camera and observing parameters.
 
@@ -364,10 +366,10 @@ class Survey(object):
     def print_defaults():
         """Print parameters for all available (survey,filter band) combinations.
         """
-        for survey_name,survey_defaults in Survey._defaults.iteritems():
+        for survey_name,survey_defaults in iteritems(Survey._defaults):
             if survey_name == '*':
                 continue
-            for filter_band,combo_defaults in survey_defaults.iteritems():
+            for filter_band,combo_defaults in iteritems(survey_defaults):
                 if filter_band == '*':
                     continue
                 defaults = Survey.get_defaults(survey_name,filter_band)

@@ -15,6 +15,8 @@ import descwl.model
 
 from distutils.version import LooseVersion
 
+from six import iteritems
+
 #create dictionary of mapping from corresponding partial names to position in datacube.
 def make_positions():
 
@@ -31,7 +33,7 @@ def make_positions():
     return positions
 
 def make_inv_positions():
-    return {value:key for key,value in make_positions().iteritems()}
+    return {value:key for key,value in iteritems(make_positions())}
 
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
@@ -649,7 +651,7 @@ class OverlapAnalyzer(object):
             parameters.add('dg2_%d' % i,value = 0.,min = -0.2,max = +0.2)
         # Fix parameters as requested.
         if fixed_parameters:
-            for name,value in fixed_parameters.iteritems():
+            for name,value in iteritems(fixed_parameters):
                 parameters[name].value = value
                 parameters[name].vary = False
         # Initialize rendering.
@@ -743,7 +745,7 @@ class OverlapAnalyzer(object):
             parameters['dg2_%d' %i].vary = False
             # Fix parameters as requested.
         if fixed_parameters:
-            for name,value in fixed_parameters.iteritems():
+            for name,value in iteritems(fixed_parameters):
                 parameters[name].value = value
                 parameters[name].vary = False
         # Initialize rendering.
