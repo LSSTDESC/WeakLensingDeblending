@@ -73,7 +73,7 @@ def main():
     view_group.add_argument('--no-crosshair', action = 'store_true',
         help = 'Do not draw a crosshair at the centroid of each selected object.')
     view_group.add_argument('--clip-lo-noise-fraction', type = float,
-        default = 0.1, metavar = 'FRAC',
+        default = 0.05, metavar = 'FRAC',
         help = 'Clip pixels with values below this fraction of the mean sky noise.')
     view_group.add_argument('--clip-hi-percentile', type = float,
         default = 90.0, metavar = 'PCT',
@@ -97,7 +97,7 @@ def main():
         default = 2048, metavar = 'SIZE',
         help = 'Maximum allowed pixel dimensions of displayed image.')
     format_group.add_argument('--colormap', type = str,
-        default = 'YlGnBu', metavar = 'CMAP',
+        default = 'viridis', metavar = 'CMAP',
         help = 'Matplotlib colormap name to use for background pixel values.')
     format_group.add_argument('--highlight', type = str,
         default = 'red', metavar = 'COL',
