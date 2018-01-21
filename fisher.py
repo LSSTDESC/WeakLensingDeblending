@@ -86,7 +86,7 @@ def main():
         npartials = len(results.slice_labels)
         if args.verbose:
             print(results.survey.description())
-    except RuntimeError,e:
+    except RuntimeError as e:
         print(str(e))
         return -1
     if results.table is None:
