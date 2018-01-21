@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Fast image simulation using GalSim for weak lensing studies.
 """
+from __future__ import print_function, division
 
 import argparse
 
@@ -55,12 +56,12 @@ def main():
             star_catalog = descwl.catalog.ReaderStar.from_args(args)
         if args.verbose:
             if args.catalog_name!=None:
-                print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
+                print('Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name))
             if args.star_catalog_name!=None:
-                print 'Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name)
+                print('Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name))
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
-            print survey.description()
+            print(survey.description())
         if args.catalog_name!=None:
             galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
         if args.star_catalog_name!=None:
@@ -68,13 +69,13 @@ def main():
 
         render_engine = descwl.render.Engine.from_args(survey,args)
         if args.verbose:
-            print render_engine.description()
+            print(render_engine.description())
 
         analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.add_noise)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
-            print output.description()
+            print(output.description())
 
         trace('initialized')
         if args.catalog_name!=None:
@@ -104,7 +105,7 @@ def main():
         output.finalize(results,trace)
 
     except RuntimeError,e:
-        print str(e)
+        print(str(e))
         return -1
 
 if __name__ == '__main__':
