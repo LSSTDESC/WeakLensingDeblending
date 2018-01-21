@@ -899,9 +899,9 @@ class OverlapAnalyzer(object):
             data['z'][index] = model.redshift
             data['ab_mag'][index] = model.ab_magnitude
             data['ri_color'][index] = model.ri_color
-            data['flux'][index] = model.model.getFlux()
+            data['flux'][index] = model.model.flux
             # Is this galaxy's centroid visible in the survey image?
-            data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
+            data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center.pos) else 0
             if(getattr(model,'disk_fraction',None)!=None):
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction

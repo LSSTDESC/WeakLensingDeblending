@@ -223,12 +223,12 @@ class Engine(object):
             raise RuntimeError("Cannot calculate bias with partials")
 
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
-        if galaxy.model.getFlux()*self.psf_dilution < self.pixel_cut:
+        if galaxy.model.flux*self.psf_dilution < self.pixel_cut:
             raise SourceNotVisible
 
         # Calculate the offset of the source center from the bottom-left corner of the
         # simulated image in floating-point pixel units.
-        centroid = galaxy.model.centroid()
+        centroid = galaxy.model.centroid
         x_center_pixels,y_center_pixels = self.survey.get_image_coordinates(centroid.x,centroid.y)
 
         # Calculate the corresponding central pixel indices in the full image, where (0,0) is the
@@ -350,7 +350,7 @@ class Engine(object):
             print('bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1))
             print(' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
-                model.centroid().x,model.centroid().y))
+                model.centroid.x,model.centroid.y))
         return datacube,cropped_bounds
 
     def render_star(self,star,no_partials = False):
@@ -371,12 +371,12 @@ class Engine(object):
                 simulated survey.
         """
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
-        if star.model.getFlux()*self.psf_dilution < self.pixel_cut:
+        if star.model.flux*self.psf_dilution < self.pixel_cut:
             raise SourceNotVisible
 
         # Calculate the offset of the source center from the bottom-left corner of the
         # simulated image in floating-point pixel units.
-        centroid = star.model.centroid()
+        centroid = star.model.centroid
         x_center_pixels,y_center_pixels = self.survey.get_image_coordinates(centroid.x,centroid.y)
 
         # Calculate the corresponding central pixel indices in the full image, where (0,0) is the
@@ -468,7 +468,7 @@ class Engine(object):
             print('bounds: [%d:%d,%d:%d] w,h = %d,%d' % (
                 x_min,x_max,y_min,y_max,x_max-x_min+1,y_max-y_min+1))
             print(' shift: (%.6f,%.6f) arcsec relative to stamp center' % (
-                model.centroid().x,model.centroid().y))
+                model.centroid.x,model.centroid.y))
 
         return datacube,cropped_bounds
 
