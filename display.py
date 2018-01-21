@@ -44,6 +44,8 @@ def main():
     select_group.add_argument('--select-region', type = str,
         default = None, metavar = '[XMIN,XMAX,YMIN,YMAX]',
         help = 'Select objects within this region relative to the image center (arcsecs).')
+    select_group.add_argument('--save-selected', type = str, default = None,
+        help = 'Name of FITS file for saving table of selected objects')
 
     match_group = parser.add_argument_group('Detection catalog matching options')
     match_group.add_argument('--match-catalog', type = str,
@@ -86,6 +88,8 @@ def main():
         help = 'Add Poisson noise using the seed provided (no noise is added unless this is set).')
     view_group.add_argument('--clip-noise',type = float,default = -1.,metavar = 'SIGMAS',
         help = 'Clip background images at this many sigmas when noise is added.')
+    view_group.add_argument('--zscale-all', action='store_true',
+        help = 'Set zscale using all displayed objects instead of only selected ones')
 
     format_group = parser.add_argument_group('Formatting options')
     format_group.add_argument('--info-size', type = str,
@@ -179,11 +183,19 @@ def main():
     selected_indices = np.arange(results.num_objects)[selection]
     if args.verbose:
         print('Selected IDs:\n%s' % np.array(results.table['db_id'][selected_indices]))
+        groups = np.unique(results.table[selected_indices]['grp_id'])
+        print('Selected group IDs:\n%s' % np.array(groups))
 
     # Do we have individual objects available for selection in the output file?
     if np.any(selection) and not results.stamps:
         print('Cannot display selected objects without any stamps available.')
         return -1
+
+    # Save table of selected objects if requested.
+    if args.save_selected:
+        if args.verbose:
+            print('Saving selected objects to %s.' % args.save_selected)
+        results.table[selected_indices].write(args.save_selected, overwrite=True)
 
     # Build the image of selected objects (might be None).
     selected_image = results.get_subimage(selected_indices)
@@ -259,7 +271,7 @@ def main():
 
     # Prepare the z scaling.
     zscale_pixels = results.survey.image.array
-    if selected_image:
+    if selected_image and not args.zscale_all:
         if selected_image.bounds.area() < 16:
             print('WARNING: using full image for z-scaling since only %d pixel(s) selected.' % (
                 selected_image.bounds.area()))
