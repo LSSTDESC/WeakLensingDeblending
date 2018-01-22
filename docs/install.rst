@@ -25,12 +25,16 @@ You can update your local copy of the package at any time using::
 Getting Started
 ---------------
 
-Programs can be run directly from the top-level directory without needing to set `PYTHONPATH` as long as you have the required packages already installed, e.g.::
+Programs can be run directly from the top-level directory (without needing to install the package or otherwise set `PYTHONPATH`) as long as you have the required packages (listed below) already installed, e.g.::
 
 	cd WeakLensingDeblending
 	./simulate.py --help
 
 For an introduction to the available programs, see :doc:`here </programs>` and for examples of running these programs see :doc:`here </examples>`.
+
+If you would like to call code in the `descwl` module, you can also install the package using the following command from the top-level directory::
+
+	pip install .
 
 Required Packages
 -----------------
@@ -42,6 +46,7 @@ The following python packages are required by this package:
 * `fitsio <https://github.com/esheldon/fitsio>`_ (version >= 0.9.6)
 * `galsim <https://github.com/GalSim-developers/GalSim>`_ (version >= 1.2)
 * `lmfit <http://cars9.uchicago.edu/software/python/lmfit/>`_ (version >= 0.8.3)
+* `six` used for python 2/3 compatibility.
 
 Note that `numpy` and `astropy` are both available in recent `anaconda <https://store.continuum.io/cshop/anaconda/>`_ or `enthought canopy <https://www.enthought.com/products/canopy/>`_ distributions. The `fitsio` package is required for performance reasons, since the similar pure-python functionality in the :mod:`astropy.io.fits` module is too slow for this application. Installing GalSim is a more involved process, but well worth the effort. The `lmfit` package is only required if you will be running your own simulations.
 

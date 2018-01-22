@@ -4,6 +4,10 @@ This code was primarily developed to study the effects of overlapping sources on
 photometric redshift algorithms, and deblending algorithms.
 """
 
+__author__ = 'WeakLensingDeblending developers'
+__email__ = 'dkirkby@uci.edu'
+__version__ = '0.3dev'
+
 from . import catalog
 from . import survey
 from . import model
