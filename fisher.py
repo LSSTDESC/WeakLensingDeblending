@@ -2,6 +2,7 @@
 
 """Create plots to illustrate galaxy parameter error estimation using Fisher matrices.
 """
+from __future__ import print_function, division
 
 import argparse
 
@@ -62,20 +63,20 @@ def main():
 
     args = parser.parse_args()
     if args.no_display and not args.output_name:
-        print 'No display our output requested.'
+        print('No display our output requested.')
         return 0
     if args.galaxy is None and args.group is None:
-        print 'Must specify either a galaxy or a group.'
+        print('Must specify either a galaxy or a group.')
         return -1
     if args.galaxy is not None and args.group is not None:
-        print 'Cannot specify both a galaxy and a group.'
+        print('Cannot specify both a galaxy and a group.')
         return -1
     if args.partials + args.matrix + args.covariance + args.correlation > 1:
-        print 'Can only specify one of the partials,matrix,covariance options.'
+        print('Can only specify one of the partials,matrix,covariance options.')
         return -1
 
     if args.clip_percentile < 0 or args.clip_percentile >= 50:
-        print 'Invalid --clip-percentile %f (should be 0-50).' % args.clip_percentile
+        print('Invalid --clip-percentile %f (should be 0-50).' % args.clip_percentile)
         return -1
 
     # Load the analysis results file we will get partial derivative images from.
@@ -84,31 +85,31 @@ def main():
         results = reader.results
         npartials = len(results.slice_labels)
         if args.verbose:
-            print results.survey.description()
-    except RuntimeError,e:
-        print str(e)
+            print(results.survey.description())
+    except RuntimeError as e:
+        print(str(e))
         return -1
     if results.table is None:
-        print 'Input file is missing a results catalog.'
+        print('Input file is missing a results catalog.')
         return -1
     if results.stamps is None:
-        print 'Input file is missing stamp datacubes.'
+        print('Input file is missing stamp datacubes.')
         return -1
 
     # Look for the selected galaxy or group.
     if args.galaxy:
         selected = results.select('db_id==%d' % args.galaxy)
         if len(selected) == 0:
-            print 'No such galaxy with ID %d' % args.galaxy
+            print('No such galaxy with ID %d' % args.galaxy)
             return -1
         title = 'galaxy-%d' % args.galaxy
     else:
         selected = results.select('grp_id==%d' % args.group)
         if len(selected) == 0:
-            print 'No such group with ID %d' % args.group
+            print('No such group with ID %d' % args.group)
             return -1
         title = 'group-%d' % args.group
-        
+
     # Sort selected galaxies in increasing rank order.
     sort_order = np.argsort(results.table['grp_rank'][selected])
     selected = selected[sort_order]
@@ -141,7 +142,7 @@ def main():
             galaxy = index//npartials
             islice = index%npartials
             summary[galaxy][islice+1] = np.sqrt(variance[index])
-        print astropy.table.Table(summary)
+        print(astropy.table.Table(summary))
 
     # Calculate the bounds for our figure.
     if args.partials:

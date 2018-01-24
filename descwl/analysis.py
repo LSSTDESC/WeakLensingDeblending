@@ -1,5 +1,6 @@
 """Perform weak-lensing analysis of simulated sources.
 """
+from __future__ import print_function, division
 
 import numpy as np
 import scipy.spatial
@@ -13,6 +14,8 @@ import lmfit
 import descwl.model
 
 from distutils.version import LooseVersion
+
+from six import iteritems
 
 #create dictionary of mapping from corresponding partial names to position in datacube.
 def make_positions():
@@ -30,7 +33,7 @@ def make_positions():
     return positions
 
 def make_inv_positions():
-    return {value:key for key,value in make_positions().iteritems()}
+    return {value:key for key,value in iteritems(make_positions())}
 
 class OverlapResults(object):
     """Results of analyzing effects of overlapping sources on weak lensing.
@@ -149,7 +152,7 @@ class OverlapResults(object):
         else:
             try:
                 return eval(selector,self.locals)
-            except NameError,e:
+            except NameError as e:
                 raise RuntimeError('%s in selector %r.' % (e.message,selector))
 
     def get_stamp(self,index,datacube_index=0):
@@ -478,7 +481,7 @@ class OverlapResults(object):
                 reduced_correlation = reduced_covariance/np.sqrt(
                     np.outer(reduced_variance,reduced_variance))
                 break
-            except (np.linalg.LinAlgError,AssertionError),e:
+            except (np.linalg.LinAlgError,AssertionError) as e:
                 # We can't calculate a covariance for this set of objects, so drop the next
                 # lowest SNR member of the set and try again.
                 keep[priority[num_dropped],:] = False
@@ -648,7 +651,7 @@ class OverlapAnalyzer(object):
             parameters.add('dg2_%d' % i,value = 0.,min = -0.2,max = +0.2)
         # Fix parameters as requested.
         if fixed_parameters:
-            for name,value in fixed_parameters.iteritems():
+            for name,value in iteritems(fixed_parameters):
                 parameters[name].value = value
                 parameters[name].vary = False
         # Initialize rendering.
@@ -742,7 +745,7 @@ class OverlapAnalyzer(object):
             parameters['dg2_%d' %i].vary = False
             # Fix parameters as requested.
         if fixed_parameters:
-            for name,value in fixed_parameters.iteritems():
+            for name,value in iteritems(fixed_parameters):
                 parameters[name].value = value
                 parameters[name].vary = False
         # Initialize rendering.
@@ -896,9 +899,9 @@ class OverlapAnalyzer(object):
             data['z'][index] = model.redshift
             data['ab_mag'][index] = model.ab_magnitude
             data['ri_color'][index] = model.ri_color
-            data['flux'][index] = model.model.getFlux()
+            data['flux'][index] = model.model.flux
             # Is this galaxy's centroid visible in the survey image?
-            data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center()) else 0
+            data['visible'][index] = 1 if self.survey.image.bounds.includes(bounds.center.pos) else 0
             if(getattr(model,'disk_fraction',None)!=None):
                 data['f_disk'][index] = model.disk_fraction
                 data['f_bulge'][index] = model.bulge_fraction
@@ -959,7 +962,7 @@ class OverlapAnalyzer(object):
         grp_id_set = set(data['grp_id'])
         num_groups = len(grp_id_set)
         if verbose:
-            print 'Simulated %d galaxies in %d overlap groups.' % (num_galaxies,num_groups)
+            print('Simulated %d galaxies in %d overlap groups.' % (num_galaxies,num_groups))
 
         # Initialize our results object so we can use its methods (but be careful not
         # to use a method that needs something in table that we have not filled in yet).
@@ -1016,7 +1019,7 @@ class OverlapAnalyzer(object):
                         data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
                         data['hsm_e1'][galaxy] = hsm_results.corrected_e1
                         data['hsm_e2'][galaxy] = hsm_results.corrected_e2
-                    except RuntimeError,e:
+                    except RuntimeError as e:
                         # Usually "Unphysical situation: galaxy convolved with PSF is smaller than PSF!"
                         # due to truncation of a faint galaxy at the limiting isophote.  Try to just
                         # calculate the PSF-convolved size in this case.
@@ -1027,8 +1030,8 @@ class OverlapAnalyzer(object):
                             else:
                                 hsm_results = galsim.hsm.FindAdaptiveMom(signal)
                                 data['hsm_sigm'][galaxy] = hsm_results.moments_sigma*self.survey.pixel_scale
-                        except RuntimeError,e:
-                            print str(e)
+                        except RuntimeError as e:
+                            print(str(e))
 
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
@@ -1134,15 +1137,15 @@ class OverlapAnalyzer(object):
                             bestfit = self.fit_galaxies([g1],deblended)
                             data['g1_fit'][g1] = bestfit[0,4]
                             data['g2_fit'][g1] = bestfit[0,5]
-                        except RuntimeError,e:
-                            print str(e)
+                        except RuntimeError as e:
+                            print(str(e))
                     else:
                         try:
                             bestfit = self.fit_stars([g1],deblended)
                             data['g1_fit'][g1] = 0
                             data['g2_fit'][g1] = 0
-                        except RuntimeError,e:
-                            print str(e)
+                        except RuntimeError as e:
+                            print(str(e))
         trace('OverlapAnalyzer.finalize end')
         return results
     @staticmethod
