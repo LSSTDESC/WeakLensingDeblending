@@ -784,7 +784,7 @@ class OverlapAnalyzer(object):
             bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
-    def finalize(self,verbose,trace,calculate_bias):
+    def finalize(self,verbose,trace,calculate_bias,no_analysis):
         """Finalize analysis of all added stars and galaxies.
 
         Args:
@@ -867,6 +867,13 @@ class OverlapAnalyzer(object):
                 ])
 
         data = np.empty(num_galaxies, dtype=dtype)
+        if no_analysis:
+            # Return empty data table
+            table = astropy.table.Table(data, copy=False)
+            num_slices, h, w = self.stamps[0].shape
+            results = OverlapResults(self.survey, table, self.stamps,
+                                     self.bounds, num_slices)
+            return results
 
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
 
