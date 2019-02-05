@@ -44,7 +44,7 @@ class Survey(object):
     Raises:
         RuntimeError: Missing or extra arguments provided or unable to calculate PSF size.
     """
-    def __init__(self,**args):
+    def __init__(self, no_analysis=False, **args):
         if set(args.keys()) != set(Survey._parameter_names):
             raise RuntimeError('Missing or extra arguments provided to Survey constructor.')
         self.args = args
@@ -79,32 +79,36 @@ class Survey(object):
         psf_size_pixels = 2*int(math.ceil(10*atmospheric_psf_fwhm/self.pixel_scale))
         self.psf_image = galsim.Image(psf_size_pixels,psf_size_pixels,scale  = self.pixel_scale)
         self.psf_model.drawImage(image = self.psf_image)
-        # Draw a (temporary) high-resolution (10x) image covering the same area.
-        zoom = 10
-        hires_psf_image = galsim.Image(zoom*psf_size_pixels,zoom*psf_size_pixels,scale = self.pixel_scale/zoom)
-        self.psf_model.drawImage(image = hires_psf_image)
-        # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
-        hires_sum = np.sum(hires_psf_image.array)
-        hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
-        hires_x,hires_y = np.meshgrid(hires_grid,hires_grid)
-        psf_x = np.sum(hires_psf_image.array*hires_x)/hires_sum
-        psf_y = np.sum(hires_psf_image.array*hires_x)/hires_sum
-        hires_x -= psf_x
-        hires_y -= psf_y
-        psf_xx = np.sum(hires_psf_image.array*hires_x**2)/hires_sum
-        psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
-        psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
-        self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
-        # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
-        self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
-        self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))
-        # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
-        # of the non-hires PSF image.
-        try:
-            hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
-            self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
-        except RuntimeError as e:
-            raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
+        if not no_analysis:
+            # Draw a (temporary) high-resolution (10x) image covering the same area.
+            zoom = 10
+            hires_psf_image = galsim.Image(zoom*psf_size_pixels,zoom*psf_size_pixels,scale = self.pixel_scale/zoom)
+            self.psf_model.drawImage(image = hires_psf_image)
+            # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
+            hires_sum = np.sum(hires_psf_image.array)
+            hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
+            hires_x,hires_y = np.meshgrid(hires_grid,hires_grid)
+            psf_x = np.sum(hires_psf_image.array*hires_x)/hires_sum
+            psf_y = np.sum(hires_psf_image.array*hires_x)/hires_sum
+            hires_x -= psf_x
+            hires_y -= psf_y
+            psf_xx = np.sum(hires_psf_image.array*hires_x**2)/hires_sum
+            psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
+            psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
+            self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
+            # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
+            self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
+            self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))
+            # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
+            # of the non-hires PSF image.
+            try:
+                hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
+                self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
+            except RuntimeError as e:
+                raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
+        else:
+            if self.verbose_render:
+                print("No analysis performed")
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
@@ -478,4 +482,5 @@ class Survey(object):
         for parameter_name in ctor_params:
             if parameter_name in args_dict and args_dict[parameter_name] is not None:
                 ctor_params[parameter_name] = args_dict[parameter_name]
-        return Survey(survey_name=survey_name,filter_band=filter_band,**ctor_params)
+        return Survey(no_analysis=args['no_analysis'], survey_name=survey_name,
+                      filter_band=filter_band,**ctor_params)
