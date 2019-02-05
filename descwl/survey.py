@@ -106,9 +106,6 @@ class Survey(object):
                 self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
             except RuntimeError as e:
                 raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
-        else:
-            if self.verbose_render:
-                print("No analysis performed")
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
