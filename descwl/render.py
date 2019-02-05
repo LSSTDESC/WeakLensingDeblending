@@ -283,7 +283,6 @@ class Engine(object):
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
         if not no_analysis:
-            print("not no analysis in render engine")
             # Give this Galaxy its own GalaxyRenderer.
             galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
 
