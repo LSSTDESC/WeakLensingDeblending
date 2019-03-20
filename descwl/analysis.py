@@ -475,7 +475,7 @@ class OverlapResults(object):
                 keep_flat = keep.flatten()
                 # Advanced indexing like this makes a copy, not a view.
                 reduced_fisher = fisher[keep_flat,:][:,keep_flat]
-                reduced_covariance = np.linalg.inv(reduced_fisher)
+                reduced_covariance = np.linalg.pinv(reduced_fisher)
                 reduced_variance = np.diag(reduced_covariance)
                 assert np.min(reduced_variance) > 0,'Expected variance > 0'
                 reduced_correlation = reduced_covariance/np.sqrt(
