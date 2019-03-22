@@ -1,0 +1,52 @@
+[NbConvertApp] Converting notebook Figures.ipynb to notebook
+[NbConvertApp] Executing notebook with kernel: python2
+/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/connect.py:157: RuntimeWarning: Failed to set sticky bit on '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T': [Errno 1] Operation not permitted: '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T'
+  RuntimeWarning,
+[NbConvertApp] ERROR | Failed to run command:
+['/Users/david/anaconda/bin/python', '-m', 'ipykernel', '-f', '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T/tmp5wv6cl9x.json']
+    PATH='/Users/david/anaconda3/envs/DESC/bin:/Users/david/anaconda3/envs/DESC/bin:/Users/david/google-cloud-sdk/bin:/Users/david/anaconda3/bin:/usr/local/texbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/CrossPack-AVR/bin:/Applications/Visual Studio Code.app/Contents/Resources/app/bin'
+    with kwargs:
+{'stdin': -1, 'stdout': None, 'stderr': None, 'cwd': None, 'start_new_session': True}
+
+Traceback (most recent call last):
+  File "/Users/david/anaconda3/envs/DESC/bin/jupyter-nbconvert", line 11, in <module>
+    load_entry_point('nbconvert==5.2.1', 'console_scripts', 'jupyter-nbconvert')()
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_core/application.py", line 267, in launch_instance
+    return super(JupyterApp, cls).launch_instance(argv=argv, **kwargs)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/traitlets/config/application.py", line 658, in launch_instance
+    app.start()
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/nbconvertapp.py", line 313, in start
+    self.convert_notebooks()
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/nbconvertapp.py", line 481, in convert_notebooks
+    self.convert_single_notebook(notebook_filename)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/nbconvertapp.py", line 452, in convert_single_notebook
+    output, resources = self.export_single_notebook(notebook_filename, resources, input_buffer=input_buffer)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/nbconvertapp.py", line 381, in export_single_notebook
+    output, resources = self.exporter.from_filename(notebook_filename, resources=resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 172, in from_filename
+    return self.from_file(f, resources=resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 190, in from_file
+    return self.from_notebook_node(nbformat.read(file_stream, as_version=4), resources=resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/notebook.py", line 31, in from_notebook_node
+    nb_copy, resources = super(NotebookExporter, self).from_notebook_node(nb, resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 132, in from_notebook_node
+    nb_copy, resources = self._preprocess(nb_copy, resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 309, in _preprocess
+    nbc, resc = preprocessor(nbc, resc)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/base.py", line 47, in __call__
+    return self.preprocess(nb,resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/execute.py", line 237, in preprocess
+    cwd=path)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/execute.py", line 217, in start_new_kernel
+    km.start_kernel(**kwargs)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/manager.py", line 257, in start_kernel
+    **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/manager.py", line 203, in _launch_kernel
+    return launch_kernel(kernel_cmd, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/launcher.py", line 128, in launch_kernel
+    proc = Popen(cmd, **kwargs)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/subprocess.py", line 707, in __init__
+    restore_signals, start_new_session)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/subprocess.py", line 1333, in _execute_child
+    raise child_exception_type(errno_num, err_msg)
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/david/anaconda/bin/python'

@@ -1,0 +1,36 @@
+[NbConvertApp] Converting notebook TutorialIntroduction.ipynb to notebook
+[NbConvertApp] Executing notebook with kernel: python3
+/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/connect.py:157: RuntimeWarning: Failed to set sticky bit on '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T': [Errno 1] Operation not permitted: '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T'
+  RuntimeWarning,
+/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/jupyter_client/connect.py:157: RuntimeWarning: Failed to set sticky bit on '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T': [Errno 1] Operation not permitted: '/var/folders/gt/bspmh3qs0rq01nt2sdv5nkcc0000gn/T'
+  RuntimeWarning,
+[NbConvertApp] ERROR | Error while converting 'TutorialIntroduction.ipynb'
+Traceback (most recent call last):
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/nbconvertapp.py", line 381, in export_single_notebook
+    output, resources = self.exporter.from_filename(notebook_filename, resources=resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 172, in from_filename
+    return self.from_file(f, resources=resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 190, in from_file
+    return self.from_notebook_node(nbformat.read(file_stream, as_version=4), resources=resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/notebook.py", line 31, in from_notebook_node
+    nb_copy, resources = super(NotebookExporter, self).from_notebook_node(nb, resources, **kw)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 132, in from_notebook_node
+    nb_copy, resources = self._preprocess(nb_copy, resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/exporters/exporter.py", line 309, in _preprocess
+    nbc, resc = preprocessor(nbc, resc)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/base.py", line 47, in __call__
+    return self.preprocess(nb,resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/execute.py", line 242, in preprocess
+    nb, resources = super(ExecutePreprocessor, self).preprocess(nb, resources)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/base.py", line 70, in preprocess
+    nb.cells[index], resources = self.preprocess_cell(cell, resources, index)
+  File "/Users/david/anaconda3/envs/DESC/lib/python3.6/site-packages/nbconvert/preprocessors/execute.py", line 275, in preprocess_cell
+    raise CellExecutionError(msg)
+nbconvert.preprocessors.execute.CellExecutionError: An error occurred while executing the following cell:
+------------------
+from IPython.display import Image
+Image(filename='display1.png')
+------------------
+
+FileNotFoundError: [Errno 2] No such file or directory: 'display1.png'
+
