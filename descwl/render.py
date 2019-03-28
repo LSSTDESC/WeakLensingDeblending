@@ -198,7 +198,8 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False):
+    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False,
+                      no_analysis=False):
         """Render a galaxy model for a simulated survey.
 
         Args:
@@ -281,69 +282,73 @@ class Engine(object):
         if survey_overlap.area() == 0:
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
+        if not no_analysis:
+            # Give this Galaxy its own GalaxyRenderer.
+            galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
 
-        # Give this Galaxy its own GalaxyRenderer.
-        galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
+            # Define the parameter variations we consider for building Fisher matrices.
+            # The names appearing below are args of Galaxy.get_transformed_model().
+            # We do not include 'flux' below since the nominal image is already the
+            # partial derivative wrt flux (after dividing by flux).
+            variations = [
+                ('dx',self.survey.pixel_scale/3.), # arcsecs
+                ('dy',self.survey.pixel_scale/3.), # arcsecs
+                ('ds',0.05), # relative dilation (flux preserving)
+                ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
+                ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+                ]
 
-        # Define the parameter variations we consider for building Fisher matrices.
-        # The names appearing below are args of Galaxy.get_transformed_model().
-        # We do not include 'flux' below since the nominal image is already the
-        # partial derivative wrt flux (after dividing by flux).
-        variations = [
-            ('dx',self.survey.pixel_scale/3.), # arcsecs
-            ('dy',self.survey.pixel_scale/3.), # arcsecs
-            ('ds',0.05), # relative dilation (flux preserving)
-            ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
-            ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
-            ]
+            # Prepare the datacube that we will return.
+            ncube = 1
 
-        # Prepare the datacube that we will return.
-        ncube = 1
-
-        positions = descwl.analysis.make_positions()
-        if not no_partials:
-            ncube = 1+len(variations)
-            if calculate_bias:
-                 #15 is number of second partials for 5 parameters (no flux).
-                ncube = 1 + len(variations) + 15
-
-        height,width = cropped_stamp.array.shape
-        datacube = np.empty((ncube,height,width))
-        datacube[0] = cropped_stamp.array #flux partial is the same.
-
-        #calculate partials, if requested.
-        if not no_partials:
-            #The nominal image doubles as the flux partial derivative.
-            for i,(pname_i,delta_i) in enumerate(variations):
-                variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() -
-                                       galaxy.renderer.draw(**{pname_i: -delta_i}))
-                datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
-
-                #calculate second partials, if requested.
+            positions = descwl.analysis.make_positions()
+            if not no_partials:
+                ncube = 1+len(variations)
                 if calculate_bias:
-                    for j,(pname_j,delta_j) in enumerate(variations):
-                        if(i==j):
-                            galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
-                            galaxy_2idown = galaxy.renderer.draw(**{pname_i: -2*delta_i}).copy()
-                            variation_i_i = galaxy_2iup + galaxy_2idown - 2*galaxy.renderer.draw()
-                            datacube[positions[pname_i,pname_i]] = ((variation_i_i).array/
-                                                                    (2*delta_i)**2)
+                     #15 is number of second partials for 5 parameters (no flux).
+                    ncube = 1 + len(variations) + 15
 
-                        elif(j>i):
-                            galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i,
-                                                                  pname_j: +delta_j}).copy()
-                            galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i,
-                                                                       pname_j: -delta_j}).copy()
-                            galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i,
-                                                                       pname_j: +delta_j}).copy()
-                            galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i,
-                                                                         pname_j: -delta_j})
+            height,width = cropped_stamp.array.shape
+            datacube = np.empty((ncube,height,width))
+            datacube[0] = cropped_stamp.array #flux partial is the same.
 
-                            variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown -
-                                             galaxy_idown_jup - galaxy_iup_jdown)
-                            datacube[positions[pname_i,pname_j]] = (variation_i_j.array /
-                                                                    (4*delta_i*delta_j))
+            #calculate partials, if requested.
+            if not no_partials:
+                #The nominal image doubles as the flux partial derivative.
+                for i,(pname_i,delta_i) in enumerate(variations):
+                    variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() -
+                                           galaxy.renderer.draw(**{pname_i: -delta_i}))
+                    datacube[positions[pname_i]] = variation_stamp.array/(2*delta_i)
 
+                    #calculate second partials, if requested.
+                    if calculate_bias:
+                        for j,(pname_j,delta_j) in enumerate(variations):
+                            if(i==j):
+                                galaxy_2iup = galaxy.renderer.draw(**{pname_i: +2*delta_i}).copy()
+                                galaxy_2idown = galaxy.renderer.draw(**{pname_i: -2*delta_i}).copy()
+                                variation_i_i = galaxy_2iup + galaxy_2idown - 2*galaxy.renderer.draw()
+                                datacube[positions[pname_i,pname_i]] = ((variation_i_i).array/
+                                                                        (2*delta_i)**2)
+
+                            elif(j>i):
+                                galaxy_iup_jup = galaxy.renderer.draw(**{pname_i: +delta_i,
+                                                                      pname_j: +delta_j}).copy()
+                                galaxy_iup_jdown = galaxy.renderer.draw(**{pname_i: +delta_i,
+                                                                           pname_j: -delta_j}).copy()
+                                galaxy_idown_jup = galaxy.renderer.draw(**{pname_i: -delta_i,
+                                                                           pname_j: +delta_j}).copy()
+                                galaxy_idown_jdown = galaxy.renderer.draw(**{pname_i: -delta_i,
+                                                                             pname_j: -delta_j})
+
+                                variation_i_j = (galaxy_iup_jup + galaxy_idown_jdown -
+                                                 galaxy_idown_jup - galaxy_iup_jdown)
+                                datacube[positions[pname_i,pname_j]] = (variation_i_j.array /
+                                                                        (4*delta_i*delta_j))
+        else:
+            if self.verbose_render:
+                print("No analysis performed")
+            height, width = cropped_stamp.array.shape
+            datacube = np.empty((1, height, width))
         if self.verbose_render:
             print('Rendered galaxy model for id = %d with z = %.3f' % (
                 galaxy.identifier,galaxy.redshift))

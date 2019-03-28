@@ -12,6 +12,8 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
+    parser.add_argument('--no-analysis', action = 'store_true',
+        help = 'Don\'t run analysis.')
     parser.add_argument('--survey-defaults', action = 'store_true',
         help = 'Print survey camera and observing parameter defaults and exit.')
     parser.add_argument('--memory-trace', action = 'store_true',
@@ -83,7 +85,9 @@ def main():
 
                 try:
                     galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                    stamps,bounds = render_engine.render_galaxy(galaxy,args.no_partials,args.calculate_bias)
+                    stamps, bounds = render_engine.render_galaxy(
+                        galaxy, args.no_partials, args.calculate_bias,
+                        args.no_analysis)
                     analyzer.add_galaxy(galaxy,stamps,bounds)
                     trace('render')
 
@@ -100,8 +104,7 @@ def main():
 
                 except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                     pass
-
-        results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
+        results = analyzer.finalize(args.verbose,trace,args.calculate_bias,args.no_analysis)
         output.finalize(results,trace)
 
     except RuntimeError as e:
