@@ -136,6 +136,8 @@ class Survey(object):
         if self.survey_name=='DES': zeropoint_airmass=1.3
         if self.survey_name=='LSST' or self.survey_name=='HSC':
              zeropoint_airmass=1.2
+        if self.survey_name=='Euclid':
+             zeropoint_airmass=1.0
         ab_magnitude += self.extinction*(self.airmass -zeropoint_airmass)
         return self.exposure_time*self.zero_point*10**(-0.4*(ab_magnitude-24))
 
@@ -168,7 +170,7 @@ class Survey(object):
     # baseline total filter throughputs tabulated at
     # http://dev.lsstcorp.org/cgit/LSST/sims/throughputs.git/snapshot/throughputs-1.2.tar.gz
     _central_wavelength = {
-        'u':3592.13, 'g':4789.98, 'r':6199.52, 'i':7528.51, 'z':8689.83, 'y':9674.05
+        'u':3592.13, 'g':4789.98, 'r':6199.52, 'i':7528.51, 'z':8689.83, 'y':9674.05, 'VIS': 7135.0,
         }
 
     # Default constructor arg values for different (survey,filter_band) combinations.
@@ -358,8 +360,25 @@ class Survey(object):
                     'zenith_psf_fwhm': 0.64,
                     'zero_point': 21.53,
                     'extinction': 0.05,
+            },
+        },
+            'Euclid': {
+                # Info from: http://www.mssl.ucl.ac.uk/~smn2/instrument.html
+                '*': {
+                    'mirror_diameter': 1.3,
+                    'effective_area': 1.15, # area in square meters after 13% obscuration as in: https://arxiv.org/pdf/1608.08603.pdf
+                    'image_width': 4096, # https://www.euclid-ec.org/?page_id=2485
+                    'image_height': 4132,
+                    'pixel_scale': 0.101, #Cropper et al 2018: Proc. of SPIE Vol. 10698 1069828-19 
                 },
-        }
+                'VIS': {
+                    'exposure_time': 2260, #4 exposures combined as in Cropper et al. 2018
+                    'sky_brightness': 22.9207, # http://www.mssl.ucl.ac.uk/~smn2/instrument.html, same result using Alderling model
+                    'zenith_psf_fwhm': 0.17, #arcseconds Cropper et al. 2018
+                    'zero_point': 5.77, # Top-hat throughput, 0.75 amplitude, limits 550-900 nm: Cropper et al. 2018
+                    'extinction': 0, # No atmosphere
+            },
+        }, 
     }
 
     @staticmethod
@@ -387,9 +406,9 @@ class Survey(object):
             parser(argparse.ArgumentParser): Arguments will be added to this parser object using its
                 add_argument method.
         """
-        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT','HSC'], default = 'LSST',
+        parser.add_argument('--survey-name', choices = ['LSST','DES','CFHT','HSC', 'Euclid'], default = 'LSST',
             help = 'Use default camera and observing parameters appropriate for this survey.')
-        parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y'], default = 'i',
+        parser.add_argument('--filter-band', choices = ['u','g','r','i','z','y','VIS'], default = 'i',
             help = 'LSST imaging band to simulate')
         parser.add_argument('--image-width', type = int, metavar = 'W',
             help = 'Simulated camera image width in pixels.')
