@@ -374,8 +374,8 @@ class Survey(object):
                 'VIS': {
                     'exposure_time': 2260, #4 exposures combined as in Cropper et al. 2018
                     'sky_brightness': 22.9207, # http://www.mssl.ucl.ac.uk/~smn2/instrument.html, same result using Alderling model
-                    'zenith_psf_fwhm': 0.17, #arcseconds Cropper et al. 2018
-                    'zero_point': 5.77, # Top-hat throughput, 0.75 amplitude, limits 550-900 nm: Cropper et al. 2018
+                    'zenith_psf_fwhm': 0.17, #arcseconds Cropper et al. 2018 (this is 0.155" in http://euclid.esac.esa.int/epdb/db/SC456Draft/SC456Draft/EUC_MDB_MISSIONCONFIGURATION-SC456_2019-03-28T1224.00Z_01.xml.html#SpaceSegment.PLM.TelescopeVISPSFFWHM)
+                    'zero_point': 6.85, # Euclid-VIS from speclite (http://euclid.esac.esa.int/epdb/db/SC456Draft/SC456Draft/SpaceSegment.PLM.PLMTransmissionVISCBENominalEOL.table)
                     'extinction': 0, # No atmosphere
             },
         }, 
