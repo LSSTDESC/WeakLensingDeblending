@@ -4,7 +4,7 @@ from __future__ import print_function, division
 
 import numpy as np
 import scipy.spatial
-
+import scipy.linalg
 import astropy.table
 
 import galsim
@@ -475,7 +475,8 @@ class OverlapResults(object):
                 keep_flat = keep.flatten()
                 # Advanced indexing like this makes a copy, not a view.
                 reduced_fisher = fisher[keep_flat,:][:,keep_flat]
-                reduced_covariance = np.linalg.pinv(reduced_fisher)
+                reduced_covariance = scipy.linalg.pinv(reduced_fisher)
+                #reduced_covariance = np.linalg.inv(reduced_fisher)
                 reduced_variance = np.diag(reduced_covariance)
                 assert np.min(reduced_variance) > 0,'Expected variance > 0'
                 reduced_correlation = reduced_covariance/np.sqrt(
