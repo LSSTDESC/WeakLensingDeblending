@@ -479,5 +479,5 @@ class Survey(object):
         for parameter_name in ctor_params:
             if parameter_name in args_dict and args_dict[parameter_name] is not None:
                 ctor_params[parameter_name] = args_dict[parameter_name]
-        return Survey(no_analysis=args['no_analysis'], survey_name=survey_name,
+        return Survey(no_analysis=args_dict['no_analysis'], survey_name=survey_name,
                       filter_band=filter_band,**ctor_params)
