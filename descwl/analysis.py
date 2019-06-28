@@ -841,6 +841,8 @@ class OverlapAnalyzer(object):
                 ('ds_grp',np.float32),
                 ('dg1_grp',np.float32),
                 ('dg2_grp',np.float32),
+                ('cond_num_iso', np.float32), #condition number of individual galaxy fisher matrix. 
+                ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group. 
                 # HSM analysis results.
                 ('hsm_sigm',np.float32),
                 ('hsm_e1',np.float32),
@@ -997,6 +999,7 @@ class OverlapAnalyzer(object):
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
             fisher,covariance,variance,correlation = results.get_matrices(group_indices)
+            cond_num_grp = np.linalg.cond(fisher)
 
             if calculate_bias:
                 bias = results.get_bias(group_indices, covariance)
@@ -1052,6 +1055,7 @@ class OverlapAnalyzer(object):
                 data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                 data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                 data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
+                data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number to for that group. 
                 if calculate_bias:
                     data['bias_f_grp'][galaxy] = bias[base+dflux_index]
                     data['bias_s_grp'][galaxy] = bias[base+ds_index]
@@ -1066,6 +1070,7 @@ class OverlapAnalyzer(object):
                     data['ds'][galaxy] = data['ds_grp'][galaxy]
                     data['dg1'][galaxy] = data['dg1_grp'][galaxy]
                     data['dg2'][galaxy] = data['dg2_grp'][galaxy]
+                    data['cond_num_iso'][galaxy] = data['cond_num_grp'][galaxy]
                     if calculate_bias:
                         data['bias_f'][galaxy] = data['bias_f_grp'][galaxy]
                         data['bias_s'][galaxy] = data['bias_s_grp'][galaxy]
@@ -1078,6 +1083,7 @@ class OverlapAnalyzer(object):
                     # Redo the Fisher matrix analysis but ignoring overlapping sources.
                     iso_fisher,iso_covariance,iso_variance,iso_correlation = (
                         results.get_matrices([galaxy]))
+                    cond_num_iso = np.linalg.cond(iso_fisher)
                     # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                     # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                     data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
@@ -1085,6 +1091,7 @@ class OverlapAnalyzer(object):
                     data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
                     data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
                     data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
+                    data['cond_num_iso'][galaxy] = cond_num_iso
 
                     if calculate_bias:
                         iso_bias = results.get_bias([galaxy], iso_covariance)
