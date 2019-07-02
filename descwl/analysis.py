@@ -28,8 +28,8 @@ def make_positions():
         positions[pname_i] = i+1
         for j,pname_j in enumerate(slice_labels[1:]):
             if(j>=i):
-                positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6
-    positions[slice_labels[0]] = 0
+                positions[pname_i,pname_j] = ((9 - i) * i) // 2 + j + 6 #double partials
+    positions[slice_labels[0]] = 0 #nominal image. 
     return positions
 
 def make_inv_positions():
@@ -280,6 +280,8 @@ class OverlapResults(object):
         the galaxies. Bias tensor images are derived from the first partials and second partials
         of the six parameters.
 
+        We fill in only the second partials of parameters that both belong to same galaxy, because mixed second partials are 0. 
+
 
         Args:
             index1(int): Index of the first galaxy to use.
@@ -323,9 +325,13 @@ class OverlapResults(object):
         partials1 = np.zeros((npar,height,width),dtype = np.float32) #correspond to index 1 galaxy
         second_partials2 = np.zeros((npar,npar,height,width),dtype = np.float32) #index 2 galaxy
 
+        slice_labels = OverlapResults.slice_labels
+
         #dictionary for positions of partials.
         positions = make_positions()
-        slice_labels = OverlapResults.slice_labels
+
+        #fill in partial with respect to flux
+        partials1[0] = self.get_stamp(index1,0)[overlap].array/self.table['flux'][index1]
 
         #fill partials and second partials,
         for islice in range(1,npar):
@@ -345,12 +351,12 @@ class OverlapResults(object):
                 second_partials2[islice][jslice] = (self.get_stamp(index2,datacube_index2)[overlap]
                                                                                           .array)
 
-                #complete second partial array with i,j-->j,i just in case.
+                #complete second partial array with i,j-->j,i just in case. partials must commute. 
                 if islice!=jslice:
                     second_partials2[jslice][islice] = second_partials2[islice][jslice]
 
-        #fill in partial with respect to flux
-        partials1[0] = self.get_stamp(index1,0)[overlap].array/self.table['flux'][index1]
+        #implicitly assume that second_partials2[0][0] = 0 
+
 
         mu0 = background[overlap].array + self.survey.mean_sky_level
         fisher_norm = mu0**-1 + 0.5*mu0**-2
@@ -362,6 +368,8 @@ class OverlapResults(object):
 
         The bias is obtained from contracting the bias tensor with the appropiate covariance
         matrix elements.
+
+        We create reduced_covariance matrix which contains only the diagonal blocks from covariance matrix, the diagonal blocks correspond to the fisher elements formed by the same galaxy. This is necessary because kl has to refer to the same galaxy for the bias_tensor to be non-zero. 
 
 
         Args:
@@ -380,10 +388,6 @@ class OverlapResults(object):
         bias_tensor = self.get_bias_tensor(selected, covariance)
         bias = np.zeros(nbias, dtype=np.float64)
 
-        #take care of dimensionality problems with l.
-        #one of covariances has to be smashed such that it is nparx(npar*nsel) and each entry of
-        #size nparxnpar is the fisher matrix of a galaxy with each self. (because k and l have to
-        #refer to the same galaxy.)
 
         reduced_covariance = np.zeros((nsel*npar,npar), dtype=np.float64)
         for i in range(nsel):
