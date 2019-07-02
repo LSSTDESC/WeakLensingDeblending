@@ -357,7 +357,6 @@ class OverlapResults(object):
 
         #implicitly assume that second_partials2[0][0] = 0 
 
-
         mu0 = background[overlap].array + self.survey.mean_sky_level
         fisher_norm = mu0**-1 + 0.5*mu0**-2
         images = np.einsum('yx,iyx,jkyx->ijkyx',fisher_norm,partials1,second_partials2)

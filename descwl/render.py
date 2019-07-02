@@ -198,8 +198,8 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False,
-                      no_analysis=False):
+    def render_galaxy(self,galaxy, variations_x, variations_s, variations_g, no_partials = False, 
+                      calculate_bias = False, no_analysis = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
@@ -286,17 +286,21 @@ class Engine(object):
             # Give this Galaxy its own GalaxyRenderer.
             galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
 
+            if variations_x is None: 
+                variations_x = self.survey.pixel_scale/3.
+
             # Define the parameter variations we consider for building Fisher matrices.
             # The names appearing below are args of Galaxy.get_transformed_model().
             # We do not include 'flux' below since the nominal image is already the
             # partial derivative wrt flux (after dividing by flux).
             variations = [
-                ('dx',self.survey.pixel_scale/3.), # arcsecs
-                ('dy',self.survey.pixel_scale/3.), # arcsecs
-                ('ds',0.05), # relative dilation (flux preserving)
-                ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
-                ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+                ('dx', variations_x), # arcsecs
+                ('dy', variations_x), # arcsecs
+                ('ds', variations_s), # relative dilation (flux preserving)
+                ('dg1', variations_g), # + shear using |g| = (a-b)/(a+b) convention
+                ('dg2', variations_g), # x shear using |g| = (a-b)/(a+b) convention
                 ]
+
 
             # Prepare the datacube that we will return.
             ncube = 1
@@ -500,9 +504,18 @@ class Engine(object):
 
         #add one for partials and bias.
         parser.add_argument('--no-partials', action = 'store_true',
-            help = 'Do not store partial derivative images of the galaxy in data cubes')
+            help = 'Do not store partial derivative images of the galaxy/stars in data cubes')
         parser.add_argument('--calculate-bias', action = 'store_true',
-            help = 'Store necessary images in datacubes to calculate bias of galaxy.')
+            help = 'Store necessary images in datacubes to calculate bias of galaxy. (not used for stars)')
+
+        #overwrite default variations = step size. 
+        parser.add_argument('--variations-x', type = float, default = None, 
+            help = 'Step size for galaxy image partials with respect to centroid positions. Default value is the pixel scale of the corresponding survey used divided by 3.')
+        parser.add_argument('--variations-s', type = float, default = 0.05, 
+            help = 'Step size for galaxy image partials with respect to relative dilation s.')
+        parser.add_argument('--variations-g', type = float, default = 0.03, 
+            help = 'Step size for galaxy image partials with respect to shear components g1,g2.')
+
 
 
     @classmethod
