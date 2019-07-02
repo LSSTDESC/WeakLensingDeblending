@@ -869,7 +869,7 @@ class OverlapAnalyzer(object):
                 ('g2_fit',np.float32),
                 ]
 
-        data = np.empty(num_galaxies, dtype=dtype)
+        data = np.full(num_galaxies, np.nan, dtype=dtype)
         if self.no_analysis:
             # Return empty data table
             table = astropy.table.Table(data, copy=False)
@@ -1020,11 +1020,8 @@ class OverlapAnalyzer(object):
                 signal_plus_background = group_image[signal.bounds]
                 data['purity'][galaxy] = (
                     np.sum(signal.array**2)/np.sum(signal.array*signal_plus_background.array))
-                # Run the HSM analysis on this galaxy's stamp (ignoring overlaps).
-                data['hsm_sigm'][galaxy] = np.nan
-                data['hsm_e1'][galaxy] = np.nan
-                data['hsm_e2'][galaxy] = np.nan
 
+                # Run the HSM analysis on this galaxy's stamp (ignoring overlaps).
                 if not self.no_hsm:
                     try:
                         if self.add_noise:
@@ -1112,6 +1109,7 @@ class OverlapAnalyzer(object):
                             data['bias_y'][galaxy] = iso_bias[dy_index]
 
             # Order group members by decreasing isolated S/N (if available), otherwise use snr_sky.
+            #this assumes that snr_sky is close to snr_iso (althought might not be exactly the same.)
             if not self.no_fisher:
                 sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
             else: 
@@ -1129,7 +1127,7 @@ class OverlapAnalyzer(object):
 
             if self.no_fisher and not self.no_lmfit: 
                 raise RuntimeError("Fisher calculation is necessary to run fits with lmfit.")
-                
+
             if not self.no_fisher:
                 detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
                 if np.count_nonzero(detected) > 0 and grp_size > 1 and not self.no_lmfit:
