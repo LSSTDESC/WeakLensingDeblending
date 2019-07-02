@@ -221,7 +221,7 @@ class Engine(object):
         """
         #make sure logic makes sense.
         if no_partials and calculate_bias:
-            raise RuntimeError("Cannot calculate bias with partials")
+            raise RuntimeError("Cannot calculate bias without partials")
 
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.flux*self.psf_dilution < self.pixel_cut:
