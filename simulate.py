@@ -73,7 +73,7 @@ def main():
         if args.verbose:
             print(render_engine.description())
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.add_noise)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.no_fisher, args.calculate_bias, args.no_analysis, args.add_noise)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
@@ -86,24 +86,25 @@ def main():
                 try:
                     galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
                     stamps, bounds = render_engine.render_galaxy(
-                        galaxy, args.variations_x, args.variations_s, args.variations_g, args.no_partials, args.calculate_bias, args.no_analysis)
+                        galaxy, args.variations_x, args.variations_s, args.variations_g, args.no_fisher, args.calculate_bias, args.no_analysis)
                     analyzer.add_galaxy(galaxy,stamps,bounds)
                     trace('render')
 
                 except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                     pass
+
         if args.star_catalog_name!=None:
             for entry,dx,dy in star_catalog.potentially_visible_entries(survey,render_engine):
 
                 try:
                     star = star_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                    stamps,bounds = render_engine.render_star(star)
+                    stamps,bounds = render_engine.render_star(star, args.variations_x, args.variations_s, args.variations_g, args.no_fisher)
                     analyzer.add_star(star,stamps,bounds)
                     trace('render')
 
                 except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                     pass
-        results = analyzer.finalize(args.verbose,trace,args.calculate_bias,args.no_analysis)
+        results = analyzer.finalize(args.verbose,trace)
         output.finalize(results,trace)
 
     except RuntimeError as e:

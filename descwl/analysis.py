@@ -67,7 +67,7 @@ class OverlapResults(object):
         self.bounds = bounds
         self.num_slices = num_slices
         if len(self.stamps) > 0:
-             #3rd case allows second partials
+             #21 allows second partials
             if self.num_slices not in (1,len(self.slice_labels), 21):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
@@ -580,7 +580,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,add_noise,alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise,alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -588,6 +588,9 @@ class OverlapAnalyzer(object):
         self.alpha = alpha
         self.no_hsm = no_hsm
         self.no_lmfit = no_lmfit
+        self.no_fisher = no_fisher
+        self.calculate_bias = calculate_bias
+        self.no_analysis = no_analysis
         self.add_noise = add_noise
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
@@ -787,15 +790,13 @@ class OverlapAnalyzer(object):
             bestfit_values[i,5] = parameters['dg2_%d'%i].value
         return bestfit_values
 
-    def finalize(self,verbose,trace,calculate_bias,no_analysis):
+    def finalize(self,verbose,trace):
         """Finalize analysis of all added stars and galaxies.
 
         Args:
             verbose(bool): Print a summary of analysis results.
             trace(callable): Function to call for tracing resource usage. Will be
                 called with a brief :class:`str` description of each checkpoint.
-            calculate_bias(bool): If True it will perform the Fisher's bias
-            calculation.
 
         Returns:
             :class:`OverlapResults`: Overlap analysis results.
@@ -846,17 +847,7 @@ class OverlapAnalyzer(object):
                 ('dg2_grp',np.float32),
                 ('cond_num', np.float32), #condition number of individual galaxy fisher matrix. 
                 ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group. 
-                # HSM analysis results.
-                ('hsm_sigm',np.float32),
-                ('hsm_e1',np.float32),
-                ('hsm_e2',np.float32),
-                # Systematics fit results.
-                ('g1_fit',np.float32),
-                ('g2_fit',np.float32),
-                ]
-
-        if calculate_bias:
-            dtype.extend([
+                #fisher bias calculation results. 
                 ('bias_f', np.float32),
                 ('bias_s', np.float32),
                 ('bias_g1',np.float32),
@@ -869,10 +860,17 @@ class OverlapAnalyzer(object):
                 ('bias_g2_grp',np.float32),
                 ('bias_x_grp',np.float32),
                 ('bias_y_grp',np.float32),
-                ])
+                # HSM analysis results.
+                ('hsm_sigm',np.float32),
+                ('hsm_e1',np.float32),
+                ('hsm_e2',np.float32),
+                # Systematics fit results.
+                ('g1_fit',np.float32),
+                ('g2_fit',np.float32),
+                ]
 
         data = np.empty(num_galaxies, dtype=dtype)
-        if no_analysis:
+        if self.no_analysis:
             # Return empty data table
             table = astropy.table.Table(data, copy=False)
             num_slices, h, w = self.stamps[0].shape
@@ -934,8 +932,8 @@ class OverlapAnalyzer(object):
                 # Save the PSF-convolved sigma(-) since this can be directly compared with the HSM size.
                 data['psf_sigm'][index] = sigma_m_psf
             else:
-                data['f_disk'][index]=0
-                data['f_bulge'][index]=0
+                data['f_disk'][index] = 0
+                data['f_bulge'][index] = 0
                 data['sigma_m'][index] = 0
                 data['sigma_p'][index] = 0
                 data['a'][index] = 0
@@ -982,9 +980,6 @@ class OverlapAnalyzer(object):
         num_slices,h,w = self.stamps[0].shape
         results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
-        # Check that we have partial derivatives available.
-        if num_slices != len(results.slice_labels) and num_slices != 21:
-            raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
         sky = self.survey.mean_sky_level
         dflux_index = results.slice_labels.index('dflux')
@@ -1001,11 +996,18 @@ class OverlapAnalyzer(object):
             data['grp_size'][grp_members] = grp_size
             group_indices = np.arange(num_galaxies)[grp_members]
             group_image = results.get_subimage(group_indices)
-            fisher,covariance,variance,correlation = results.get_matrices(group_indices)
-            cond_num_grp = np.linalg.cond(fisher)
 
-            if calculate_bias:
-                bias = results.get_bias(group_indices, covariance)
+            if not self.no_fisher:
+                # Check that we have partial derivatives available.
+                if num_slices != len(results.slice_labels) and num_slices != 21:
+                    raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
+
+                fisher,covariance,variance,correlation = results.get_matrices(group_indices)
+                cond_num_grp = np.linalg.cond(fisher)
+
+                if self.calculate_bias:
+                    bias = results.get_bias(group_indices, covariance)
+
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
@@ -1049,64 +1051,72 @@ class OverlapAnalyzer(object):
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
+
                 # Calculate this galaxy's SNR in various ways.
                 base = index*len(results.slice_labels) #number of first partials
-                data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
-                # Variances will be np.inf if this galaxy was dropped from the group for the
-                # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
-                data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
-                data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
-                data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
-                data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
-                data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number to for that group. 
-                if calculate_bias:
-                    data['bias_f_grp'][galaxy] = bias[base+dflux_index]
-                    data['bias_s_grp'][galaxy] = bias[base+ds_index]
-                    data['bias_g1_grp'][galaxy] = bias[base+dg1_index]
-                    data['bias_g2_grp'][galaxy] = bias[base+dg2_index]
-                    data['bias_x_grp'][galaxy] = bias[base+dx_index]
-                    data['bias_y_grp'][galaxy] = bias[base+dy_index]
+                if not self.no_fisher:
+                    data['snr_grp'][galaxy] = flux*np.sqrt(fisher[base+dflux_index,base+dflux_index])
+                    # Variances will be np.inf if this galaxy was dropped from the group for the
+                    # covariance calculation, leading to snr_grpf = 0 and infinite errors on s,g1,g2.
+                    data['snr_grpf'][galaxy] = flux/np.sqrt(variance[base+dflux_index])
+                    data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
+                    data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
+                    data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
+                    data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number to for that group. 
 
-                if grp_size == 1:
-                    data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
-                    data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
-                    data['ds'][galaxy] = data['ds_grp'][galaxy]
-                    data['dg1'][galaxy] = data['dg1_grp'][galaxy]
-                    data['dg2'][galaxy] = data['dg2_grp'][galaxy]
-                    data['cond_num'][galaxy] = data['cond_num_grp'][galaxy]
-                    if calculate_bias:
-                        data['bias_f'][galaxy] = data['bias_f_grp'][galaxy]
-                        data['bias_s'][galaxy] = data['bias_s_grp'][galaxy]
-                        data['bias_g1'][galaxy] = data['bias_g1_grp'][galaxy]
-                        data['bias_g2'][galaxy] = data['bias_g2_grp'][galaxy]
-                        data['bias_x'][galaxy] = data['bias_x_grp'][galaxy]
-                        data['bias_y'][galaxy] = data['bias_y_grp'][galaxy]
+                    if self.calculate_bias:
+                        data['bias_f_grp'][galaxy] = bias[base+dflux_index]
+                        data['bias_s_grp'][galaxy] = bias[base+ds_index]
+                        data['bias_g1_grp'][galaxy] = bias[base+dg1_index]
+                        data['bias_g2_grp'][galaxy] = bias[base+dg2_index]
+                        data['bias_x_grp'][galaxy] = bias[base+dx_index]
+                        data['bias_y_grp'][galaxy] = bias[base+dy_index]
 
-                else:
-                    # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                    iso_fisher,iso_covariance,iso_variance,iso_correlation = (
-                        results.get_matrices([galaxy]))
-                    cond_num = np.linalg.cond(iso_fisher)
-                    # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
-                    # yields any negative variances. Errors on s,g1,g2 will be np.inf.
-                    data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
-                    data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
-                    data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
-                    data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
-                    data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
-                    data['cond_num'][galaxy] = cond_num
+                    if grp_size == 1:
+                        data['snr_iso'][galaxy] = data['snr_grp'][galaxy]
+                        data['snr_isof'][galaxy] = data['snr_grpf'][galaxy]
+                        data['ds'][galaxy] = data['ds_grp'][galaxy]
+                        data['dg1'][galaxy] = data['dg1_grp'][galaxy]
+                        data['dg2'][galaxy] = data['dg2_grp'][galaxy]
+                        data['cond_num'][galaxy] = data['cond_num_grp'][galaxy]
 
-                    if calculate_bias:
-                        iso_bias = results.get_bias([galaxy], iso_covariance)
-                        data['bias_f'][galaxy] = iso_bias[dflux_index]
-                        data['bias_s'][galaxy] = iso_bias[ds_index]
-                        data['bias_g1'][galaxy] = iso_bias[dg1_index]
-                        data['bias_g2'][galaxy] = iso_bias[dg2_index]
-                        data['bias_x'][galaxy] = iso_bias[dx_index]
-                        data['bias_y'][galaxy] = iso_bias[dy_index]
+                        if self.calculate_bias:
+                            data['bias_f'][galaxy] = data['bias_f_grp'][galaxy]
+                            data['bias_s'][galaxy] = data['bias_s_grp'][galaxy]
+                            data['bias_g1'][galaxy] = data['bias_g1_grp'][galaxy]
+                            data['bias_g2'][galaxy] = data['bias_g2_grp'][galaxy]
+                            data['bias_x'][galaxy] = data['bias_x_grp'][galaxy]
+                            data['bias_y'][galaxy] = data['bias_y_grp'][galaxy]
 
-            # Order group members by decreasing isolated S/N.
-            sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
+                    else:
+                        # Redo the Fisher matrix analysis but ignoring overlapping sources.
+                        iso_fisher,iso_covariance,iso_variance,iso_correlation = (
+                            results.get_matrices([galaxy]))
+                        cond_num = np.linalg.cond(iso_fisher)
+                        # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
+                        # yields any negative variances. Errors on s,g1,g2 will be np.inf.
+                        data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
+                        data['snr_isof'][galaxy] = flux/np.sqrt(iso_variance[dflux_index])
+                        data['ds'][galaxy] = np.sqrt(iso_variance[ds_index])
+                        data['dg1'][galaxy] = np.sqrt(iso_variance[dg1_index])
+                        data['dg2'][galaxy] = np.sqrt(iso_variance[dg2_index])
+                        data['cond_num'][galaxy] = cond_num
+
+                        if self.calculate_bias:
+                            iso_bias = results.get_bias([galaxy], iso_covariance)
+                            data['bias_f'][galaxy] = iso_bias[dflux_index]
+                            data['bias_s'][galaxy] = iso_bias[ds_index]
+                            data['bias_g1'][galaxy] = iso_bias[dg1_index]
+                            data['bias_g2'][galaxy] = iso_bias[dg2_index]
+                            data['bias_x'][galaxy] = iso_bias[dx_index]
+                            data['bias_y'][galaxy] = iso_bias[dy_index]
+
+            # Order group members by decreasing isolated S/N (if available), otherwise use snr_sky.
+            if not self.no_fisher:
+                sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
+            else: 
+                sorted_indices = group_indices[np.argsort(data['snr_sky'][grp_members])[::-1]]
+
             data['grp_rank'][sorted_indices] = np.arange(grp_size,dtype = np.int16)
             # Replace group ID with ID of galaxy with largest S/N.
             group_leader = data['db_id'][sorted_indices[0]]
@@ -1116,54 +1126,60 @@ class OverlapAnalyzer(object):
             detection_threshold = 6. # cut on snr_grpf
             data['g1_fit'][sorted_indices] = 0.
             data['g2_fit'][sorted_indices] = 0.
-            detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
-            if np.count_nonzero(detected) > 0 and grp_size > 1 and not self.no_lmfit:
-                use_count = np.zeros(grp_size,dtype = int)
-                # Loop over galaxies in order of decreasing snr_iso.
-                for i1,g1 in enumerate(sorted_indices):
-                    # Skip sources below our detection threshold, which instead are added
-                    # to a detected object below (unless they only directly overlap other
-                    # undetected sources).
-                    if not detected[i1]:
-                        continue
-                    stamp1 = results.get_stamp(g1)
-                    deblended = stamp1.copy()
-                    # Loop over other galaxies in this group in order of decreasing snr_iso.
-                    for i2,g2 in enumerate(sorted_indices):
-                        if i1 == i2 or not overlapping_bounds[g1,g2]:
+
+            if self.no_fisher and not self.no_lmfit: 
+                raise RuntimeError("Fisher calculation is necessary to run fits with lmfit.")
+                
+            if not self.no_fisher:
+                detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
+                if np.count_nonzero(detected) > 0 and grp_size > 1 and not self.no_lmfit:
+                    use_count = np.zeros(grp_size,dtype = int)
+                    # Loop over galaxies in order of decreasing snr_iso.
+                    for i1,g1 in enumerate(sorted_indices):
+                        # Skip sources below our detection threshold, which instead are added
+                        # to a detected object below (unless they only directly overlap other
+                        # undetected sources).
+                        if not detected[i1]:
                             continue
-                        stamp2 = results.get_stamp(g2)
-                        bbox = stamp1.bounds & stamp2.bounds
-                        assert bbox.area() > 0
-                        if not detected[i2]:
-                            # This object is below our detection threshold so add its full
-                            # flux to the first detected source that it overlaps.
-                            if use_count[i2] == 0:
-                                deblended[bbox] += stamp2[bbox]
-                                use_count[i2] += 1
-                        else:
-                            overlap = stamp1[bbox]*stamp2[bbox]/group_image[bbox]
-                            # Re-assign a fraction of the overlapping flux in the deblended image.
-                            if i1 < i2:
-                                deblended[bbox] -= alpha*overlap
+                        stamp1 = results.get_stamp(g1)
+                        deblended = stamp1.copy()
+                        # Loop over other galaxies in this group in order of decreasing snr_iso.
+                        for i2,g2 in enumerate(sorted_indices):
+                            if i1 == i2 or not overlapping_bounds[g1,g2]:
+                                continue
+                            stamp2 = results.get_stamp(g2)
+                            bbox = stamp1.bounds & stamp2.bounds
+                            assert bbox.area() > 0
+                            if not detected[i2]:
+                                # This object is below our detection threshold so add its full
+                                # flux to the first detected source that it overlaps.
+                                if use_count[i2] == 0:
+                                    deblended[bbox] += stamp2[bbox]
+                                    use_count[i2] += 1
                             else:
-                                deblended[bbox] += alpha*overlap
-                    # Fit the deblended image of this galaxy.
-                    use_count[i1] += 1
-                    if(getattr(model,'disk_fraction',None)!=None):
-                        try:
-                            bestfit = self.fit_galaxies([g1],deblended)
-                            data['g1_fit'][g1] = bestfit[0,4]
-                            data['g2_fit'][g1] = bestfit[0,5]
-                        except RuntimeError as e:
-                            print(str(e))
-                    else:
-                        try:
-                            bestfit = self.fit_stars([g1],deblended)
-                            data['g1_fit'][g1] = 0
-                            data['g2_fit'][g1] = 0
-                        except RuntimeError as e:
-                            print(str(e))
+                                overlap = stamp1[bbox]*stamp2[bbox]/group_image[bbox]
+                                # Re-assign a fraction of the overlapping flux in the deblended image.
+                                if i1 < i2:
+                                    deblended[bbox] -= alpha*overlap
+                                else:
+                                    deblended[bbox] += alpha*overlap
+                        # Fit the deblended image of this galaxy.
+                        use_count[i1] += 1
+                        if(getattr(model,'disk_fraction',None)!=None):
+                            try:
+                                bestfit = self.fit_galaxies([g1],deblended)
+                                data['g1_fit'][g1] = bestfit[0,4]
+                                data['g2_fit'][g1] = bestfit[0,5]
+                            except RuntimeError as e:
+                                print(str(e))
+                        else:
+                            try:
+                                bestfit = self.fit_stars([g1],deblended)
+                                data['g1_fit'][g1] = 0
+                                data['g2_fit'][g1] = 0
+                            except RuntimeError as e:
+                                print(str(e))
+
         trace('OverlapAnalyzer.finalize end')
         return results
     @staticmethod
