@@ -4,6 +4,7 @@
 Documentation for this program is available at
 http://weaklensingdeblending.readthedocs.io/en/latest/programs.html#dbquery
 """
+from __future__ import print_function, division
 
 import argparse
 import math
@@ -40,14 +41,14 @@ def main():
         # The filename to write
         f = open(args.output,'w')
     except IOError,e:
-        print 'Cannot open output %r for writing' % args.output
-        print str(e)
+        print('Cannot open output %r for writing' % args.output)
+        print(str(e))
         return -2
 
     # The ra,dec window to retrieve.
     window = { 'RAmin':args.ra_min, 'RAmax':args.ra_max, 'DECmin':args.dec_min, 'DECmax':args.dec_max }
     if args.ra_min >= args.ra_max or args.dec_min >= args.dec_max:
-        print 'Invalid RA-DEC window %r' % window
+        print('Invalid RA-DEC window %r' % window)
         return -2
 
     def addColumns(patterns,types):
@@ -82,10 +83,10 @@ def main():
         0.5*(args.ra_min+args.ra_max),0.5*(args.dec_min+args.dec_max),radius,column_names)
 
     if args.verbose:
-        print 'using query: "%s"' % query
+        print('using query: "%s"' % query)
 
     clist = columns.split(',')
-    print >>f, ' '.join(clist)
+    print(' '.join(clist), file=f)
     conn = None
     nulls = { }
     clipCount = 0
@@ -129,21 +130,21 @@ def main():
                 clipCount += 1
                 continue
             # Dump this row to our output file
-            print >>f, ' '.join([str(row[col]) for col in clist])
+            print(' '.join([str(row[col]) for col in clist]), file=f)
             nrows += 1
         if args.verbose:
-            print 'Dumped',nrows,'rows to',args.output
+            print('Dumped',nrows,'rows to',args.output)
             if nulls:
-                print 'Replaced NULLs with',args.null_sub,'for:'
+                print('Replaced NULLs with',args.null_sub,'for:')
                 for col in nulls:
-                    print '%10d %s' % (nulls[col],col)
-            print '%d rows with (ra,dec) outside window were clipped' % clipCount
+                    print('%10d %s' % (nulls[col],col))
+            print('%d rows with (ra,dec) outside window were clipped' % clipCount)
 
 
 
     # removed as not using mssql:
     #except _mssql.MssqlDatabaseException,e:
-    #    print 'Database Exception'
+    #    print('Database Exception')
     #    raise
     #finally:
         #if conn: conn.close()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Fast image simulation using GalSim for weak lensing studies.
 """
+from __future__ import print_function, division
 
 import argparse
 
@@ -11,6 +12,8 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--verbose', action = 'store_true',
         help = 'Provide verbose output.')
+    parser.add_argument('--no-analysis', action = 'store_true',
+        help = 'Don\'t run analysis.')
     parser.add_argument('--survey-defaults', action = 'store_true',
         help = 'Print survey camera and observing parameter defaults and exit.')
     parser.add_argument('--memory-trace', action = 'store_true',
@@ -55,12 +58,12 @@ def main():
             star_catalog = descwl.catalog.ReaderStar.from_args(args)
         if args.verbose:
             if args.catalog_name!=None:
-                print 'Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name)
+                print('Read %d catalog entries from %s' % (len(catalog.table),catalog.catalog_name))
             if args.star_catalog_name!=None:
-                print 'Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name)
+                print('Read %d catalog entries from %s' % (len(star_catalog.table),star_catalog.star_catalog_name))
         survey = descwl.survey.Survey.from_args(args)
         if args.verbose:
-            print survey.description()
+            print(survey.description())
         if args.catalog_name!=None:
             galaxy_builder = descwl.model.GalaxyBuilder.from_args(survey,args)
         if args.star_catalog_name!=None:
@@ -68,13 +71,13 @@ def main():
 
         render_engine = descwl.render.Engine.from_args(survey,args)
         if args.verbose:
-            print render_engine.description()
+            print(render_engine.description())
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.add_noise)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
-            print output.description()
+            print(output.description())
 
         trace('initialized')
         if args.catalog_name!=None:
@@ -82,7 +85,9 @@ def main():
 
                 try:
                     galaxy = galaxy_builder.from_catalog(entry,dx,dy,survey.filter_band)
-                    stamps,bounds = render_engine.render_galaxy(galaxy, args.no_partials,args.calculate_bias)
+                    stamps, bounds = render_engine.render_galaxy(
+                        galaxy, args.no_partials, args.calculate_bias,
+                        args.no_analysis)
                     analyzer.add_galaxy(galaxy,stamps,bounds)
                     trace('render')
 
@@ -99,12 +104,11 @@ def main():
 
                 except (descwl.model.SourceNotVisible,descwl.render.SourceNotVisible):
                     pass
-
-        results = analyzer.finalize(args.verbose,trace,args.calculate_bias)
+        results = analyzer.finalize(args.verbose,trace,args.calculate_bias,args.no_analysis)
         output.finalize(results,trace)
 
-    except RuntimeError,e:
-        print str(e)
+    except RuntimeError as e:
+        print(str(e))
         return -1
 
 if __name__ == '__main__':

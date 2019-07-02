@@ -1,5 +1,6 @@
 """Manage the parameters that define a simulated survey's camera design and observing conditions.
 """
+from __future__ import print_function, division
 
 import math
 
@@ -7,6 +8,8 @@ import numpy as np
 import numpy.linalg
 
 import galsim
+
+from six import iteritems
 
 class Survey(object):
     """Survey camera and observing parameters.
@@ -41,7 +44,7 @@ class Survey(object):
     Raises:
         RuntimeError: Missing or extra arguments provided or unable to calculate PSF size.
     """
-    def __init__(self,**args):
+    def __init__(self, no_analysis=False, **args):
         if set(args.keys()) != set(Survey._parameter_names):
             raise RuntimeError('Missing or extra arguments provided to Survey constructor.')
         self.args = args
@@ -76,32 +79,33 @@ class Survey(object):
         psf_size_pixels = 2*int(math.ceil(10*atmospheric_psf_fwhm/self.pixel_scale))
         self.psf_image = galsim.Image(psf_size_pixels,psf_size_pixels,scale  = self.pixel_scale)
         self.psf_model.drawImage(image = self.psf_image)
-        # Draw a (temporary) high-resolution (10x) image covering the same area.
-        zoom = 10
-        hires_psf_image = galsim.Image(zoom*psf_size_pixels,zoom*psf_size_pixels,scale = self.pixel_scale/zoom)
-        self.psf_model.drawImage(image = hires_psf_image)
-        # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
-        hires_sum = np.sum(hires_psf_image.array)
-        hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
-        hires_x,hires_y = np.meshgrid(hires_grid,hires_grid)
-        psf_x = np.sum(hires_psf_image.array*hires_x)/hires_sum
-        psf_y = np.sum(hires_psf_image.array*hires_x)/hires_sum
-        hires_x -= psf_x
-        hires_y -= psf_y
-        psf_xx = np.sum(hires_psf_image.array*hires_x**2)/hires_sum
-        psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
-        psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
-        self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
-        # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
-        self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
-        self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))
-        # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
-        # of the non-hires PSF image.
-        try:
-            hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
-            self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
-        except RuntimeError,e:
-            raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
+        if not no_analysis:
+            # Draw a (temporary) high-resolution (10x) image covering the same area.
+            zoom = 10
+            hires_psf_image = galsim.Image(zoom*psf_size_pixels,zoom*psf_size_pixels,scale = self.pixel_scale/zoom)
+            self.psf_model.drawImage(image = hires_psf_image)
+            # Calculate the unweighted second moments in arcsecs**2 of the hi-res PSF image.
+            hires_sum = np.sum(hires_psf_image.array)
+            hires_grid = (self.pixel_scale/zoom)*(np.arange(zoom*psf_size_pixels) - 0.5*zoom*psf_size_pixels + 0.5)
+            hires_x,hires_y = np.meshgrid(hires_grid,hires_grid)
+            psf_x = np.sum(hires_psf_image.array*hires_x)/hires_sum
+            psf_y = np.sum(hires_psf_image.array*hires_x)/hires_sum
+            hires_x -= psf_x
+            hires_y -= psf_y
+            psf_xx = np.sum(hires_psf_image.array*hires_x**2)/hires_sum
+            psf_xy = np.sum(hires_psf_image.array*hires_x*hires_y)/hires_sum
+            psf_yy = np.sum(hires_psf_image.array*hires_y**2)/hires_sum
+            self.psf_second_moments = np.array(((psf_xx,psf_xy),(psf_xy,psf_yy)))
+            # Calculate the corresponding PSF sizes |Q|**0.25 and (0.5*trQ)**0.5
+            self.psf_sigma_m = np.power(np.linalg.det(self.psf_second_moments),0.25)
+            self.psf_sigma_p = np.sqrt(0.5*np.trace(self.psf_second_moments))
+            # Also calculate the PSF size as |Q|**0.25 using adaptive weighted second moments
+            # of the non-hires PSF image.
+            try:
+                hsm_results = galsim.hsm.FindAdaptiveMom(self.psf_image)
+                self.psf_size_hsm = hsm_results.moments_sigma*self.pixel_scale
+            except RuntimeError as e:
+                raise RuntimeError('Unable to calculate adaptive moments of PSF image.')
         # Calculate the mean sky background level in detected electrons per pixel.
         self.mean_sky_level = self.get_flux(self.sky_brightness)*self.pixel_scale**2
         # Create an empty image using (0,0) to index the lower-left corner pixel.
@@ -193,48 +197,46 @@ class Survey(object):
             # exposure_time, sky_brightness, zenith_psf_fwhm, extinction.
             # Zero points are calculated from
             #  https://github.com/DarkEnergyScienceCollaboration/WeakLensingDeblending/issues/1
-            # zenith_psf_fwhm recomputed at airmass 1.2 following:
-            # zenith_psf_fwhm(X)=zenith_psf_fwhm(X=1.0)*X**0.6
             'y': {
-                'exposure_time': 6900.,
+                'exposure_time': 4800.,
                 'sky_brightness': 18.6,
-                'zenith_psf_fwhm': 0.702,
-                'zero_point': 10.85,
+                'zenith_psf_fwhm': 0.63,
+                'zero_point': 10.58,
                 'extinction': 0.138,
             },
             'z': {
-                'exposure_time': 6900.,
+                'exposure_time': 4800.,
                 'sky_brightness': 19.6,
-                'zenith_psf_fwhm': 0.725,
-                'zero_point': 23.24,
+                'zenith_psf_fwhm': 0.65,
+                'zero_point': 22.68,
                 'extinction': 0.043,
             },
             'i': {
-                'exposure_time': 6900.,
+                'exposure_time': 5520.,
                 'sky_brightness': 20.5,
-                'zenith_psf_fwhm': 0.747,
-                'zero_point': 33.17,
+                'zenith_psf_fwhm': 0.67,
+                'zero_point': 32.36,
                 'extinction': 0.07,
             },
             'r': {
-                'exposure_time': 6900.,
+                'exposure_time': 5520.,
                 'sky_brightness': 21.2,
-                'zenith_psf_fwhm': 0.781,
-                'zero_point': 44.80,
+                'zenith_psf_fwhm': 0.70,
+                'zero_point': 43.70,
                 'extinction': 0.10,
             },
             'g': {
-                'exposure_time': 6900.,
+                'exposure_time': 2400.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.814,
-                'zero_point': 51.97,
+                'zenith_psf_fwhm': 0.73,
+                'zero_point': 50.70,
                 'extinction': 0.163,
             },
             'u': {
-                'exposure_time': 6900.,
+                'exposure_time': 1680.,
                 'sky_brightness': 22.9,
-                'zenith_psf_fwhm': 0.859,
-                'zero_point': 9.39,
+                'zenith_psf_fwhm': 0.77,
+                'zero_point': 9.16,
                 'extinction': 0.451,
             },
         },
@@ -244,6 +246,7 @@ class Survey(object):
             # http://www.darkenergysurvey.org/survey/des-description.pdf
             # skybrightness from http://www.ctio.noao.edu/noao/node/1218
             # extinction from https://arxiv.org/pdf/1701.00502.pdf table 6
+            # fwhm values from https://arxiv.org/pdf/1407.3801.pdf
             '*': {
                 'mirror_diameter': 3.934,
                 'effective_area': 10.014,
@@ -254,28 +257,28 @@ class Survey(object):
             'i': {
                 'exposure_time': 1000.,
                 'sky_brightness': 20.5,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 0.96,
                 'zero_point': 13.94,
                 'extinction': 0.05,
             },
             'r' : {
                 'exposure_time': 800.,
                 'sky_brightness': 21.4,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.03,
                 'zero_point': 15.65,
                 'extinction': 0.09,
             },
             'g' : {
                 'exposure_time': 800.,
                 'sky_brightness': 22.3,
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.24,
                 'zero_point': 12.29,
                 'extinction': 0.17,
             },
             'z' : {
                 'exposure_time': 800.,
                 'sky_brightness': 18.7, #Value from SDSS
-                'zenith_psf_fwhm': 0.79,
+                'zenith_psf_fwhm': 1.12,
                 'zero_point': 10.81,
                 'extinction': 0.06,
             },
@@ -364,14 +367,14 @@ class Survey(object):
     def print_defaults():
         """Print parameters for all available (survey,filter band) combinations.
         """
-        for survey_name,survey_defaults in Survey._defaults.iteritems():
+        for survey_name,survey_defaults in iteritems(Survey._defaults):
             if survey_name == '*':
                 continue
-            for filter_band,combo_defaults in survey_defaults.iteritems():
+            for filter_band,combo_defaults in iteritems(survey_defaults):
                 if filter_band == '*':
                     continue
                 defaults = Survey.get_defaults(survey_name,filter_band)
-                print '%s %s-band: %r' % (survey_name,filter_band,defaults)
+                print('%s %s-band: %r' % (survey_name,filter_band,defaults))
 
     @staticmethod
     def add_args(parser):
@@ -476,4 +479,5 @@ class Survey(object):
         for parameter_name in ctor_params:
             if parameter_name in args_dict and args_dict[parameter_name] is not None:
                 ctor_params[parameter_name] = args_dict[parameter_name]
-        return Survey(survey_name=survey_name,filter_band=filter_band,**ctor_params)
+        return Survey(no_analysis=args_dict['no_analysis'], survey_name=survey_name,
+                      filter_band=filter_band,**ctor_params)

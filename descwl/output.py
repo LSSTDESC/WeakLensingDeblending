@@ -3,6 +3,7 @@
 There is a separate :doc:`output page </output>` with details on what goes into the
 output and how it is formatted.
 """
+from __future__ import print_function, division
 
 import os
 import os.path
@@ -19,6 +20,8 @@ import galsim
 
 import descwl.survey
 import descwl.analysis
+
+from six import iteritems
 
 class Reader(object):
     """Simulation output reader.
@@ -54,7 +57,7 @@ class Reader(object):
             raise RuntimeError('Got unexpected input-name extension "%s".' % extension)
         try:
             self.fits = fitsio.FITS(self.input_name,mode = fitsio.READONLY)
-        except ValueError,e:
+        except ValueError as e:
             raise RuntimeError(str(e))
         # Reconstruct the survey object for these results.
         header = self.fits[0].read_header()
@@ -180,7 +183,7 @@ class Writer(object):
             try:
                 self.fits = astropy.io.fits.open(self.output_name,mode = 'ostream',memmap = False)
                 self.fits.append(astropy.io.fits.PrimaryHDU())
-            except IOError,e:
+            except IOError as e:
                 raise RuntimeError(str(e))
 
     def description(self):
@@ -212,7 +215,7 @@ class Writer(object):
         hdu.header['PSF_SIGM'] = self.survey.psf_sigma_m
         hdu.header['PSF_SIGP'] = self.survey.psf_sigma_p
         hdu.header['PSF_HSM'] = self.survey.psf_size_hsm
-        for key,value in results.survey.args.iteritems():
+        for key,value in iteritems(results.survey.args):
             # Fits keyword headers are truncated at length 8. We use the last 8 chararacters
             # to ensure that they are unique.
             hdu.header[key[-8:]] = value
