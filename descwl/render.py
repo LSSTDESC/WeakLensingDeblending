@@ -219,9 +219,6 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
-        #make sure logic makes sense.
-        if no_fisher and calculate_bias:
-            raise RuntimeError("Cannot calculate bias without partials")
 
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.flux*self.psf_dilution < self.pixel_cut:
@@ -282,6 +279,7 @@ class Engine(object):
         if survey_overlap.area() == 0:
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
+
         if not no_analysis:
             # Give this Galaxy its own GalaxyRenderer.
             galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
@@ -300,6 +298,10 @@ class Engine(object):
                 ('dg1', variations_g), # + shear using |g| = (a-b)/(a+b) convention
                 ('dg2', variations_g), # x shear using |g| = (a-b)/(a+b) convention
                 ]
+
+            if self.verbose_render and not no_fisher:
+                print("Step size use for fisher analysis are:")
+                print(variations)
 
             # Prepare the datacube that we will return.
             ncube = 1
