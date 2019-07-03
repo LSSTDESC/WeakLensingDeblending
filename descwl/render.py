@@ -301,7 +301,6 @@ class Engine(object):
                 ('dg2', variations_g), # x shear using |g| = (a-b)/(a+b) convention
                 ]
 
-
             # Prepare the datacube that we will return.
             ncube = 1
 
