@@ -226,7 +226,7 @@ class Writer(object):
             self.fits.append(hdu)
             trace('wrote table')
         if not self.no_stamps:
-            # Save each stamp datacube.
+            # Save each stamp datacube (including partials and second partials, if available).
             for cube in results.stamps:
                 hdu = astropy.io.fits.ImageHDU(data = cube)
                 self.fits.append(hdu)

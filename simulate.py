@@ -48,6 +48,16 @@ def main():
         descwl.survey.Survey.print_defaults()
         return 0
 
+    if args.catalog_name is None and args.star_catalog_name is None: 
+        raise RuntimeError("At least one of catalog_name or start_catalog_name must be specifed in order to simulate.")
+
+    if args.no_fisher and args.add_lmfit: 
+        raise RuntimeError("Fisher calculation is necessary to run fits with lmfit.")
+
+    if args.no_fisher and args.calculate_bias: 
+        raise RuntimeError("Bias calculation requires fisher analysis.")
+
+
     trace = descwl.trace.Memory(args.memory_trace)
     trace('begin')
 
@@ -78,6 +88,7 @@ def main():
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
             print(output.description())
+
 
         trace('initialized')
         if args.catalog_name!=None:

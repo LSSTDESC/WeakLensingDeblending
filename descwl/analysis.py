@@ -801,6 +801,7 @@ class OverlapAnalyzer(object):
         Returns:
             :class:`OverlapResults`: Overlap analysis results.
         """
+
         trace('OverlapAnalyzer.finalize begin')
         # Define columns and allocate space for our table data.
         num_galaxies = len(self.models)
@@ -834,44 +835,64 @@ class OverlapAnalyzer(object):
                 ('psf_sigm',np.float32),
                 # Pixel-level properties.
                 ('purity',np.float32),
-                ('snr_sky',np.float32),
-                ('snr_iso',np.float32),
-                ('snr_grp',np.float32),
-                ('snr_isof',np.float32),
-                ('snr_grpf',np.float32),
-                ('ds',np.float32),
-                ('dg1',np.float32),
-                ('dg2',np.float32),
-                ('ds_grp',np.float32),
-                ('dg1_grp',np.float32),
-                ('dg2_grp',np.float32),
-                ('cond_num', np.float32), #condition number of individual galaxy fisher matrix. 
-                ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group. 
-                #fisher bias calculation results. 
-                ('bias_f', np.float32),
-                ('bias_s', np.float32),
-                ('bias_g1',np.float32),
-                ('bias_g2',np.float32),
-                ('bias_x',np.float32),
-                ('bias_y',np.float32),
-                ('bias_f_grp', np.float32),
-                ('bias_s_grp', np.float32),
-                ('bias_g1_grp',np.float32),
-                ('bias_g2_grp',np.float32),
-                ('bias_x_grp',np.float32),
-                ('bias_y_grp',np.float32),
-                # HSM analysis results.
-                ('hsm_sigm',np.float32),
-                ('hsm_e1',np.float32),
-                ('hsm_e2',np.float32),
-                # Systematics fit results.
-                ('g1_fit',np.float32),
-                ('g2_fit',np.float32),
-                ]
+                ('snr_sky',np.float32)
+            ]
 
+        #from here on, only add relevant entries. 
+        if not self.no_fisher and not self.no_analysis: 
+            dtype.extend([
+            ('snr_iso',np.float32),
+            ('snr_grp',np.float32),
+            ('snr_isof',np.float32),
+            ('snr_grpf',np.float32),
+            ('ds',np.float32),
+            ('dg1',np.float32),
+            ('dg2',np.float32),
+            ('ds_grp',np.float32),
+            ('dg1_grp',np.float32),
+            ('dg2_grp',np.float32),
+            ('cond_num', np.float32), #condition number of individual galaxy fisher matrix. 
+            ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group. 
+            ])
+
+        if self.calculate_bias and not self.no_analysis:
+            dtype.extend([
+            #fisher bias calculation results. 
+            ('bias_f', np.float32),
+            ('bias_s', np.float32),
+            ('bias_g1',np.float32),
+            ('bias_g2',np.float32),
+            ('bias_x',np.float32),
+            ('bias_y',np.float32),
+            ('bias_f_grp', np.float32),
+            ('bias_s_grp', np.float32),
+            ('bias_g1_grp',np.float32),
+            ('bias_g2_grp',np.float32),
+            ('bias_x_grp',np.float32),
+            ('bias_y_grp',np.float32)
+            ])
+
+        if not self.no_hsm and not self.no_analysis:
+            dtype.extend([
+            # HSM analysis results.
+            ('hsm_sigm',np.float32),
+            ('hsm_e1',np.float32),
+            ('hsm_e2',np.float32)
+            ])
+
+        if not self.no_lmfit and not self.no_analysis:
+            dtype.extend([
+            # Systematics fit results.
+            ('g1_fit',np.float32),
+            ('g2_fit',np.float32),
+            ])
+
+        #initially all entries are unspecified with np.nan. 
         data = np.full(num_galaxies, np.nan, dtype=dtype)
+
+        #skip all analysis. 
         if self.no_analysis:
-            # Return empty data table
+            # Return empty data table with only a few of the columns. 
             table = astropy.table.Table(data, copy=False)
             num_slices, h, w = self.stamps[0].shape
             results = OverlapResults(self.survey, table, self.stamps,
@@ -1011,7 +1032,7 @@ class OverlapAnalyzer(object):
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
                 signal = results.get_stamp(galaxy)
-                if self.add_noise:
+                if self.add_noise: #add noise for hsm, if requested. 
                     sigaux = signal.copy()
                     generator = galsim.random.BaseDeviate(seed = 1)
                     noise = galsim.PoissonNoise(rng = generator, sky_level = self.survey.mean_sky_level)
@@ -1109,7 +1130,7 @@ class OverlapAnalyzer(object):
                             data['bias_y'][galaxy] = iso_bias[dy_index]
 
             # Order group members by decreasing isolated S/N (if available), otherwise use snr_sky.
-            #this assumes that snr_sky is close to snr_iso (althought might not be exactly the same.)
+            #this assumes that snr_sky is close to snr_iso (although not necessarily the same.)
             if not self.no_fisher:
                 sorted_indices = group_indices[np.argsort(data['snr_iso'][grp_members])[::-1]]
             else: 
@@ -1120,17 +1141,13 @@ class OverlapAnalyzer(object):
             group_leader = data['db_id'][sorted_indices[0]]
             data['grp_id'][grp_members] = group_leader
 
-            alpha = self.alpha
-            detection_threshold = 6. # cut on snr_grpf
-            data['g1_fit'][sorted_indices] = 0.
-            data['g2_fit'][sorted_indices] = 0.
-
-            if self.no_fisher and not self.no_lmfit: 
-                raise RuntimeError("Fisher calculation is necessary to run fits with lmfit.")
-
-            if not self.no_fisher:
+            if not self.no_fisher and not self.no_lmfit:
+                alpha = self.alpha
+                detection_threshold = 6. # cut on snr_grpf
+                data['g1_fit'][sorted_indices] = 0.
+                data['g2_fit'][sorted_indices] = 0.
                 detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
-                if np.count_nonzero(detected) > 0 and grp_size > 1 and not self.no_lmfit:
+                if np.count_nonzero(detected) > 0 and grp_size > 1:
                     use_count = np.zeros(grp_size,dtype = int)
                     # Loop over galaxies in order of decreasing snr_iso.
                     for i1,g1 in enumerate(sorted_indices):
@@ -1180,6 +1197,7 @@ class OverlapAnalyzer(object):
 
         trace('OverlapAnalyzer.finalize end')
         return results
+
     @staticmethod
     def add_args(parser):
         """Add command-line arguments for constructing a new :class:`Reader`.
