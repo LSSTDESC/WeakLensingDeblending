@@ -57,7 +57,7 @@ class OverlapResults(object):
     Raises:
         RuntimeError: Image datacubes have unexpected number of slices.
     """
-    def __init__(self,survey,table,stamps,bounds,num_slices, use_pinv):
+    def __init__(self,survey,table,stamps,bounds,num_slices, use_pinv=False):
         self.survey = survey
         self.table = table
         if self.table is not None:
