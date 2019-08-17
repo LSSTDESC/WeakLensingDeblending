@@ -443,14 +443,14 @@ class OverlapResults(object):
 
         return bias_tensor
 
-    def get_matrices(self,selected, extra=False):
+    def get_matrices(self,selected, get_cond_num=False):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
         If the Fisher matrix is not invertible or any variances are <= 0, we will drop
         the selected source with the lowest value of snr_iso and try again. This procedure
         is iterated until we get a valid covariance matrix. Matrix elements for all parameters
         of any sources that get dropped by this procedure will be set to zero and variances
-        will be set to np.inf so that 1/np.sqrt(variance) = 0. Invalid covariances are
+        will be set to np.inf so that 1/np.sqrt(variance) = 0 (so snr_grp = snr_grpf = 0). Invalid covariances are
         generally associated with sources that are barely above the pixel SNR threshold,
         so this procedure should normally provide sensible values for the largest
         possible subset of the input selected sources. Use the :ref:`prog-fisher` program to
@@ -510,8 +510,8 @@ class OverlapResults(object):
                 num_dropped += 1
 
         if num_dropped == 0:
-            if extra: 
-                return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation, reduced_cond_num_grp, num_dropped
+            if get_cond_num: 
+                return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation, reduced_cond_num_grp
             else: 
                 return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
         else:
@@ -545,8 +545,8 @@ class OverlapResults(object):
                     covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
                     correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
 
-            if extra: 
-                return fisher,covariance,variance,correlation, reduced_cond_num_grp, num_dropped
+            if get_cond_num: 
+                return fisher,covariance,variance,correlation, reduced_cond_num_grp
             else: 
                 return fisher,covariance,variance,correlation
 
@@ -881,7 +881,6 @@ class OverlapAnalyzer(object):
             ('dg2_grp',np.float32),
             ('cond_num', np.float32), #condition number of individual galaxy fisher matrix. 
             ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group.
-            ('dropped', bool), #number of galaxies dropped while inverting this galaxy's group fisher matrix.
             ])
 
         if self.calculate_bias and not self.no_analysis:
@@ -1052,11 +1051,8 @@ class OverlapAnalyzer(object):
                 if num_slices != len(results.slice_labels) and num_slices != 21:
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
-                fisher,covariance,variance,correlation, cond_num_grp, num_dropped = results.get_matrices(group_indices, extra=True)
+                fisher,covariance,variance,correlation, cond_num_grp = results.get_matrices(group_indices, get_cond_num=True)
 
-                #obtained group indices that were dropped during matrix inversion.
-                drops = np.zeros(grp_size)
-                drops[np.argsort(data['snr_iso'][grp_members])[:num_dropped]] = 1
 
 
                 if self.calculate_bias:
@@ -1114,7 +1110,6 @@ class OverlapAnalyzer(object):
                     data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                     data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
                     data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number for galaxy's group.
-                    data['dropped'][galaxy] = drops[index]
 
                     if self.calculate_bias:
                         data['bias_f_grp'][galaxy] = bias[base+dflux_index]
@@ -1142,7 +1137,7 @@ class OverlapAnalyzer(object):
 
                     else:
                         # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num, _  = results.get_matrices([galaxy], extra=True)
+                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num  = results.get_matrices([galaxy], get_cond_num=True)
 
                         # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                         # yields any negative variances. Errors on s,g1,g2 will be np.inf.
