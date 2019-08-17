@@ -513,7 +513,7 @@ class Engine(object):
 
         #overwrite default variations = step size. 
         parser.add_argument('--variations-x', type = float, default = None, 
-            help = 'Step size for galaxy/star image partials with respect to centroid positions. Default value is the pixel scale of the corresponding survey used divided by 3.')
+            help = 'Step size for galaxy/star image partials with respect to centroid positions. If not specified, the default values is the pixel scale of the corresponding survey used divided by 3.')
         parser.add_argument('--variations-s', type = float, default = 0.05, 
             help = 'Step size for galaxy/star image partials with respect to relative dilation s.')
         parser.add_argument('--variations-g', type = float, default = 0.03, 

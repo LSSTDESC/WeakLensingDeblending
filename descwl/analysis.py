@@ -1142,8 +1142,7 @@ class OverlapAnalyzer(object):
 
                     else:
                         # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num, _  = (
-                            results.get_matrices([galaxy]), extra=True)
+                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num, _  = results.get_matrices([galaxy], extra=True)
 
                         # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                         # yields any negative variances. Errors on s,g1,g2 will be np.inf.
