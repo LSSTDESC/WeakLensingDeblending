@@ -17,8 +17,21 @@ from distutils.version import LooseVersion
 
 from six import iteritems
 
-#create dictionary of mapping from corresponding partial names to position in datacube.
+def grl_equilibration(fish):
+    """Algorithm for equilibrating fisher matrices of any shape. This is useful when inverting fisher matrices that have particularly high condition number.
+
+    Note: The 1e4 is the 'magic number' that was obtained by looking at the histograms of fisher elemenets of the isolated galaixes. 
+    """
+    dim = fish.shape[0]
+    eqi = np.eye(dim)
+    for i in range(dim): 
+        if i%6==0:
+            eqi[i,i] = 1e4
+    return eqi.dot(fish.dot(eqi)) #creates a copy. 
+
 def make_positions():
+    """Create dictionary of mapping from corresponding partial names to position in datacube.
+    """
 
     slice_labels = OverlapResults.slice_labels
 
@@ -57,7 +70,7 @@ class OverlapResults(object):
     Raises:
         RuntimeError: Image datacubes have unexpected number of slices.
     """
-    def __init__(self,survey,table,stamps,bounds,num_slices, use_pinv=False):
+    def __init__(self,survey,table,stamps,bounds,num_slices):
         self.survey = survey
         self.table = table
         if self.table is not None:
@@ -72,7 +85,6 @@ class OverlapResults(object):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
         self.noise_seed = None
-        self.use_pinv = use_pinv
 
     slice_labels = ['dflux','dx','dy','ds','dg1','dg2']
 
@@ -431,7 +443,7 @@ class OverlapResults(object):
 
         return bias_tensor
 
-    def get_matrices(self,selected):
+    def get_matrices(self,selected, extra=False):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
         If the Fisher matrix is not invertible or any variances are <= 0, we will drop
@@ -469,69 +481,74 @@ class OverlapResults(object):
                 if row != col:
                     fisher[npar*col:npar*(col+1),npar*row:npar*(row+1)] = fisher_sums.T
 
-        if not self.use_pinv:
-            # Sort indices into the selected array by increasing snr_iso.
-            priority = np.arange(nsel)[np.argsort(self.table['snr_iso'][selected])]
-            # Start by trying to use all sources in the group.
-            keep = np.ones((nsel,npar),dtype=bool)
-            num_dropped = 0
-            while np.any(keep):
-                try:
-                    keep_flat = keep.flatten()
-                    # Advanced indexing like this makes a copy, not a view.
-                    reduced_fisher = fisher[keep_flat,:][:,keep_flat]
-                    reduced_covariance = np.linalg.inv(reduced_fisher)
-                    reduced_variance = np.diag(reduced_covariance)
-                    assert np.min(reduced_variance) > 0,'Expected variance > 0'
-                    reduced_correlation = reduced_covariance/np.sqrt(
-                        np.outer(reduced_variance,reduced_variance))
-                    break
-                except (np.linalg.LinAlgError,AssertionError) as e:
-                    # We can't calculate a covariance for this set of objects, so drop the next
-                    # lowest SNR member of the set and try again.
-                    keep[priority[num_dropped],:] = False
-                    num_dropped += 1
+        # Sort indices into the selected array by increasing snr_iso.
+        priority = np.arange(nsel)[np.argsort(self.table['snr_iso'][selected])]
+        # Start by trying to use all sources in the group.
+        keep = np.ones((nsel,npar),dtype=bool)
+        num_dropped = 0
+        while np.any(keep):
+            try:
+                keep_flat = keep.flatten()
+                # Advanced indexing like this makes a copy, not a view.
+                reduced_fisher = fisher[keep_flat,:][:,keep_flat]
 
-            if num_dropped == 0:
+                #equilibreate the fisher matrix.
+                ereduced_fisher = grl_equilibration(reduced_fisher)
+                reduced_cond_num_grp = np.linalg.cond(ereduced_fisher)
+
+                #attempt to invert equilibrated fisher matrix and equilibrate again to get back to correct "units".
+                reduced_covariance = grl_equilibration(np.linalg.inv(ereduced_fisher))
+                reduced_variance = np.diag(reduced_covariance)
+                assert np.min(reduced_variance) > 0,'Expected variance > 0'
+                reduced_correlation = reduced_covariance/np.sqrt(
+                    np.outer(reduced_variance,reduced_variance))
+                break
+            except (np.linalg.LinAlgError,AssertionError) as e:
+                # We can't calculate a covariance for this set of objects, so drop the next
+                # lowest SNR member of the set and try again.
+                keep[priority[num_dropped],:] = False
+                num_dropped += 1
+
+        if num_dropped == 0:
+            if extra: 
+                return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation, reduced_cond_num_grp, num_dropped
+            else: 
                 return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
-            else:
-                fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
-                covariance = np.zeros((nfisher,nfisher),dtype = np.float64)
-                correlation = np.zeros((nfisher,nfisher),dtype = np.float64)
-                variance = np.empty((nfisher,),dtype = np.float64)
-                variance[:] = np.inf
-                # Build matrices with zeros for any sources that had to be dropped. Is there
-                # a more elegant way to do this? We cannot simply assign to a submatrix
-                # since that requires advancing slicing, which creates a copy, not a view.
-                keep_map = np.zeros(nsel,dtype=int)
-                keep_map[keep[:,0]] = np.arange(nsel-num_dropped)
-                next = 0
-                for row in range(nsel):
-                    if not keep[row,0]: continue
-                    row_slice = slice(npar*row,npar*(row+1))
-                    krow = keep_map[row]
-                    krow_slice = slice(npar*krow,npar*(krow+1))
-                    variance[row_slice] = reduced_variance[krow_slice]
-                    for col in range(row+1):
-                        if not keep[col,0]: continue
-                        col_slice = slice(npar*col,npar*(col+1))
-                        kcol = keep_map[col]
-                        kcol_slice = slice(npar*kcol,npar*(kcol+1))
-                        fisher[row_slice,col_slice] = reduced_fisher[krow_slice,kcol_slice]
-                        covariance[row_slice,col_slice] = reduced_covariance[krow_slice,kcol_slice]
-                        correlation[row_slice,col_slice] = reduced_correlation[krow_slice,kcol_slice]
-                        if row == col: continue
-                        fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
-                        covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
-                        correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
-                return fisher,covariance,variance,correlation
+        else:
+            fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
+            covariance = np.zeros((nfisher,nfisher),dtype = np.float64)
+            correlation = np.zeros((nfisher,nfisher),dtype = np.float64)
+            variance = np.empty((nfisher,),dtype = np.float64)
+            variance[:] = np.inf
+            # Build matrices with zeros for any sources that had to be dropped. Is there
+            # a more elegant way to do this? We cannot simply assign to a submatrix
+            # since that requires advancing slicing, which creates a copy, not a view.
+            keep_map = np.zeros(nsel,dtype=int)
+            keep_map[keep[:,0]] = np.arange(nsel-num_dropped)
+            next = 0
+            for row in range(nsel):
+                if not keep[row,0]: continue
+                row_slice = slice(npar*row,npar*(row+1))
+                krow = keep_map[row]
+                krow_slice = slice(npar*krow,npar*(krow+1))
+                variance[row_slice] = reduced_variance[krow_slice]
+                for col in range(row+1):
+                    if not keep[col,0]: continue
+                    col_slice = slice(npar*col,npar*(col+1))
+                    kcol = keep_map[col]
+                    kcol_slice = slice(npar*kcol,npar*(kcol+1))
+                    fisher[row_slice,col_slice] = reduced_fisher[krow_slice,kcol_slice]
+                    covariance[row_slice,col_slice] = reduced_covariance[krow_slice,kcol_slice]
+                    correlation[row_slice,col_slice] = reduced_correlation[krow_slice,kcol_slice]
+                    if row == col: continue
+                    fisher[col_slice,row_slice] = reduced_fisher[kcol_slice,krow_slice]
+                    covariance[col_slice,row_slice] = reduced_covariance[kcol_slice,krow_slice]
+                    correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
 
-        else: 
-            covariance = np.linalg.pinv(fisher) #never fails
-            variance = np.diag(covariance)
-            correlation = covariance/np.sqrt(
-                        np.outer(variance,variance))
-            return fisher, covariance, variance, correlation
+            if extra: 
+                return fisher,covariance,variance,correlation, reduced_cond_num_grp, num_dropped
+            else: 
+                return fisher,covariance,variance,correlation
 
 
     def match_sextractor(self,catalog_name,column_name = 'match'):
@@ -590,7 +607,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, use_pinv, alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -602,7 +619,7 @@ class OverlapAnalyzer(object):
         self.calculate_bias = calculate_bias
         self.no_analysis = no_analysis
         self.add_noise = add_noise
-        self.use_pinv = use_pinv
+
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
 
@@ -863,7 +880,8 @@ class OverlapAnalyzer(object):
             ('dg1_grp',np.float32),
             ('dg2_grp',np.float32),
             ('cond_num', np.float32), #condition number of individual galaxy fisher matrix. 
-            ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group. 
+            ('cond_num_grp', np.float32), #condition number (using 2-norm) from fisher matrix of corresponding group.
+            ('dropped', bool), #number of galaxies dropped while inverting this galaxy's group fisher matrix.
             ])
 
         if self.calculate_bias and not self.no_analysis:
@@ -907,7 +925,7 @@ class OverlapAnalyzer(object):
             table = astropy.table.Table(data, copy=False)
             num_slices, h, w = self.stamps[0].shape
             results = OverlapResults(self.survey, table, self.stamps,
-                                     self.bounds, num_slices, self.use_pinv)
+                                     self.bounds, num_slices)
             return results
 
         trace('allocated table of %ld bytes for %d galaxies' % (data.nbytes,num_galaxies))
@@ -1010,7 +1028,7 @@ class OverlapAnalyzer(object):
         # to use a method that needs something in table that we have not filled in yet).
         table = astropy.table.Table(data,copy = False)
         num_slices,h,w = self.stamps[0].shape
-        results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices, self.use_pinv)
+        results = OverlapResults(self.survey,table,self.stamps,self.bounds,num_slices)
 
 
         sky = self.survey.mean_sky_level
@@ -1034,8 +1052,12 @@ class OverlapAnalyzer(object):
                 if num_slices != len(results.slice_labels) and num_slices != 21:
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
-                fisher,covariance,variance,correlation = results.get_matrices(group_indices)
-                cond_num_grp = np.linalg.cond(fisher)
+                fisher,covariance,variance,correlation, cond_num_grp, num_dropped = results.get_matrices(group_indices, extra=True)
+
+                #obtained group indices that were dropped during matrix inversion.
+                drops = np.zeros(grp_size)
+                drops[np.argsort(data['snr_iso'][grp_members])[:num_dropped]] = 1
+
 
                 if self.calculate_bias:
                     bias = results.get_bias(group_indices, covariance)
@@ -1091,7 +1113,8 @@ class OverlapAnalyzer(object):
                     data['ds_grp'][galaxy] = np.sqrt(variance[base+ds_index])
                     data['dg1_grp'][galaxy] = np.sqrt(variance[base+dg1_index])
                     data['dg2_grp'][galaxy] = np.sqrt(variance[base+dg2_index])
-                    data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number to for that group. 
+                    data['cond_num_grp'][galaxy] = cond_num_grp #add calculated condition number for galaxy's group.
+                    data['dropped'][galaxy] = drops[index]
 
                     if self.calculate_bias:
                         data['bias_f_grp'][galaxy] = bias[base+dflux_index]
@@ -1119,9 +1142,9 @@ class OverlapAnalyzer(object):
 
                     else:
                         # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                        iso_fisher,iso_covariance,iso_variance,iso_correlation = (
-                            results.get_matrices([galaxy]))
-                        cond_num = np.linalg.cond(iso_fisher)
+                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num, _  = (
+                            results.get_matrices([galaxy]), extra=True)
+
                         # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                         # yields any negative variances. Errors on s,g1,g2 will be np.inf.
                         data['snr_iso'][galaxy] = flux*np.sqrt(iso_fisher[dflux_index,dflux_index])
@@ -1227,7 +1250,7 @@ class OverlapAnalyzer(object):
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
         parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
         parser.add_argument('--add-noise', action='store_true', help='Add Noise for HSM fitting')
-        parser.add_argument('--use-pinv', action='store_true', help='Whether to use the pseudo-inverse when inverting the fisher matrix.')
+
     @classmethod
     def from_args(cls,args):
         """Create a new :class:`Reader` object from a set of arguments.

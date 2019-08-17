@@ -1,12 +1,9 @@
 """Render source models as simulated survey observations.
 """
 from __future__ import print_function, division
-
 import math
 import inspect
-
 import numpy as np
-
 import galsim
 
 import descwl.analysis
