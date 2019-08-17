@@ -446,7 +446,7 @@ class OverlapResults(object):
     def get_matrices(self,selected, get_cond_num=False):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
-        If the Fisher matrix is not invertible or any variances are <= 0, we will drop
+        The Fisher matrix is equilibrated before inversion in order to attempt to reduce its condition number. If the Fisher matrix is still not invertible or any variances are <= 0, we will drop
         the selected source with the lowest value of snr_iso and try again. This procedure
         is iterated until we get a valid covariance matrix. Matrix elements for all parameters
         of any sources that get dropped by this procedure will be set to zero and variances
@@ -1052,8 +1052,6 @@ class OverlapAnalyzer(object):
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
                 fisher,covariance,variance,correlation, cond_num_grp = results.get_matrices(group_indices, get_cond_num=True)
-
-
 
                 if self.calculate_bias:
                     bias = results.get_bias(group_indices, covariance)
