@@ -104,8 +104,8 @@ dg2         float32 Error on shear x component (nominal g2=0) marginalized over 
 ds_grp      float32 Same as ds but also marginalizing over parameters of any overlapping sources (e)
 dg1_grp     float32 Same as dg1 but also marginalizing over parameters of any overlapping sources (e)
 dg2_grp     float32 Same as dg2 but also marginalizing over parameters of any overlapping sources (e)
-cond_num    float32 Condition number of fisher matrix corresponding to this individual source. 
-cond_num_grp float32 Condition number of the fisher matrix of the group this source belongs to. 
+cond_num    float32 Condition number of (equilibrated) fisher matrix corresponding to this individual source. 
+cond_num_grp float32 Condition number of the (equilibrated) fisher matrix of the group this source belongs to. 
 ----------- ------- ------------------------------------------------------------------------------------
 **Bias on parameters** (Calculated from Fisher Formalism)
 --------------------------------------------------------------------------------------------------------
