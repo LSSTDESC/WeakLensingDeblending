@@ -443,7 +443,7 @@ class OverlapResults(object):
 
         return bias_tensor
 
-    def get_matrices(self,selected, get_cond_num=False):
+    def get_matrices(self,selected, get_cond_num=False, equilibrate=False):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
         The Fisher matrix is equilibrated before inversion in order to attempt to reduce its condition number. If the Fisher matrix is still not invertible or any variances are <= 0, we will drop
@@ -492,18 +492,24 @@ class OverlapResults(object):
                 # Advanced indexing like this makes a copy, not a view.
                 reduced_fisher = fisher[keep_flat,:][:,keep_flat]
 
-                #equilibreate the fisher matrix.
-                ereduced_fisher = grl_equilibration(reduced_fisher)
-                reduced_cond_num_grp = np.linalg.cond(ereduced_fisher)
+                if equilibrate: 
+                    #equilibrate the fisher matrix.
+                    ereduced_fisher = grl_equilibration(reduced_fisher)
+                    reduced_cond_num_grp = np.linalg.cond(ereduced_fisher)
 
-                #attempt to invert equilibrated fisher matrix and equilibrate again to get back to correct "units".
-                reduced_covariance = grl_equilibration(np.linalg.inv(ereduced_fisher))
-                reduced_variance = np.diag(reduced_covariance)
+                    #attempt to invert equilibrated fisher matrix and equilibrate again to get back to correct "units".
+                    reduced_covariance = grl_equilibration(np.linalg.inv(ereduced_fisher))
+                else: 
+                    reduced_cond_num_grp = np.linalg.cond(reduced_fisher)
+                    reduced_covariance = np.linalg.inv(reduced_fisher)
+
+
+                reduced_variance = np.diagonal(reduced_covariance).copy()
                 assert np.min(reduced_variance) > 0,'Expected variance > 0'
                 reduced_correlation = reduced_covariance/np.sqrt(
                     np.outer(reduced_variance,reduced_variance))
                 break
-            except (np.linalg.LinAlgError,AssertionError) as e:
+            except (np.linalg.LinAlgError, AssertionError) as e:
                 # We can't calculate a covariance for this set of objects, so drop the next
                 # lowest SNR member of the set and try again.
                 keep[priority[num_dropped],:] = False
@@ -607,7 +613,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, equilibrate, alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -619,6 +625,7 @@ class OverlapAnalyzer(object):
         self.calculate_bias = calculate_bias
         self.no_analysis = no_analysis
         self.add_noise = add_noise
+        self.equilibrate = equilibrate
 
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
@@ -1051,10 +1058,10 @@ class OverlapAnalyzer(object):
                 if num_slices != len(results.slice_labels) and num_slices != 21:
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
-                fisher,covariance,variance,correlation, cond_num_grp = results.get_matrices(group_indices, get_cond_num=True)
+                fisher,covariance,variance,correlation, cond_num_grp = results.get_matrices(group_indices, get_cond_num=True, equilibrate=self.equilibrate)
 
                 if self.calculate_bias:
-                    bias = results.get_bias(group_indices, covariance)
+                    bias = results.get_bias(group_indices, covariance.copy())
 
             for index,galaxy in enumerate(group_indices):
                 flux = data['flux'][galaxy]
@@ -1135,7 +1142,7 @@ class OverlapAnalyzer(object):
 
                     else:
                         # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num  = results.get_matrices([galaxy], get_cond_num=True)
+                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num  = results.get_matrices([galaxy], get_cond_num=True, equilibrate=self.equilibrate)
 
                         # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                         # yields any negative variances. Errors on s,g1,g2 will be np.inf.
@@ -1147,7 +1154,7 @@ class OverlapAnalyzer(object):
                         data['cond_num'][galaxy] = cond_num
 
                         if self.calculate_bias:
-                            iso_bias = results.get_bias([galaxy], iso_covariance)
+                            iso_bias = results.get_bias([galaxy], iso_covariance.copy())
                             data['bias_f'][galaxy] = iso_bias[dflux_index]
                             data['bias_s'][galaxy] = iso_bias[ds_index]
                             data['bias_g1'][galaxy] = iso_bias[dg1_index]
@@ -1242,6 +1249,7 @@ class OverlapAnalyzer(object):
         parser.add_argument('--no-hsm', action='store_true', help='Skip HSM fitting')
         parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
         parser.add_argument('--add-noise', action='store_true', help='Add Noise for HSM fitting')
+        parser.add_argument('--equilibrate', action='store_true', help='Whether to equilibrate the fisher matrices before inversion. This might reduce the matrices\' condition number and improve numerical stability.')
 
     @classmethod
     def from_args(cls,args):
