@@ -446,7 +446,7 @@ class OverlapResults(object):
     def get_matrices(self,selected, get_cond_num=False, equilibrate=False):
         """Return matrices derived the from Fisher-matrix images for a set of sources.
 
-        The Fisher matrix is equilibrated before inversion in order to attempt to reduce its condition number. If the Fisher matrix is still not invertible or any variances are <= 0, we will drop
+        If the Fisher matrix is still not invertible or any variances are <= 0, we will drop
         the selected source with the lowest value of snr_iso and try again. This procedure
         is iterated until we get a valid covariance matrix. Matrix elements for all parameters
         of any sources that get dropped by this procedure will be set to zero and variances
@@ -454,7 +454,8 @@ class OverlapResults(object):
         generally associated with sources that are barely above the pixel SNR threshold,
         so this procedure should normally provide sensible values for the largest
         possible subset of the input selected sources. Use the :ref:`prog-fisher` program to
-        visualize matrix elements and to further study examples of invalid covariances.
+        visualize matrix elements and to further study examples of invalid covariances. 
+        The Fisher matrix is (can be optionally) equilibrated before inversion in order to attempt to reduce its condition number. 
 
         Args:
             selected(iterable): Array of integer indices for the sources to include in the
