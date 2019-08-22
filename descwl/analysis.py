@@ -466,6 +466,8 @@ class OverlapResults(object):
                 where `variance` has shape (npar,) and all other arrays are symmetric with
                 shape (npar,npar), where npar = 6*len(selected). Matrix elements will be
                 zero for any parameters associated with dropped sources, as described above.
+            float: (only if get_cond_num is set to True) condition number of first fisher matrix which is able to be 
+            inverted with the above procedure.
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
@@ -553,7 +555,7 @@ class OverlapResults(object):
                     correlation[col_slice,row_slice] = reduced_correlation[kcol_slice,krow_slice]
 
             if get_cond_num: 
-                return fisher,covariance,variance,correlation, reduced_cond_num_grp
+                return (fisher,covariance,variance,correlation), reduced_cond_num_grp
             else: 
                 return fisher,covariance,variance,correlation
 
@@ -1059,7 +1061,7 @@ class OverlapAnalyzer(object):
                 if num_slices != len(results.slice_labels) and num_slices != 21:
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
-                fisher,covariance,variance,correlation, cond_num_grp = results.get_matrices(group_indices, get_cond_num=True, equilibrate=self.equilibrate)
+                (fisher,covariance,variance,correlation), cond_num_grp = results.get_matrices(group_indices, get_cond_num=True, equilibrate=self.equilibrate)
 
                 if self.calculate_bias:
                     bias = results.get_bias(group_indices, covariance.copy())
@@ -1143,7 +1145,7 @@ class OverlapAnalyzer(object):
 
                     else:
                         # Redo the Fisher matrix analysis but ignoring overlapping sources.
-                        iso_fisher,iso_covariance,iso_variance,iso_correlation, cond_num  = results.get_matrices([galaxy], get_cond_num=True, equilibrate=self.equilibrate)
+                        (iso_fisher,iso_covariance,iso_variance,iso_correlation), cond_num  = results.get_matrices([galaxy], get_cond_num=True, equilibrate=self.equilibrate)
 
                         # snr_iso and snr_isof will be zero if the Fisher matrix is not invertible or
                         # yields any negative variances. Errors on s,g1,g2 will be np.inf.
