@@ -455,7 +455,7 @@ class OverlapResults(object):
         so this procedure should normally provide sensible values for the largest
         possible subset of the input selected sources. Use the :ref:`prog-fisher` program to
         visualize matrix elements and to further study examples of invalid covariances. 
-        The Fisher matrix is can be (optionally) equilibrated before inversion in order to attempt to reduce its condition number (see command line option --equilibreate). 
+        The Fisher matrix can be optionally equilibrated (using 'equilibrate=True' as an argument) before inversion in order to attempt to reduce its condition number.
 
         Args:
             selected(iterable): Array of integer indices for the sources to include in the
