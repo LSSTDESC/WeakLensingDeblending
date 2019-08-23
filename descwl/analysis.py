@@ -520,7 +520,7 @@ class OverlapResults(object):
 
         if num_dropped == 0:
             if get_cond_num: 
-                return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation, reduced_cond_num_grp
+                return (reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation), reduced_cond_num_grp
             else: 
                 return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
         else:
@@ -616,7 +616,7 @@ class OverlapAnalyzer(object):
     Args:
         survey(descwl.survey.Survey): Simulated survey to describe with FITS header keywords.
     """
-    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, equilibrate, alpha=1):
+    def __init__(self,survey,no_hsm,no_lmfit,no_fisher, calculate_bias, no_analysis, add_noise, equilibrate, detection_threshold, alpha=1):
         self.survey = survey
         self.models = [ ]
         self.stamps = [ ]
@@ -629,6 +629,7 @@ class OverlapAnalyzer(object):
         self.no_analysis = no_analysis
         self.add_noise = add_noise
         self.equilibrate = equilibrate
+        self.detection_threshold = detection_threshold # cut on snr_grpf
 
     def add_galaxy(self,model,stamps,bounds):
         """Add one galaxy to be analyzed.
@@ -1179,10 +1180,18 @@ class OverlapAnalyzer(object):
 
             if not self.no_fisher and not self.no_lmfit:
                 alpha = self.alpha
-                detection_threshold = 6. # cut on snr_grpf
                 data['g1_fit'][sorted_indices] = 0.
                 data['g2_fit'][sorted_indices] = 0.
-                detected = (data['snr_grpf'][sorted_indices] > detection_threshold)
+
+                if self.detection_threshold is None: #adjust detection threshold if not specified.
+                    self.detection_threshold = 6. #LSST default. 
+                    if self.survey.survey_name in ['HSC', 'DES']:
+                        self.detection_threshold = 5.
+
+                if verbose: 
+                    print("Detection threshold is", self.detection_threshold)
+
+                detected = (data['snr_grpf'][sorted_indices] > self.detection_threshold)
                 if np.count_nonzero(detected) > 0 and grp_size > 1:
                     use_count = np.zeros(grp_size,dtype = int)
                     # Loop over galaxies in order of decreasing snr_iso.
@@ -1253,6 +1262,7 @@ class OverlapAnalyzer(object):
         parser.add_argument('--add-lmfit', action='store_true', help='Perform LMFIT fitting')
         parser.add_argument('--add-noise', action='store_true', help='Add Noise for HSM fitting')
         parser.add_argument('--equilibrate', action='store_true', help='Whether to equilibrate the fisher matrices before inversion. This might reduce the matrices\' condition number and improve numerical stability.')
+        parser.add_argument('--detection-threshold', default=None, type=float, help='Specify threshold in terms of snr_grpf which determines sources that are skipped. Sources below our detection threshold are instead added to the highest snr_iso detected object it overlaps with. Default value is 5 for HSC,DES and 6 for LSST or other surveys.')
 
     @classmethod
     def from_args(cls,args):

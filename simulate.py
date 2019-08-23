@@ -83,7 +83,7 @@ def main():
         if args.verbose:
             print(render_engine.description())
 
-        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.no_fisher, args.calculate_bias, args.no_analysis, args.add_noise, args.equilibrate)
+        analyzer = descwl.analysis.OverlapAnalyzer(survey,args.no_hsm, not args.add_lmfit, args.no_fisher, args.calculate_bias, args.no_analysis, args.add_noise, args.equilibrate, args.detection_threshold)
 
         output = descwl.output.Writer.from_args(survey,args)
         if args.verbose:
