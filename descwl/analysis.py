@@ -1188,9 +1188,6 @@ class OverlapAnalyzer(object):
                     if self.survey.survey_name in ['HSC', 'DES']:
                         self.detection_threshold = 5.
 
-                if verbose: 
-                    print("Detection threshold is", self.detection_threshold)
-
                 detected = (data['snr_grpf'][sorted_indices] > self.detection_threshold)
                 if np.count_nonzero(detected) > 0 and grp_size > 1:
                     use_count = np.zeros(grp_size,dtype = int)
