@@ -80,7 +80,7 @@ class OverlapResults(object):
         self.bounds = bounds
         self.num_slices = num_slices
         if len(self.stamps) > 0:
-             #21 allows second partials
+             #The '21' immediately below below refers to the case when second partials are required (21 is 1 + 5 + 15, where the first term refers to the galaxy image itself, the 5 is the number of first partials excluding flux and 15 is the number of second partials exluding flux and using that partial derivatives commute.)
             if self.num_slices not in (1,len(self.slice_labels), 21):
                 raise RuntimeError('Image datacubes have unexpected number of slices (%d).'
                     % self.num_slices)
