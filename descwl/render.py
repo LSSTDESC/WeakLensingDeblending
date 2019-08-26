@@ -1,12 +1,9 @@
 """Render source models as simulated survey observations.
 """
 from __future__ import print_function, division
-
 import math
 import inspect
-
 import numpy as np
-
 import galsim
 
 import descwl.analysis
@@ -198,13 +195,13 @@ class Engine(object):
             ('PSF dilution factor is %.6f.' % self.psf_dilution)
             ])
 
-    def render_galaxy(self,galaxy,no_partials = False, calculate_bias = False,
-                      no_analysis=False):
+    def render_galaxy(self,galaxy, variations_x, variations_s, variations_g, no_fisher = False, 
+                      calculate_bias = False, no_analysis = False):
         """Render a galaxy model for a simulated survey.
 
         Args:
             galaxy(descwl.model.Galaxy): Model of the galaxy to render.
-            no_partials(bool): Do not calculate partial derivative images.
+            no_fisher(bool): Do not calculate partial derivative images.
 
         Returns:
             tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
@@ -219,9 +216,6 @@ class Engine(object):
             SourceNotVisible: Galaxy has no pixels above threshold that are visible in the
                 simulated survey.
         """
-        #make sure logic makes sense.
-        if no_partials and calculate_bias:
-            raise RuntimeError("Cannot calculate bias with partials")
 
         # Skip sources that are too faint to possibly be above our cut after PSF convolution.
         if galaxy.model.flux*self.psf_dilution < self.pixel_cut:
@@ -282,27 +276,35 @@ class Engine(object):
         if survey_overlap.area() == 0:
             raise SourceNotVisible
         self.survey.image[survey_overlap] += cropped_stamp[survey_overlap]
+
         if not no_analysis:
             # Give this Galaxy its own GalaxyRenderer.
             galaxy.renderer = GalaxyRenderer(galaxy,cropped_stamp,self.survey)
+
+            if variations_x is None: 
+                variations_x = self.survey.pixel_scale/3.
 
             # Define the parameter variations we consider for building Fisher matrices.
             # The names appearing below are args of Galaxy.get_transformed_model().
             # We do not include 'flux' below since the nominal image is already the
             # partial derivative wrt flux (after dividing by flux).
             variations = [
-                ('dx',self.survey.pixel_scale/3.), # arcsecs
-                ('dy',self.survey.pixel_scale/3.), # arcsecs
-                ('ds',0.05), # relative dilation (flux preserving)
-                ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
-                ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+                ('dx', variations_x), # arcsecs
+                ('dy', variations_x), # arcsecs
+                ('ds', variations_s), # relative dilation (flux preserving)
+                ('dg1', variations_g), # + shear using |g| = (a-b)/(a+b) convention
+                ('dg2', variations_g), # x shear using |g| = (a-b)/(a+b) convention
                 ]
+
+            if self.verbose_render and not no_fisher:
+                print("Step size use for fisher analysis are:")
+                print(variations)
 
             # Prepare the datacube that we will return.
             ncube = 1
 
             positions = descwl.analysis.make_positions()
-            if not no_partials:
+            if not no_fisher:
                 ncube = 1+len(variations)
                 if calculate_bias:
                      #15 is number of second partials for 5 parameters (no flux).
@@ -313,7 +315,7 @@ class Engine(object):
             datacube[0] = cropped_stamp.array #flux partial is the same.
 
             #calculate partials, if requested.
-            if not no_partials:
+            if not no_fisher:
                 #The nominal image doubles as the flux partial derivative.
                 for i,(pname_i,delta_i) in enumerate(variations):
                     variation_stamp = (galaxy.renderer.draw(**{pname_i: +delta_i}).copy() -
@@ -358,11 +360,11 @@ class Engine(object):
                 model.centroid.x,model.centroid.y))
         return datacube,cropped_bounds
 
-    def render_star(self,star,no_partials = False):
+    def render_star(self,star, variations_x, variations_s, variations_g, no_fisher = False):
         """Render a star model for a simulated survey.
         Args:
             star(descwl.model.Star): Model of the star to render.
-            no_partials(bool): Do not calculate partial derivative images.
+            no_fisher(bool): Do not calculate partial derivative images.
         Returns:
             tuple: `(stamps,bounds)` where `stamps` is a :class:`numpy.ndarray` of shape
                 (nstamp,width,height) pixel values that represents nstamp postage-stamp images
@@ -438,30 +440,35 @@ class Engine(object):
         # Give this Star its own StarRenderer.
         star.renderer = StarRenderer(star,cropped_stamp,self.survey)
 
+
+        if variations_x is None: #set default variations for centroids if not provided. 
+            variations_x = self.survey.pixel_scale/3.
+
         # Define the parameter variations we consider for building Fisher matrices.
         # The names appearing below are args of Galaxy.get_transformed_model().
         # We do not include 'flux' below since the nominal image is already the
         # partial derivative wrt flux (after dividing by flux).
         variations = [
-            ('dx',self.survey.pixel_scale/3.), # arcsecs
-            ('dy',self.survey.pixel_scale/3.), # arcsecs
-            ('ds',0.05), # relative dilation (flux preserving)
-            ('dg1',0.03), # + shear using |g| = (a-b)/(a+b) convention
-            ('dg2',0.03), # x shear using |g| = (a-b)/(a+b) convention
+            ('dx', variations_x), # arcsecs
+            ('dy', variations_x), # arcsecs
+            ('ds', variations_s), # relative dilation (flux preserving)
+            ('dg1', variations_g), # + shear using |g| = (a-b)/(a+b) convention
+            ('dg2', variations_g), # x shear using |g| = (a-b)/(a+b) convention
             ]
 
         # Prepare the datacube that we will return.
-        if no_partials:
+        if no_fisher:
             ncube = 1
         else:
             # The nominal image doubles as the flux partial derivative.
             ncube = 1+len(variations)
+
         height,width = cropped_stamp.array.shape
         datacube = np.empty((ncube,height,width))
         datacube[0] = cropped_stamp.array
 
         # Calculate partial derivative images, if requested.
-        if not no_partials:
+        if not no_fisher:
             for i,(pname,delta) in enumerate(variations):
                 variation_stamp = (star.renderer.draw(**{pname: +delta}).copy() -
                     star.renderer.draw(**{pname: -delta}))
@@ -498,11 +505,20 @@ class Engine(object):
         parser.add_argument('--verbose-render', action = 'store_true',
             help = 'Provide verbose output on rendering process.')
 
-        #add one for partials and bias.
-        parser.add_argument('--no-partials', action = 'store_true',
-            help = 'Do not store partial derivative images of the galaxy in data cubes')
+        #add some for fisher and bias.
+        parser.add_argument('--no-fisher', action = 'store_true',
+            help = 'Do not carry out fisher formalism matrix calculation, and therefore do not store partial derivative images of the galaxy/stars in data cubes.')
         parser.add_argument('--calculate-bias', action = 'store_true',
-            help = 'Store necessary images in datacubes to calculate bias of galaxy.')
+            help = 'Store necessary images in datacubes to calculate bias of galaxy (only for galaxies, does not apply to stars).')
+
+        #overwrite default variations = step size. 
+        parser.add_argument('--variations-x', type = float, default = None, 
+            help = 'Step size for galaxy/star image partials with respect to centroid positions. If not specified, the default values is the pixel scale of the corresponding survey used divided by 3.')
+        parser.add_argument('--variations-s', type = float, default = 0.05, 
+            help = 'Step size for galaxy/star image partials with respect to relative dilation s.')
+        parser.add_argument('--variations-g', type = float, default = 0.03, 
+            help = 'Step size for galaxy/star image partials with respect to shear components g1, g2.')
+
 
 
     @classmethod
