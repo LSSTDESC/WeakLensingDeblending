@@ -9,3 +9,5 @@ photometric redshift algorithms, and deblending algorithms.
 User and reference documentation is hosted at http://weaklensingdeblending.readthedocs.io/ and also available as a [single pdf document](https://readthedocs.org/projects/weaklensingdeblending/downloads/pdf/latest/).
 
 [![Documentation Status](https://readthedocs.org/projects/weaklensingdeblending/badge/?version=latest)](https://readthedocs.org/projects/weaklensingdeblending/?badge=latest)
+[![DOI](https://zenodo.org/badge/8727241.svg)](https://zenodo.org/badge/latestdoi/8727241)
+
