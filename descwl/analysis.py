@@ -16,7 +16,6 @@ import descwl.model
 from distutils.version import LooseVersion
 
 from six import iteritems
-
 def grl_equilibration(fish):
     """Algorithm for equilibrating fisher matrices of any shape. This is useful when inverting fisher matrices that have particularly high condition number.
 
@@ -494,21 +493,18 @@ class OverlapResults(object):
                 keep_flat = keep.flatten()
                 # Advanced indexing like this makes a copy, not a view.
                 reduced_fisher = fisher[keep_flat,:][:,keep_flat]
-
                 if equilibrate: 
                     #equilibrate the fisher matrix.
                     ereduced_fisher = grl_equilibration(reduced_fisher)
                     reduced_cond_num_grp = np.linalg.cond(ereduced_fisher)
 
                     #attempt to invert equilibrated fisher matrix and equilibrate again to get back to correct "units".
-                    reduced_covariance = grl_equilibration(np.linalg.inv(ereduced_fisher))
+                    reduced_covariance = grl_equilibration(np.linalg.pinv(ereduced_fisher))
                 else: 
                     reduced_cond_num_grp = np.linalg.cond(reduced_fisher)
-                    reduced_covariance = np.linalg.inv(reduced_fisher)
-
-
+                    reduced_covariance = np.linalg.pinv(reduced_fisher)
                 reduced_variance = np.diagonal(reduced_covariance).copy()
-                assert np.min(reduced_variance) > 0,'Expected variance > 0'
+                assert np.min(reduced_variance) > -1E-32,'Expected variance > 0'
                 reduced_correlation = reduced_covariance/np.sqrt(
                     np.outer(reduced_variance,reduced_variance))
                 break
@@ -517,11 +513,10 @@ class OverlapResults(object):
                 # lowest SNR member of the set and try again.
                 keep[priority[num_dropped],:] = False
                 num_dropped += 1
-
         if num_dropped == 0:
-            if get_cond_num: 
+            if get_cond_num:
                 return (reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation), reduced_cond_num_grp
-            else: 
+            else:
                 return reduced_fisher, reduced_covariance,reduced_variance,reduced_correlation
         else:
             fisher = np.zeros((nfisher,nfisher),dtype = np.float64)
@@ -1063,7 +1058,6 @@ class OverlapAnalyzer(object):
                     raise RuntimeError('Missing required partial derivative images for Fisher matrix analysis.')
 
                 (fisher,covariance,variance,correlation), cond_num_grp = results.get_matrices(group_indices, get_cond_num=True, equilibrate=self.equilibrate)
-
                 if self.calculate_bias:
                     bias = results.get_bias(group_indices, covariance.copy())
 
@@ -1107,7 +1101,6 @@ class OverlapAnalyzer(object):
                 # Calculate the SNR this galaxy would have without any overlaps and
                 # assuming that we are in the sky-dominated limit.
                 data['snr_sky'][galaxy] = np.sqrt(np.sum(signal.array**2)/sky)
-
                 # Calculate this galaxy's SNR in various ways.
                 base = index*len(results.slice_labels) #number of first partials
                 if not self.no_fisher:
