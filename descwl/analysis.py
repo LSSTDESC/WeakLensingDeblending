@@ -474,7 +474,6 @@ class OverlapResults(object):
         """
         background = self.get_subimage(selected)
         nsel = len(selected)
-        nstar = np.count_nonzero(np.array(self.is_star)[np.array(selected)])
         npar = []
         for i, idx in enumerate(selected):
              if self.is_star[idx]:
@@ -490,6 +489,7 @@ class OverlapResults(object):
             j0 = 0
             j1 = 0
             for col, index2 in enumerate(selected[:row+1]):
+                j0 = j1
                 j1+= npar[col]
                 images, overlap = self.get_fisher_images(index1, index2, background)
                 if overlap is None:
@@ -498,7 +498,6 @@ class OverlapResults(object):
                 fisher[i0:i1, j0:j1] = fisher_sums
                 if row != col:
                     fisher[j0:j1, i0:i1] = fisher_sums.T
-                j0 = j1
             i0 = i1
         # Sort indices into the selected array by increasing snr_iso.
         priority = np.arange(nsel)[np.argsort(self.table['snr_iso'][selected])]
