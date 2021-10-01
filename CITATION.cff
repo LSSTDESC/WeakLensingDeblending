@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Kirkby"
+    given-names: "David P."
+    orcid: "https://orcid.org/0000-0002-8828-5463"
+  - family-names: "Mendoza"
+    given-names: "Ismael"
+    orcid: "https://orcid.org/0000-0002-6313-4597"
+  - family-names: "Sanchez"
+    given-names: "Javier"
+    orcid: "https://orcid.org/0000-0003-3136-9532"
+title: "WeakLensingDeblending"
+version: 1.0.0
+doi: 10.5281/zenodo.3975230
+date-released: 2020-08-07
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Sanchez"
+    given-names: "Javier"
+    orcid: "https://orcid.org/0000-0003-3136-9532"
+  - family-names: "Mendoza"
+    given-names: "Ismael"
+    orcid: "https://orcid.org/0000-0002-6313-4597"
+  - family-names: "Kirkby"
+    given-names: "David P."
+    orcid: "https://orcid.org/0000-0002-8828-5463"
+  - family-names: "Burchat"
+    given-names: "Patricia R."
+    orcid: "https://orcid.org/0000-0001-5004-3736"
+  title: "Effects of overlapping sources on cosmic shear estimation: Statistical sensitivity and pixel-noise bias"
+  doi: 10.1088/1475-7516/2021/07/043
+  journal: "JCAP"
+  month: 7
+  year: 2021
+  volume: 2021
+  number: 7
+  pages: 43
+
