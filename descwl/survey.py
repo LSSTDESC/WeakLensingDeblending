@@ -325,7 +325,7 @@ class Survey(object):
                     'effective_area': 52.81, #I couldn't find the effective aperture
                     'image_width': 4096,
                     'image_height': 2048,
-                    'pixel_scale': 0.17,
+                    'pixel_scale': 0.168,
                 },
                 'g': {
                     'exposure_time': 600.,
