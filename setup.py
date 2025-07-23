@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import os
 from setuptools import setup
 
 requirements = [
@@ -12,9 +12,17 @@ requirements = [
     'six'
 ]
 
+pth = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "descwl",
+    "version.py"
+)
+with open(pth, 'r') as fp:
+    exec(fp.read())
+
 setup(
     name='descwl',
-    version='0.3dev',
+    version=__version__,
     description='Weak lensing fast simulations and analysis for the LSST DESC',
     long_description='Weak lensing fast simulations and analysis for the LSST DESC',
     author='descwl developers',
