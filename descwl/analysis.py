@@ -230,7 +230,7 @@ class OverlapResults(object):
         Fisher matrix images are derived from the partial derivatives with respect to
         six parameters: total flux in detected electrons, centroid positions in x and y
         in arcseconds, flux-preserving radial scale (dimensionless), and shear g1,g2
-        with \|g\| = (a-b)/(a+b). Use the :ref:`prog-fisher` program to display Fisher
+        with |g| = (a-b)/(a+b). Use the :ref:`prog-fisher` program to display Fisher
         matrix images.
 
         Args:

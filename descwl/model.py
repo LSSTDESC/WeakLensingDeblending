@@ -79,15 +79,15 @@ def sheared_second_moments(Q,g1,g2):
     """Apply shear to a second moments matrix.
 
     The shear M = ((1-g1,-g2),(-g2,1+g1)) is applied to each Q by calculating
-    Q' = (M**-1).Q.(M**-1)^t where M**-1 = ((1+g1,g2),(g2,1-g1))/\|M\|.
+    Q' = (M**-1).Q.(M**-1)^t where M**-1 = ((1+g1,g2),(g2,1-g1))/|M|.
     If the input is an array of second-moment tensors, the calculation is vectorized
     and returns a tuple of output arrays with the same leading dimensions (...).
 
     Args:
         Q(numpy.ndarray): Array of shape (...,2,2) containing second-moment tensors,
             which are assumed to be symmetric.
-        g1(float): Shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
-        g2(float): Shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).
+        g1(float): Shear ellipticity component g1 (+) with |g| = (a-b)/(a+b).
+        g2(float): Shear ellipticity component g2 (x) with |g| = (a-b)/(a+b).
 
     Returns:
         numpy.ndarray: Array with the same shape as the input Q with the shear
@@ -116,8 +116,8 @@ class Galaxy(object):
         ab_magnitude(float): Catalog AB magnitude of this galaxy in the filter band being
             simulated.
         ri_color(float): Catalog source color calculated as (r-i) AB magnitude difference.
-        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with \|g\| = (a-b)/(a+b).
-        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with \|g\| = (a-b)/(a+b).
+        cosmic_shear_g1(float): Cosmic shear ellipticity component g1 (+) with |g| = (a-b)/(a+b).
+        cosmic_shear_g2(float): Cosmic shear ellipticity component g2 (x) with |g| = (a-b)/(a+b).
         dx_arcsecs(float): Horizontal offset of catalog entry's centroid from image center
             in arcseconds.
         dy_arcsecs(float): Vertical offset of catalog entry's centroid from image center
@@ -200,9 +200,9 @@ class Galaxy(object):
                 radial direction while conserving flux, before applying shear
                 or convolving with the PSF.
             dg1(float): Amount to adjust the + shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
             dg2(float): Amount to adjust the x shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
 
         Returns:
             galsim.GSObject: New model constructed using our source profile with
@@ -408,9 +408,9 @@ class Star(object):
                 radial direction while conserving flux, before applying shear
                 or convolving with the PSF.
             dg1(float): Amount to adjust the + shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
             dg2(float): Amount to adjust the x shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
 
         Returns:
             galsim.GSObject: New model constructed using our source profile with
