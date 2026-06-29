@@ -60,9 +60,9 @@ class GalaxyRenderer(object):
                 radial direction while conserving flux, before applying shear
                 or convolving with the PSF.
             dg1(float): Amount to adjust the + shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
             dg2(float): Amount to adjust the x shear applied to the galaxy profile,
-                with \|g\| = (a-b)/(a+b), before convolving with the PSF.
+                with |g| = (a-b)/(a+b), before convolving with the PSF.
 
         Returns:
             galsim.Image: Rendering of the transformed galaxy.
